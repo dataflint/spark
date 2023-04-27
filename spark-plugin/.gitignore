@@ -1,0 +1,54 @@
+
+# From https://github.com/github/gitignore/blob/master/Scala.gitignore
+*.class
+*.log
+
+# From https://github.com/github/gitignore/blob/master/Global/SBT.gitignore
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+.history
+.cache
+.lib/
+
+# From https://github.com/github/gitignore/blob/master/Global/Eclipse.gitignore
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+.externalToolBuilders/
+*.launch
+*.pydevproject
+.cproject
+.factorypath
+.buildpath
+.target
+.tern-project
+.texlipse
+.springBeans
+.recommenders/
+
+# Scala IDE specific (Scala & Java development for Eclipse)
+.cache-main
+.cache-tests
+.classpath
+.project
+.scala_dependencies
+.worksheet
+
+.idea
+
+# custom
+null/
+plugin/src/main/resources
