@@ -2,7 +2,7 @@ package org.apache.spark
 
 object SparkUILoader {
   def load(context: SparkContext): Unit = {
-    context.ui.get.addStaticHandler("com/menis/spark/static/ui", "/custom-ui")
+    context.ui.get.addStaticHandler("com/upgraydd/spark/static/ui", "/custom-ui")
   }
 }
 

@@ -17,7 +17,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "deploy": "xcopy .\\build ..\\spark-plugin\\plugin\\src\\main\\resources\\com.menis.spark.static.ui /s /e"
+    "deploy": "xcopy .\\build ..\\spark-plugin\\plugin\\src\\main\\resources\\com\\upgraydd\\spark\\static\\ui /s /e"
   },
   "eslintConfig": {
     "extends": [

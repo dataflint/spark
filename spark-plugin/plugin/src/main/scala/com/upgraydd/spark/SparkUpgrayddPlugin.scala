@@ -1,4 +1,4 @@
-package com.menis.spark
+package com.upgraydd.spark
 
 import org.apache.spark.SparkContext
 import org.apache.spark.api.plugin.{DriverPlugin, ExecutorPlugin, PluginContext, SparkPlugin}
@@ -6,7 +6,7 @@ import org.apache.spark.api.plugin.{DriverPlugin, ExecutorPlugin, PluginContext,
 import java.util
 import scala.collection.JavaConverters.mapAsJavaMapConverter
 
-class SparkUpgreyddPlugin extends SparkPlugin {
+class SparkUpgrayddPlugin extends SparkPlugin {
   override def driverPlugin(): DriverPlugin = new SparkUpgreyddDriverPlugin()
 
   override def executorPlugin(): ExecutorPlugin = null
@@ -21,7 +21,7 @@ class SparkUpgreyddDriverPlugin extends DriverPlugin {
   }
 
   override def registerMetrics(appId: String, pluginContext: PluginContext): Unit = {
-    SparkUpgreydd.upgrade(sc)
+    SparkUpgraydd.upgrade(sc)
     super.registerMetrics(appId, pluginContext)
 
   }

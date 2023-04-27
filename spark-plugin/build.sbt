@@ -8,7 +8,7 @@ lazy val root = project
 lazy val plugin = (project in file("plugin"))
   .settings(
     name := "SparkPlugin",
-    organization := "com.menis",
+    organization := "com.upgraydd",
     scalaVersion := "2.12.13",
     version      := "0.1.0",
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.3.2" % "provided",
@@ -18,7 +18,7 @@ lazy val plugin = (project in file("plugin"))
 lazy val example_3_3_2 = (project in file("example_3_3_2"))
   .settings(
     name := "SparkExample322",
-    organization := "com.menis",
+    organization := "com.upgraydd",
     scalaVersion := "2.12.13",
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.3.2",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.3.2"

@@ -1,8 +1,8 @@
-package com.menis.example
+package com.upgraydd.example
+
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import java.nio.file.Paths
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import com.menis.spark.SparkUpgreydd
 
 object Shakespeare {
   def fsPath(resource: String): String =
@@ -19,7 +19,7 @@ object Shakespeare {
     val spark = SparkSession
       .builder
       .appName("Shakespeare")
-      .config("spark.plugins", "com.menis.spark.SparkUpgreyddPlugin")
+      .config("spark.plugins", "com.upgraydd.spark.SparkUpgrayddPlugin")
       .master("local[*]")
       .getOrCreate()
 

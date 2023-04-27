@@ -1,8 +1,8 @@
-package com.menis.spark
+package com.upgraydd.spark
 
 import org.apache.spark.{SparkContext, SparkUILoader}
 
-object SparkUpgreydd {
+object SparkUpgraydd {
   def upgrade(context: SparkContext): Unit = {
       SparkUILoader.load(context)
   }
