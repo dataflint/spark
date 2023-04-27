@@ -1,8 +1,10 @@
 package org.apache.spark
+import org.apache.spark.internal.Logging
 
 object SparkUILoader {
-  def load(context: SparkContext): Unit = {
-    context.ui.get.addStaticHandler("com/upgraydd/spark/static/ui", "/custom-ui")
+  def load(context: SparkContext): String = {
+    context.ui.get.addStaticHandler("com/upgraydd/spark/static/ui", "/upgraydd")
+    context.ui.get.webUrl
   }
 }
 
