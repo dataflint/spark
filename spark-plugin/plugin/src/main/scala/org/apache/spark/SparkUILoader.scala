@@ -1,5 +1,4 @@
 package org.apache.spark
-import org.apache.spark.internal.Logging
 
 object SparkUILoader {
   def load(context: SparkContext): String = {
