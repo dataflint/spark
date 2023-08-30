@@ -5,6 +5,10 @@ import Toolbar from '@mui/material/Toolbar';
 import Grid from '@mui/material/Grid';
 import InfoBox from './InfoBox';
 import ConfigTable from './ConfigTable';
+import ApiIcon from '@mui/icons-material/Api';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import QueueIcon from '@mui/icons-material/Queue';
 
 const WORKING_POLL_TIME = 1000
 const IDLE_POLL_TIME = 10000
@@ -83,9 +87,9 @@ export default function App() {
           "spark.app.name": sparkPropertiesObj["spark.app.name"],
           "spark.app.id": sparkPropertiesObj["spark.app.id"],
           "sun.java.command": systemPropertiesObj["sun.java.command"],
+          "spark.master": sparkPropertiesObj["spark.master"],
           "javaVersion": runtimeObj["javaVersion"],
           "scalaVersion": runtimeObj["scalaVersion"],
-          "spark.master": sparkPropertiesObj["spark.master"],
           "sparkVersion": currentSparkVersion
         });
       }
@@ -142,10 +146,10 @@ export default function App() {
       >
         <Toolbar />
         <Grid container spacing={3} sx={{ mt: 2, mb: 2}} display="flex" justifyContent="center" alignItems="center">
-          <InfoBox title="Status" text={stats?.status ?? ""}></InfoBox>
-          <InfoBox title="Input" text={stats?.totalInput ?? ""}></InfoBox>
-          <InfoBox title="Output" text={stats?.totalOutput ?? ""}></InfoBox>
-          <InfoBox title="Pending Tasks" text={stats?.totalPendingTasks?.toString() ?? ""}></InfoBox>
+          <InfoBox title="Status" text={stats?.status ?? ""} color="#7e57c2" icon={ApiIcon}></InfoBox>
+          <InfoBox title="Input" text={stats?.totalInput ?? ""} color="#26a69a" icon={ArrowDownwardIcon}></InfoBox>
+          <InfoBox title="Output" text={stats?.totalOutput ?? ""} color="#ffa726" icon={ArrowUpwardIcon}></InfoBox>
+          <InfoBox title="Pending Tasks" text={stats?.totalPendingTasks?.toString() ?? ""} icon={QueueIcon}></InfoBox>
         </Grid>
         <Grid container spacing={3} sx={{ mt: 2, mb: 2}} display="flex" justifyContent="center" alignItems="center">
           <Grid item xs={16} md={8} lg={6}>

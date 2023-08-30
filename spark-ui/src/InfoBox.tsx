@@ -1,13 +1,17 @@
 import * as React from 'react';
 import Typography from '@mui/material/Typography';
 import { Grid, Paper } from '@mui/material';
+import PropTypes from "prop-types";
 
 type InfoBoxProps = {
   title: string,
   text: string,
+  color?: string,
+  icon: React.ElementType
 }
 
-export default function InfoBox({title, text} : InfoBoxProps) {
+export default function InfoBox({title, text, color, icon} : InfoBoxProps) {
+  const Icon = icon;
   return (
     <Grid item lg={2}>
     <Paper
@@ -19,8 +23,9 @@ export default function InfoBox({title, text} : InfoBoxProps) {
       }}
     >
       <React.Fragment>
-        <Typography component="h2" variant="h6" color="primary" gutterBottom display="flex" justifyContent="center" alignItems="center">
+        <Typography component="h2" variant="h6" color={color ?? "primary"} gutterBottom display="flex" justifyContent="center" alignItems="center">
             {title}
+            <Icon sx={{ ml: 1}} />
         </Typography>
       <Typography component="p" variant="h4" display="flex" justifyContent="center" alignItems="center">
         {text}

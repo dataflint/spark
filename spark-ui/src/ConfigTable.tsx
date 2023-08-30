@@ -14,7 +14,7 @@ type ConfigTableProps = {
 export default function ConfigTable({ config }: ConfigTableProps) {
   return (
     <TableContainer component={Paper}>
-      <Table sx={{ minWidth: 300 }} size="small" aria-label="config table">
+      <Table sx={{ minWidth: 200 }} size="small" aria-label="config table">
         <TableHead>
           <TableRow>
             <TableCell>Config Name</TableCell>
