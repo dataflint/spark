@@ -11,7 +11,7 @@ export default function ButtonAppBar({appName} : {appName: string}) {
       <Toolbar>
         <FlareIcon style={{paddingRight: 10}} />
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Spark Dev tool UI - {appName}
+          Spark Dev Tool UI - {appName}
         </Typography>
         <Button href="/jobs" color="inherit" >To Spark UI</Button>
       </Toolbar>

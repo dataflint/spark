@@ -20,7 +20,7 @@ object Shakespeare {
   def main(args: Array[String]): Unit = {
     val spark = SparkSession
       .builder
-      .appName("Shakespeare")
+      .appName("Shakespeare Statistics")
       .config("spark.plugins", "com.upgraydd.spark.SparkUpgrayddPlugin")
       .config("spark.ui.port", "10000")
       .master("local[*]")
