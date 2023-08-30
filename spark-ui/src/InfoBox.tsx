@@ -1,28 +1,36 @@
 import * as React from 'react';
-import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
+import { Grid, Paper } from '@mui/material';
 
-function preventDefault(event: React.MouseEvent) {
-  event.preventDefault();
+type InfoBoxProps = {
+  title: string,
+  text: string,
 }
 
-export default function Deposits() {
+export default function InfoBox({title, text} : InfoBoxProps) {
   return (
-    <React.Fragment>
-        <Typography component="h2" variant="h6" color="primary" gutterBottom>
-            Recent Deposits
+    <Grid item lg={2}>
+    <Paper
+      sx={{
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        height: 120,
+      }}
+    >
+      <React.Fragment>
+        <Typography component="h2" variant="h6" color="primary" gutterBottom display="flex" justifyContent="center" alignItems="center">
+            {title}
         </Typography>
-      <Typography component="p" variant="h4">
-        $3,024.00
+      <Typography component="p" variant="h4" display="flex" justifyContent="center" alignItems="center">
+        {text}
       </Typography>
-      <Typography color="text.secondary" sx={{ flex: 1 }}>
-        on 15 March, 2019
-      </Typography>
-      <div>
-        <Link color="primary" href="#" onClick={preventDefault}>
-          View balance
-        </Link>
-      </div>
+      {/* <Typography color="text.secondary" sx={{ flex: 1 }}>
+        {secondaryText}
+      </Typography> */}
     </React.Fragment>
+  </Paper>
+</Grid>
+
   );
 }

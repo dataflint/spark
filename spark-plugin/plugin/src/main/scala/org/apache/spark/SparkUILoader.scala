@@ -2,7 +2,7 @@ package org.apache.spark
 
 object SparkUILoader {
   def load(context: SparkContext): String = {
-    context.ui.get.addStaticHandler("com/upgraydd/spark/static/ui", "/upgraydd")
+    context.ui.get.addStaticHandler("com/upgraydd/spark/static/ui", "/devtool")
     context.ui.get.webUrl
   }
 }

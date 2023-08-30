@@ -17,8 +17,8 @@ export default function ConfigTable({ config }: ConfigTableProps) {
       <Table sx={{ minWidth: 300 }} size="small" aria-label="config table">
         <TableHead>
           <TableRow>
-            <TableCell>Key</TableCell>
-            <TableCell align="right">Value</TableCell>
+            <TableCell>Config Name</TableCell>
+            <TableCell align="right">Config Value</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

@@ -13,14 +13,17 @@
     "react": "latest",
     "react-dom": "latest",
     "react-scripts": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "local-cors-proxy": "latest"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "deploy": "xcopy .\\build ..\\spark-plugin\\plugin\\src\\main\\resources\\com\\upgraydd\\spark\\static\\ui /s /e"
+    "proxy": "for i in {1..100}; do lcp --proxyUrl http://localhost:10000 && break || sleep 5; done",
+    "deploy": "react-scripts build && mkdir -p ../spark-plugin/plugin/src/main/resources/com/upgraydd/spark/static/ui/ && cp -r ./build/ ../spark-plugin/plugin/src/main/resources/com/upgraydd/spark/static/ui",
+    "deploy-win": "xcopy ./build ../spark-plugin/plugin/src/main/resources/com/upgraydd/spark/static/ui /s /e"
   },
   "browserslist": {
     "production": [
