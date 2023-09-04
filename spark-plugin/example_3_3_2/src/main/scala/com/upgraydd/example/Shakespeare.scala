@@ -1,4 +1,4 @@
-package com.upgraydd.example
+package com.anecdota.example
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
@@ -21,7 +21,7 @@ object Shakespeare {
     val spark = SparkSession
       .builder
       .appName("Shakespeare Statistics")
-      .config("spark.plugins", "com.upgraydd.spark.SparkUpgrayddPlugin")
+      .config("spark.plugins", "com.anecdota.spark.SparkAnecdotaPlugin")
       .config("spark.ui.port", "10000")
       .master("local[*]")
       .getOrCreate()

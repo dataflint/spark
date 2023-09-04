@@ -1,4 +1,4 @@
-package com.upgraydd.spark
+package com.anecdota.spark
 
 import org.apache.spark.{SparkContext, SparkUILoader}
 import org.apache.spark.api.plugin.{DriverPlugin, ExecutorPlugin, PluginContext, SparkPlugin}
@@ -7,7 +7,7 @@ import org.apache.spark.internal.Logging
 import java.util
 import scala.collection.JavaConverters.mapAsJavaMapConverter
 
-class SparkUpgrayddPlugin extends SparkPlugin {
+class SparkAnecdotaPlugin extends SparkPlugin {
   override def driverPlugin(): DriverPlugin = new SparkUpgreyddDriverPlugin()
 
   override def executorPlugin(): ExecutorPlugin = null
@@ -23,7 +23,7 @@ class SparkUpgreyddDriverPlugin extends DriverPlugin with Logging {
 
   override def registerMetrics(appId: String, pluginContext: PluginContext): Unit = {
     var webUrl = SparkUILoader.load(sc)
-    logInfo(s"spark upgraydd url is $webUrl/upgraydd")
+    logInfo(s"spark anecdota url is $webUrl/anecdota")
     super.registerMetrics(appId, pluginContext)
   }
 }
