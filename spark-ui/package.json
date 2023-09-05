@@ -23,7 +23,7 @@
     "eject": "react-scripts eject",
     "proxy": "for i in {1..100}; do lcp --proxyUrl http://localhost:10000 && break || sleep 5; done",
     "deploy": "react-scripts build && mkdir -p ../spark-plugin/plugin/src/main/resources/com/anecdota/spark/static/ui/ && cp -r ./build/ ../spark-plugin/plugin/src/main/resources/com/anecdota/spark/static/ui",
-    "deploy-win": "xcopy ./build ../spark-plugin/plugin/src/main/resources/com/anecdota/spark/static/ui /s /e"
+    "deploy-win": "xcopy \"./build\" \"../spark-plugin/plugin/src/main/resources/com/anecdota/spark/static/ui\" /s /e /y"
   },
   "browserslist": {
     "production": [
