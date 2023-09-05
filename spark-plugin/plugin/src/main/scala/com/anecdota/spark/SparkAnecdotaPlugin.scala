@@ -8,12 +8,12 @@ import java.util
 import scala.collection.JavaConverters.mapAsJavaMapConverter
 
 class SparkAnecdotaPlugin extends SparkPlugin {
-  override def driverPlugin(): DriverPlugin = new SparkUpgreyddDriverPlugin()
+  override def driverPlugin(): DriverPlugin = new SparkAnecdotaDriverPlugin()
 
   override def executorPlugin(): ExecutorPlugin = null
 }
 
-class SparkUpgreyddDriverPlugin extends DriverPlugin with Logging {
+class SparkAnecdotaDriverPlugin extends DriverPlugin with Logging {
   var sc: SparkContext = null
 
   override def init(sc: SparkContext, pluginContext: PluginContext): util.Map[String, String] = {
@@ -23,7 +23,7 @@ class SparkUpgreyddDriverPlugin extends DriverPlugin with Logging {
 
   override def registerMetrics(appId: String, pluginContext: PluginContext): Unit = {
     var webUrl = SparkUILoader.load(sc)
-    logInfo(s"spark anecdota url is $webUrl/anecdota")
+    logInfo(s"spark devtool url is $webUrl/devtool")
     super.registerMetrics(appId, pluginContext)
   }
 }
