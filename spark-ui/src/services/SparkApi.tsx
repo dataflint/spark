@@ -3,7 +3,7 @@ import { SparkApplications } from "../interfaces/SparkApplications";
 import { Runtime, SparkConfiguration } from "../interfaces/SparkConfiguration";
 import { SparkSQLs } from '../interfaces/SparkSQLs';
 import { SparkStages } from "../interfaces/SparkStages";
-import humanFileSize from "../utils/FormatUtils";
+import { humanFileSize } from "../utils/FormatUtils";
 
 const POLL_TIME = 1000
 
