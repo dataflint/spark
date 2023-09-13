@@ -15,7 +15,7 @@ import { CircularProgress } from '@mui/material';
 
 let BASE_PATH = ""
 if (process.env.NODE_ENV === 'development') {
-  BASE_PATH = "http://localhost:10000";
+  BASE_PATH = process.env.REACT_APP_BASE_PATH ?? ""
 }
 
 export default function App() {
