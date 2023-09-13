@@ -9,12 +9,14 @@ import ApiIcon from '@mui/icons-material/Api';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import QueueIcon from '@mui/icons-material/Queue';
+import API from './services/Api';
+import { SqlResponse } from './interfaces/SqlInterfaces';
 
 const WORKING_POLL_TIME = 1000
 const IDLE_POLL_TIME = 10000
 let BASE_PATH = ""
 if(process.env.NODE_ENV === 'development' ) {
-  BASE_PATH = "http://localhost:8010/proxy";
+  BASE_PATH = "http://localhost:10000";
 }
 const API_PATH = "api/v1";
 const APPLICATION_PATH = "applications";
@@ -46,12 +48,11 @@ function humanFileSize(bytes: number, si = true): string {
 
 export default function App() {
   const [appId, setAppId] = React.useState("");
-
   const [generalConfig, setGeneralConfig] = React.useState({ sparkVersion: undefined });
-
   const [config, setConfig] = React.useState({});
-
   const [appName, setAppName] = React.useState("");
+  const [sqlData, setSqlData] = React.useState<SqlResponse | undefined>();
+
 
   const [stats, setStats] = React.useState<StatusProps>();
 
@@ -92,6 +93,8 @@ export default function App() {
           "scalaVersion": runtimeObj["scalaVersion"],
           "sparkVersion": currentSparkVersion
         });
+
+        setSqlData(await API.getSqlData(currentAppId));
       }
 
       const stagesRes = await fetch(`${appIdBasePath}/${STAGES_PATH}`);

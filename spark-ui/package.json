@@ -10,11 +10,12 @@
     "@mui/material": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "local-cors-proxy": "latest",
     "react": "latest",
     "react-dom": "latest",
     "react-scripts": "latest",
-    "typescript": "latest",
-    "local-cors-proxy": "latest"
+    "reactflow": "^11.8.3",
+    "typescript": "latest"
   },
   "scripts": {
     "start": "react-scripts start",
