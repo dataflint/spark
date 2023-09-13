@@ -6,7 +6,7 @@ import org.apache.spark.sql.functions._
 import java.nio.file.Paths
 
 object Shakespeare {
-  def fsPath(resource: String): String =
+    def fsPath(resource: String): String =
     Paths.get(this.getClass.getResource(resource).toURI).toString
 
   def df(spark: SparkSession): DataFrame = spark.read
