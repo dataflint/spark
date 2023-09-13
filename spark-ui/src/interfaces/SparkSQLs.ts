@@ -1,7 +1,5 @@
 
-export interface SqlResponse {
-    sqlList: SparkSQL[]
-}
+export type SparkSQLs = SparkSQL[]
 
 export interface SparkSQL {
     id: string
