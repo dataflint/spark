@@ -1,33 +1,37 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
-import AppBar from './AppBar';
+import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
-import Grid from '@mui/material/Grid';
-import InfoBox from './InfoBox';
-import ConfigTable from './ConfigTable';
-import ApiIcon from '@mui/icons-material/Api';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import QueueIcon from '@mui/icons-material/Queue';
 import SparkAPI from './services/SparkApi';
 import { AppStore } from './interfaces/AppStore';
 import { CircularProgress } from '@mui/material';
-import SqlFlow from './components/SqlFlow/SqlFlow';
-
-let BASE_PATH = ""
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import StatusTab from './StatusTab';
+import ConfigurationTab from './ConfigurationTab';
+import DevtoolAppBar from './DevtoolAppBar';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import AdjustIcon from '@mui/icons-material/Adjust';
+import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
+const drawerWidth = 240;
+let BASE_PATH = "";
 if (process.env.NODE_ENV === 'development') {
-  BASE_PATH = process.env.REACT_APP_BASE_PATH ?? ""
+  BASE_PATH = process.env.REACT_APP_BASE_PATH ?? "";
 }
 
 export default function App() {
   const [store, setStore] = React.useState<AppStore>();
+  const [selectedTab, setSelectedTab] = React.useState('status');
 
   React.useEffect(() => {
     const sparkAPI = new SparkAPI(BASE_PATH, setStore, () => store)
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);
-
+  
   return (
     store === undefined ?
       (
@@ -41,36 +45,50 @@ export default function App() {
         </Box>
       )
       :
-      (<Box sx={{ display: 'flex' }}>
-        <AppBar appName={store.appName} />
-        <Box
-          component="main"
-          sx={{
-            backgroundColor: (theme) =>
-              theme.palette.mode === 'light'
-                ? theme.palette.grey[100]
-                : theme.palette.grey[900],
-            flexGrow: 1,
-            height: '100vh',
-            overflow: 'auto',
-          }}
-        >
-
-          <Toolbar />
-          <Grid container spacing={3} sx={{ mt: 2, mb: 2 }} display="flex" justifyContent="center" alignItems="center">
-            <InfoBox title="Status" text={store.status.status} color="#7e57c2" icon={ApiIcon}></InfoBox>
-            <InfoBox title="Input" text={store.status.totalInput} color="#26a69a" icon={ArrowDownwardIcon}></InfoBox>
-            <InfoBox title="Output" text={store.status.totalOutput} color="#ffa726" icon={ArrowUpwardIcon}></InfoBox>
-            <InfoBox title="Pending Tasks" text={store.status.totalPendingTasks.toString()} icon={QueueIcon}></InfoBox>
-          </Grid>
-          <div style={{ height: '50%' }}>
-            <SqlFlow sparkSQLs={store.sql} />
-          </div>
-          <Grid container spacing={3} sx={{ mt: 2, mb: 2 }} display="flex" justifyContent="center" alignItems="center">
-            <Grid item xs={16} md={8} lg={6}>
-              <ConfigTable config={store.config} />
-            </Grid>
-          </Grid>
+      (
+        <Box sx={{ display: 'flex' }}>
+          <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }} color="primary" enableColorOnDark>
+            <DevtoolAppBar appName={store.appName} />
+          </AppBar>
+          <Drawer
+            variant="permanent"
+            sx={{
+              width: drawerWidth,
+              flexShrink: 0,
+              [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+            }}
+          >
+            <Toolbar />
+            <Box sx={{ overflow: 'auto' }}>
+              <List>
+                {['Status', 'Configuration'].map((text, index) => (
+                  <ListItem key={text} disablePadding >
+                    <ListItemButton selected={selectedTab === text.toLowerCase()} onClick={() => setSelectedTab(text.toLowerCase())}>
+                      <ListItemIcon>
+                        {text == "Status" ? <AdjustIcon /> : <SettingsApplicationsIcon />}
+                      </ListItemIcon>
+                      <ListItemText primary={text} />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          </Drawer>
+          <Box
+            component="main"
+            sx={{
+              backgroundColor: (theme) =>
+                theme.palette.mode === 'light'
+                  ? theme.palette.grey[100]
+                  : theme.palette.grey[900],
+              flexGrow: 1,
+              height: '100vh',
+              overflow: 'auto',
+              pt: '64px'
+            }}
+          >
+          {selectedTab === 'status' ? <StatusTab store={store} /> : <ConfigurationTab config={store.config} />}
+          </Box>
         </Box>
-      </Box>));
+        ))
 }
