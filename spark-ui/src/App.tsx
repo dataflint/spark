@@ -10,12 +10,13 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import QueueIcon from '@mui/icons-material/Queue';
 import API from './services/Api';
-import { SqlResponse } from './interfaces/SqlInterfaces';
+import { SparkSQL, SqlResponse } from './interfaces/SqlInterfaces';
+import SqlFlow from './components/SqlFlow/SqlFlow';
 
 const WORKING_POLL_TIME = 1000
 const IDLE_POLL_TIME = 10000
 let BASE_PATH = ""
-if(process.env.NODE_ENV === 'development' ) {
+if (process.env.NODE_ENV === 'development') {
   BASE_PATH = "http://localhost:10000";
 }
 const API_PATH = "api/v1";
@@ -51,7 +52,7 @@ export default function App() {
   const [generalConfig, setGeneralConfig] = React.useState({ sparkVersion: undefined });
   const [config, setConfig] = React.useState({});
   const [appName, setAppName] = React.useState("");
-  const [sqlData, setSqlData] = React.useState<SqlResponse | undefined>();
+  const [sqlData, setSqlData] = React.useState<SparkSQL[]| undefined>();
 
 
   const [stats, setStats] = React.useState<StatusProps>();
@@ -99,13 +100,13 @@ export default function App() {
 
       const stagesRes = await fetch(`${appIdBasePath}/${STAGES_PATH}`);
       const stagesData = await stagesRes.json();
-      const stagesDataClean = stagesData.filter((stage: Record<string, any>) =>  stage.status != "SKIPPED")
+      const stagesDataClean = stagesData.filter((stage: Record<string, any>) => stage.status != "SKIPPED")
       const totalActiveTasks = stagesDataClean.map((stage: Record<string, any>) => stage.numActiveTasks).reduce((a: number, b: number) => a + b, 0);
       const totalPendingTasks = stagesDataClean.map((stage: Record<string, any>) => stage.numTasks - stage.numActiveTasks - stage.numFailedTasks - stage.numCompleteTasks).reduce((a: number, b: number) => a + b, 0);
       const totalInput = stagesDataClean.map((stage: Record<string, any>) => stage.inputBytes).reduce((a: number, b: number) => a + b, 0);
       const totalOutput = stagesDataClean.map((stage: Record<string, any>) => stage.outputBytes).reduce((a: number, b: number) => a + b, 0);
       const status = totalActiveTasks == 0 ? "idle" : "working";
-      if(status == "idle"){
+      if (status == "idle") {
         POLL_TIME = IDLE_POLL_TIME
       } else {
         POLL_TIME = WORKING_POLL_TIME
@@ -131,6 +132,11 @@ export default function App() {
     return () => clearInterval(timer)
   }, []);
 
+  console.log();
+  const sqlNodes = sqlData ? sqlData[0].nodes : [];
+  const sqlEdges = sqlData ? sqlData[0].edges : [];
+
+
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -147,14 +153,18 @@ export default function App() {
           overflow: 'auto',
         }}
       >
+
         <Toolbar />
-        <Grid container spacing={3} sx={{ mt: 2, mb: 2}} display="flex" justifyContent="center" alignItems="center">
+        <Grid container spacing={3} sx={{ mt: 2, mb: 2 }} display="flex" justifyContent="center" alignItems="center">
           <InfoBox title="Status" text={stats?.status ?? ""} color="#7e57c2" icon={ApiIcon}></InfoBox>
           <InfoBox title="Input" text={stats?.totalInput ?? ""} color="#26a69a" icon={ArrowDownwardIcon}></InfoBox>
           <InfoBox title="Output" text={stats?.totalOutput ?? ""} color="#ffa726" icon={ArrowUpwardIcon}></InfoBox>
           <InfoBox title="Pending Tasks" text={stats?.totalPendingTasks?.toString() ?? ""} icon={QueueIcon}></InfoBox>
         </Grid>
-        <Grid container spacing={3} sx={{ mt: 2, mb: 2}} display="flex" justifyContent="center" alignItems="center">
+        <div style={{ height: '50%' }}>
+          <SqlFlow initNodes={sqlNodes} initEdges={sqlEdges}/>
+        </div>
+        <Grid container spacing={3} sx={{ mt: 2, mb: 2 }} display="flex" justifyContent="center" alignItems="center">
           <Grid item xs={16} md={8} lg={6}>
             <ConfigTable config={config} />
           </Grid>

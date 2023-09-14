@@ -1,4 +1,4 @@
-import { SqlResponse } from "../interfaces/SqlInterfaces";
+import { SparkSQL, SqlResponse } from "../interfaces/SqlInterfaces";
 
 class API {
     static BASE_PATH = process.env.NODE_ENV === 'development' ? "http://localhost:10000": "";
@@ -7,7 +7,7 @@ class API {
     static SQL = "sql"
 
 
-    static async getSqlData(appId: string): Promise<SqlResponse | undefined> {
+    static async getSqlData(appId: string): Promise<SparkSQL[]| undefined> {
         try {
             var path = `${API.APPLICATION_PATH}/${appId}/${API.SQL}`;
             const result = await fetch(path);

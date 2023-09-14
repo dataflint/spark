@@ -10,12 +10,14 @@
     "@mui/material": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "dagre": "^0.8.5",
     "local-cors-proxy": "latest",
     "react": "latest",
     "react-dom": "latest",
     "react-scripts": "latest",
     "reactflow": "^11.8.3",
-    "typescript": "latest"
+    "typescript": "latest",
+    "uuid": "^9.0.1"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -37,5 +39,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/dagre": "^0.7.49",
+    "@types/uuid": "^9.0.3"
   }
 }

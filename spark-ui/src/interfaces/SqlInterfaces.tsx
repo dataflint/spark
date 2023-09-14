@@ -14,7 +14,7 @@ export interface SparkSQL {
     successJobIds: number[]
     failedJobIds: number[]
     nodes: SqlNode[]
-    edge: SqlEdge[]
+    edges: SqlEdge[]
 }
 
 export interface SqlNode {
