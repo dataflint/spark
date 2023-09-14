@@ -54,6 +54,7 @@ class SqlLayoutService {
             return {
                 id: uuidv4(),
                 source: edge.fromId.toString(),
+                animated: true,
                 target: edge.toId.toString()
             }
         });

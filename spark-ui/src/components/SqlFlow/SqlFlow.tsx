@@ -5,6 +5,7 @@ import ReactFlow, {
     Panel,
     useNodesState,
     useEdgesState,
+    MiniMap,
 } from 'reactflow';
 import dagre, { Edge } from 'dagre';
 
@@ -46,9 +47,12 @@ const SqlFlow: FC<{ sparkSQLs: SparkSQLs | undefined }> = (
             onConnect={onConnect}
             connectionLineType={ConnectionLineType.SmoothStep}
             edgesUpdatable={false}
+            nodesDraggable={false}
+            nodesConnectable={false}
             proOptions={options}
             fitView
-        />
+        >
+        </ReactFlow>
     );
 };
 
