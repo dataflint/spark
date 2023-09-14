@@ -12,6 +12,9 @@ import 'reactflow/dist/style.css';
 import SqlLayoutService from './SqlLayoutService';
 import { SparkSQLs, SqlEdge, SqlNode } from '../../interfaces/SparkSQLs';
 
+
+const options = { hideAttribution: true };
+
 const SqlFlow: FC<{ sparkSQLs: SparkSQLs | undefined }> = (
     { sparkSQLs = [] }): JSX.Element => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -42,6 +45,8 @@ const SqlFlow: FC<{ sparkSQLs: SparkSQLs | undefined }> = (
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             connectionLineType={ConnectionLineType.SmoothStep}
+            edgesUpdatable={false}
+            proOptions={options}
             fitView
         />
     );
