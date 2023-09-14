@@ -20,7 +20,8 @@
     "uuid": "^9.0.1"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "REACT_APP_BASE_PATH=http://localhost:8010/proxy react-scripts start",
+    "start-windwos": "set \"REACT_APP_BASE_PATH=http://localhost:10000\" && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
