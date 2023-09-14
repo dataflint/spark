@@ -1,11 +1,11 @@
-import React, { FC, useCallback, useEffect } from 'react';
+import React, { FC, useCallback, useEffect, useState } from 'react';
 import ReactFlow, {
     addEdge,
     ConnectionLineType,
     Panel,
     useNodesState,
     useEdgesState,
-    MiniMap,
+    ReactFlowInstance,
 } from 'reactflow';
 import dagre, { Edge } from 'dagre';
 
@@ -18,6 +18,7 @@ const options = { hideAttribution: true };
 
 const SqlFlow: FC<{ sparkSQLs: SparkSQLs | undefined }> = (
     { sparkSQLs = [] }): JSX.Element => {
+    const [instance, setInstace] = useState<ReactFlowInstance | undefined>();
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
@@ -28,6 +29,7 @@ const SqlFlow: FC<{ sparkSQLs: SparkSQLs | undefined }> = (
             sparkSQLs[sparkSQLs.length - 1].nodes, sparkSQLs[sparkSQLs.length - 1].edges);
         setNodes(nodes);
         setEdges(edges);
+        instance?.fitView();
     }, [sparkSQLs]);
 
     const onConnect = useCallback(
@@ -45,6 +47,7 @@ const SqlFlow: FC<{ sparkSQLs: SparkSQLs | undefined }> = (
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onInit={(flowInstance) => setInstace(flowInstance)}
             connectionLineType={ConnectionLineType.SmoothStep}
             edgesUpdatable={false}
             nodesDraggable={false}
