@@ -12,7 +12,8 @@ import 'reactflow/dist/style.css';
 import SqlLayoutService from './SqlLayoutService';
 import { SqlEdge, SqlNode } from '../../interfaces/SparkSQLs';
 
-const SqlFlow: FC<{ initNodes: SqlNode[] | undefined, initEdges: SqlEdge[] | undefined }> = ({ initNodes = [], initEdges = [] }): JSX.Element => {
+const SqlFlow: FC<{ initNodes: SqlNode[] | undefined, initEdges: SqlEdge[] | undefined }> = (
+    { initNodes = [], initEdges = [] }): JSX.Element => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
