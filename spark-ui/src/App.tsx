@@ -12,6 +12,7 @@ import QueueIcon from '@mui/icons-material/Queue';
 import SparkAPI from './services/SparkApi';
 import { AppStore } from './interfaces/AppStore';
 import { CircularProgress } from '@mui/material';
+import SqlFlow from './components/SqlFlow/SqlFlow';
 
 let BASE_PATH = ""
 if (process.env.NODE_ENV === 'development') {
@@ -54,18 +55,18 @@ export default function App() {
             overflow: 'auto',
           }}
         >
-  
-        <Toolbar />
-          <Grid container spacing={3} sx={{ mt: 2, mb: 2  }} display="flex" justifyContent="center" alignItems="center">
+
+          <Toolbar />
+          <Grid container spacing={3} sx={{ mt: 2, mb: 2 }} display="flex" justifyContent="center" alignItems="center">
             <InfoBox title="Status" text={store.status.status} color="#7e57c2" icon={ApiIcon}></InfoBox>
             <InfoBox title="Input" text={store.status.totalInput} color="#26a69a" icon={ArrowDownwardIcon}></InfoBox>
             <InfoBox title="Output" text={store.status.totalOutput} color="#ffa726" icon={ArrowUpwardIcon}></InfoBox>
             <InfoBox title="Pending Tasks" text={store.status.totalPendingTasks.toString()} icon={QueueIcon}></InfoBox>
           </Grid>
           <div style={{ height: '50%' }}>
-          <SqlFlow initNodes={store.sql[0].nodes} initEdges={store.sql[0].edges}/>
-        </div>
-        <Grid container spacing={3} sx={{ mt: 2, mb: 2  }} display="flex" justifyContent="center" alignItems="center">
+            <SqlFlow initNodes={store.sql[0].nodes} initEdges={store.sql[0].edges} />
+          </div>
+          <Grid container spacing={3} sx={{ mt: 2, mb: 2 }} display="flex" justifyContent="center" alignItems="center">
             <Grid item xs={16} md={8} lg={6}>
               <ConfigTable config={store.config} />
             </Grid>

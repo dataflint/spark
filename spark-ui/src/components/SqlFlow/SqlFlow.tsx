@@ -9,44 +9,18 @@ import ReactFlow, {
 import dagre, { Edge } from 'dagre';
 
 import 'reactflow/dist/style.css';
-import { SqlEdge, SqlNode } from '../../interfaces/SqlInterfaces';
-import SqlNodeService from './SqlNodeService';
+import SqlLayoutService from './SqlLayoutService';
+import { SqlEdge, SqlNode } from '../../interfaces/SparkSQLs';
 
-// const initialEdges = [
-//     { id: '1-2', source: '1', target: '2' },
-//     { id: '1-3', source: '1', target: '3' },
-//     // { id: '1-3', source: '1', target: '3' }
-// ];
-
-// const initialNodes = [
-//     {
-//         id: '1',
-//         data: { label: 'Hello' },
-//         // position: { x: 0, y: 0 },
-//         type: 'input',
-//     },
-//     {
-//         id: '2',
-//         data: { label: 'World' },
-//         // position: { x: 100, y: 100 },
-//     },
-//     {
-//         id: '3',
-//         data: { label: 'Hehehe' },
-//         // position: { x: 100, y: 100 },
-//     },
-// ];
-
-
-const SqlFlow: FC<{initNodes:SqlNode[] | undefined, initEdges: SqlEdge[] | undefined}> = ({initNodes=[], initEdges=[]}): JSX.Element => {
+const SqlFlow: FC<{ initNodes: SqlNode[] | undefined, initEdges: SqlEdge[] | undefined }> = ({ initNodes = [], initEdges = [] }): JSX.Element => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
     React.useEffect(() => {
-        const {nodes, edges} = SqlNodeService.SqlElementsToLayout(initNodes,initEdges);
+        const { nodes, edges } = SqlLayoutService.SqlElementsToLayout(initNodes, initEdges);
         setNodes(nodes);
         setEdges(edges);
-    }, [initNodes,initEdges]);
+    }, [initNodes, initEdges]);
 
     const onConnect = useCallback(
         (params: any) =>

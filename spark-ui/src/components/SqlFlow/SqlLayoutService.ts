@@ -1,7 +1,7 @@
 import dagre from "dagre";
-import { SqlEdge, SqlNode } from "../../interfaces/SqlInterfaces";
 import { Node, Edge, Position } from "reactflow"
 import {v4 as uuidv4} from 'uuid';
+import { SqlEdge, SqlNode } from "../../interfaces/SparkSQLs";
 
 
 const dagreGraph = new dagre.graphlib.Graph();
@@ -41,7 +41,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]): {nodes: Node[], edge
     return { nodes, edges };
 };
 
-class SqlNodeService {
+class SqlLayoutService {
     static SqlElementsToLayout(sqlNodes: SqlNode[], sqlEdges: SqlEdge[]): {nodes: Node[], edges: Edge[]} {
         const flowNodes: Node[] = sqlNodes.map((node: SqlNode) => {
             return {
@@ -63,4 +63,4 @@ class SqlNodeService {
     }
 }
 
-export default SqlNodeService;
+export default SqlLayoutService;
