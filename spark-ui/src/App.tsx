@@ -64,7 +64,7 @@ export default function App() {
             <InfoBox title="Pending Tasks" text={store.status.totalPendingTasks.toString()} icon={QueueIcon}></InfoBox>
           </Grid>
           <div style={{ height: '50%' }}>
-            <SqlFlow initNodes={store.sql[0] && store.sql[0].nodes} initEdges={store.sql[0] && store.sql[0].edges} />
+            <SqlFlow sparkSQLs={store.sql} />
           </div>
           <Grid container spacing={3} sx={{ mt: 2, mb: 2 }} display="flex" justifyContent="center" alignItems="center">
             <Grid item xs={16} md={8} lg={6}>
