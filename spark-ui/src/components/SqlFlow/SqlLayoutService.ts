@@ -1,16 +1,18 @@
 import dagre from "dagre";
 import { Node, Edge, Position } from "reactflow"
-import {v4 as uuidv4} from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { SqlEdge, SqlNode } from "../../interfaces/SparkSQLs";
+import { StageNodeName } from "./StageNode";
+import { EnrichedSparkSQL, EnrichedSqlEdge, EnrichedSqlNode } from "../../interfaces/AppStore";
 
 
 const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-const nodeWidth = 172;
-const nodeHeight = 36;
+const nodeWidth = 180;
+const nodeHeight = 150;
 
-const getLayoutedElements = (nodes: Node[], edges: Edge[]): {nodes: Node[], edges: Edge[]} => {
+const getLayoutedElements = (nodes: Node[], edges: Edge[]): { nodes: Node[], edges: Edge[] } => {
     dagreGraph.setGraph({ rankdir: 'LR' });
 
     nodes.forEach((node) => {
@@ -42,15 +44,16 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]): {nodes: Node[], edge
 };
 
 class SqlLayoutService {
-    static SqlElementsToLayout(sqlNodes: SqlNode[], sqlEdges: SqlEdge[]): {nodes: Node[], edges: Edge[]} {
-        const flowNodes: Node[] = sqlNodes.map((node: SqlNode) => {
+    static SqlElementsToLayout(sqlNodes: EnrichedSqlNode[], sqlEdges: EnrichedSqlEdge[]): { nodes: Node[], edges: Edge[] } {
+        const flowNodes: Node[] = sqlNodes.filter(node => node.isVisible).map((node: EnrichedSqlNode) => {
             return {
                 id: node.nodeId.toString(),
-                data: { label: node.nodeName },
-                position: {x:0, y:0}
+                data: { label: node.nodeName, metrics: node.metrics },
+            type: StageNodeName,
+                position: { x: 0, y: 0 }
             }
         });
-        const flowEdges: Edge[] = sqlEdges.map((edge: SqlEdge) => {
+        const flowEdges: Edge[] = sqlEdges.map((edge: EnrichedSqlEdge) => {
             return {
                 id: uuidv4(),
                 source: edge.fromId.toString(),
@@ -58,9 +61,9 @@ class SqlLayoutService {
                 target: edge.toId.toString()
             }
         });
-        
-        const {nodes, edges} = getLayoutedElements(flowNodes, flowEdges);
-        return {nodes,edges};
+
+        const { nodes, edges } = getLayoutedElements(flowNodes, flowEdges);
+        return { nodes, edges };
     }
 }
 

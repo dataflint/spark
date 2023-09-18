@@ -12,9 +12,12 @@ import dagre, { Edge } from 'dagre';
 import 'reactflow/dist/style.css';
 import SqlLayoutService from './SqlLayoutService';
 import { EnrichedSparkSQL } from '../../interfaces/AppStore';
+import { StageNode, StageNodeName } from './StageNode';
 
 
 const options = { hideAttribution: true };
+const nodeTypes = { [StageNodeName]: StageNode };
+
 
 const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = (
     { sparkSQL }): JSX.Element => {
@@ -24,7 +27,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = (
 
     React.useEffect(() => {
         const { nodes, edges } = SqlLayoutService.SqlElementsToLayout(
-            sparkSQL.nodes, sparkSQL.edges);
+            sparkSQL.nodes.filter((node) => node.isVisible), sparkSQL.edges);
         setNodes(nodes);
         setEdges(edges);
         instance?.fitView();
@@ -45,6 +48,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = (
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            nodeTypes={nodeTypes}
             onInit={(flowInstance) => setInstace(flowInstance)}
             connectionLineType={ConnectionLineType.SmoothStep}
             edgesUpdatable={false}
