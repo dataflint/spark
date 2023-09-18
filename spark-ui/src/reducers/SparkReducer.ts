@@ -28,7 +28,7 @@ function calcNodeType(name: string): NodeType {
         return "input";
     } else if(name === "Execute InsertIntoHadoopFsRelationCommand") {
         return "output";
-    } else if(name === "BroadcastHashJoin" || name === "SortMergeJoin" || "CollectLimit") {
+    } else if(name === "BroadcastHashJoin" || name === "SortMergeJoin" || name === "CollectLimit") {
         return "join";
     } else if(name === "filter") {
         return "transformation";
@@ -52,12 +52,20 @@ function calcNodeMetrics(type: NodeType, metrics: EnrichedSqlMetric[]): Enriched
 
 function calculateSql(sqls: SparkSQL): EnrichedSparkSQL {
     const enrichedSql = sqls as EnrichedSparkSQL;
-    enrichedSql.nodes = enrichedSql.nodes.map(node => {
+    const nodes = enrichedSql.nodes.map(node => {
         const type = calcNodeType(node.nodeName);
         return {...node, metrics: calcNodeMetrics(type, node.metrics), type: type, isVisible: type !== "other"};
-    })
-    // TODO: add logic
-    return enrichedSql;
+    });
+
+    if(nodes.filter(node => node.type === 'output').length === 0) {
+        // if there is no output, update the last node which is not "AdaptiveSparkPlan" to be the output
+        const filtered = nodes.filter(node => node.nodeName !== "AdaptiveSparkPlan")
+        const lastNode = filtered[filtered.length - 1];
+        lastNode.type = 'output';
+        lastNode.isVisible = true;
+    }
+
+    return {...enrichedSql, nodes: nodes};
 }
 
 function calculateSqls(sqls: SparkSQLs): EnrichedSparkSQL[] {
