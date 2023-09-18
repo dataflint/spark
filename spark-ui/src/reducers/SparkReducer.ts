@@ -1,5 +1,5 @@
 import { ApiAction } from "../interfaces/APIAction";
-import { AppStore, EnrichedSparkSQL, SparkSQLStore, StatusStore } from '../interfaces/AppStore';
+import { AppStore, EnrichedSparkSQL, EnrichedSqlMetric, NodeType, SparkSQLStore, StatusStore } from '../interfaces/AppStore';
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
 import { SparkSQL, SparkSQLs } from "../interfaces/SparkSQLs";
 import { SparkStages } from "../interfaces/SparkStages";
@@ -23,8 +23,39 @@ function extractConfig(sparkConfiguration: SparkConfiguration): [string, Record<
     return [appName, config]
 }
 
+function calcNodeType(name: string): NodeType {
+    if(name === "Scan csv" || name === "Scan text") {
+        return "input";
+    } else if(name === "Execute InsertIntoHadoopFsRelationCommand") {
+        return "output";
+    } else if(name === "BroadcastHashJoin" || name === "SortMergeJoin" || "CollectLimit") {
+        return "join";
+    } else if(name === "filter") {
+        return "transformation";
+    } else {
+        return "other"
+    }
+}
+
+const metricAllowlist: Record<NodeType, Array<string>> = {
+    "input": ["number of output rows", "number of files", "size of files"],
+    "output": ["number of written files", "number of output rows", "written output"],
+    "join": ["number of output rows"],
+    "transformation": ["number of output rows"],
+    "other": []
+}
+
+function calcNodeMetrics(type: NodeType, metrics: EnrichedSqlMetric[]): EnrichedSqlMetric[] {
+    const allowList = metricAllowlist[type];
+    return metrics.filter(metric => allowList.includes(metric.name))
+}
+
 function calculateSql(sqls: SparkSQL): EnrichedSparkSQL {
     const enrichedSql = sqls as EnrichedSparkSQL;
+    enrichedSql.nodes = enrichedSql.nodes.map(node => {
+        const type = calcNodeType(node.nodeName);
+        return {...node, metrics: calcNodeMetrics(type, node.metrics), type: type, isVisible: type !== "other"};
+    })
     // TODO: add logic
     return enrichedSql;
 }

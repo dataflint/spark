@@ -1,3 +1,5 @@
+export type NodeType = "input" | "output" | "transformation" | "other" | "join";
+
 export interface AppStore {
     isInitialized: boolean
     appId: string | undefined
@@ -38,6 +40,8 @@ export interface EnrichedSqlNode {
     nodeId: number
     nodeName: string
     metrics: EnrichedSqlMetric[]
+    type: NodeType
+    isVisible: boolean
     wholeStageCodegenId? :number
 }
 
