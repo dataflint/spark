@@ -48,6 +48,11 @@ class SparkAPI {
     }
 
     async fetchData(): Promise<void> {
+        if (document.hidden) {
+            // skip fetching when tab is not in focus
+            // TODO: skip also the interval when tab is not in focus
+            return;
+        }
         try {
             if(!this.initialized) {
                 this.initialized = true
