@@ -13,13 +13,10 @@ type InfoBoxProps = {
 
 export default function InfoBox({title, text, color, icon} : InfoBoxProps) {
   const Icon = icon;
-
-  const [displayText, setDisplayText] = React.useState(text);
   const [blink, setBlink] = React.useState(false);
 
   React.useEffect(() => {
     setBlink(true);
-    setDisplayText(text);
     const timer = setTimeout(() => {
       setBlink(false);
     }, 500);  // Animation duration
@@ -42,7 +39,7 @@ export default function InfoBox({title, text, color, icon} : InfoBoxProps) {
             <Icon sx={{ ml: 1}} />
         </Typography>
       <Typography component="p" variant="h4" display="flex" justifyContent="center" alignItems="center" className={blink ? styles.blink: ""}>
-        {displayText}
+        {text}
       </Typography>
       {/* <Typography color="text.secondary" sx={{ flex: 1 }}>
         {secondaryText}

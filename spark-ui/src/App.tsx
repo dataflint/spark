@@ -3,8 +3,8 @@ import Box from '@mui/material/Box';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import SparkAPI from './services/SparkApi';
-import { AppStore } from './interfaces/AppStore';
-import { CircularProgress } from '@mui/material';
+import { AppStore, EnrichedSparkSQL, StatusStore } from './interfaces/AppStore';
+import { CircularProgress, Grid } from '@mui/material';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -16,6 +16,15 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import AdjustIcon from '@mui/icons-material/Adjust';
 import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
+import { sparkApiReducer } from './reducers/SparkReducer';
+import { ApiAction } from './interfaces/APIAction';
+import Progress from './components/Progress';
+import InfoBox from './InfoBox';
+import ApiIcon from '@mui/icons-material/Api';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import QueueIcon from '@mui/icons-material/Queue';
+import SqlFlow from './components/SqlFlow/SqlFlow';
 const drawerWidth = 240;
 let BASE_PATH = "";
 if (process.env.NODE_ENV === 'development') {
@@ -23,32 +32,34 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export default function App() {
-  const [store, setStore] = React.useState<AppStore>();
+  const initialState: AppStore = {
+    isInitialized: false,
+    appId: undefined,
+    sparkVersion: undefined,
+    appName: undefined,
+    status: undefined,
+    config: undefined,
+    sql: undefined
+  };
+  const [store, dispatcher] = React.useReducer(sparkApiReducer, initialState);
   const [selectedTab, setSelectedTab] = React.useState('status');
 
   React.useEffect(() => {
-    const sparkAPI = new SparkAPI(BASE_PATH, setStore, () => store)
+    const sparkAPI = new SparkAPI(BASE_PATH, dispatcher, () => store)
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);
   
   return (
-    store === undefined ?
+    !store.isInitialized ?
       (
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="100vh"
-        >
-          <CircularProgress />
-        </Box>
+        <Progress />
       )
       :
       (
         <Box sx={{ display: 'flex' }}>
           <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }} color="primary" enableColorOnDark>
-            <DevtoolAppBar appName={store.appName} />
+            <DevtoolAppBar appName={store.appName ?? ""} />
           </AppBar>
           <Drawer
             variant="permanent"
@@ -87,7 +98,9 @@ export default function App() {
               pt: '64px'
             }}
           >
-          {selectedTab === 'status' ? <StatusTab store={store} /> : <ConfigurationTab config={store.config} />}
+          {selectedTab === 'status' ? 
+            <StatusTab sql={store.sql} status={store.status} />  : 
+            <ConfigurationTab config={(store.config as Record<string, string>)} />}
           </Box>
         </Box>
         ))
