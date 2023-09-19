@@ -100,7 +100,7 @@ function updateSqlMetrics(existingSql: EnrichedSparkSQL, sql: SparkSQL): Enriche
         return {...node, metrics: updatedMetrics};
     });
 
-    return {...existingSql, nodes: nodesWithUpdatedMetrics};
+    return {...existingSql, metricUpdateId: uuidv4(), nodes: nodesWithUpdatedMetrics};
 }
 
 function calculateSql(sql: SparkSQL): EnrichedSparkSQL {
