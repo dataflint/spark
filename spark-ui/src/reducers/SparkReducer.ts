@@ -1,10 +1,11 @@
 import { ApiAction } from "../interfaces/APIAction";
-import { AppStore, EnrichedSparkSQL, EnrichedSqlMetric, NodeType, SparkSQLStore, StatusStore } from '../interfaces/AppStore';
+import { AppStore, EnrichedSparkSQL, EnrichedSqlMetric, NodeType, SparkSQLStore, StatusStore, EnrichedSqlEdge, EnrichedSqlNode } from '../interfaces/AppStore';
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
 import { SparkSQL, SparkSQLs } from "../interfaces/SparkSQLs";
 import { SparkStages } from "../interfaces/SparkStages";
 import { humanFileSize } from "../utils/FormatUtils";
 import isEqual from 'lodash/isEqual';
+import { Edge, Graph } from 'graphlib';
 
 function extractConfig(sparkConfiguration: SparkConfiguration): [string, Record<string, string>] {
     const sparkPropertiesObj = Object.fromEntries(sparkConfiguration.sparkProperties);
@@ -28,7 +29,7 @@ function calcNodeType(name: string): NodeType {
         return "input";
     } else if(name === "Execute InsertIntoHadoopFsRelationCommand") {
         return "output";
-    } else if(name === "BroadcastHashJoin" || name === "SortMergeJoin" || name === "CollectLimit") {
+    } else if(name === "BroadcastHashJoin" || name === "SortMergeJoin" || name === "CollectLimit" || name === "BroadcastNestedLoopJoin") {
         return "join";
     } else if(name === "filter") {
         return "transformation";
@@ -50,22 +51,79 @@ function calcNodeMetrics(type: NodeType, metrics: EnrichedSqlMetric[]): Enriched
     return metrics.filter(metric => allowList.includes(metric.name))
 }
 
-function calculateSql(sqls: SparkSQL): EnrichedSparkSQL {
-    const enrichedSql = sqls as EnrichedSparkSQL;
-    const nodes = enrichedSql.nodes.map(node => {
-        const type = calcNodeType(node.nodeName);
-        return {...node, metrics: calcNodeMetrics(type, node.metrics), type: type, isVisible: type !== "other"};
+export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): [EnrichedSqlEdge[], EnrichedSqlNode[]] {
+    var g = new Graph();
+    nodes.forEach(node => g.setNode(node.nodeId.toString()));
+    edges.forEach(edge => g.setEdge(edge.fromId.toString(), edge.toId.toString()));
+
+    const notVisibleNodes = nodes.filter(node => !node.isVisible)
+
+    notVisibleNodes.forEach(node => {
+        const nodeId = node.nodeId.toString()
+        const inEdges = g.inEdges(nodeId) as Edge[];
+        if (inEdges === undefined) {
+            return;
+        }
+        const targets = (g.outEdges(nodeId) as Edge[]);
+        if (targets === undefined || targets.length === 0) {
+            return;
+        }
+        const target = targets[0]
+        inEdges.forEach(inEdge => g.setEdge(inEdge.v, target.w));
+        g.removeNode(nodeId)
+        
     });
 
-    if(nodes.filter(node => node.type === 'output').length === 0) {
-        // if there is no output, update the last node which is not "AdaptiveSparkPlan" to be the output
-        const filtered = nodes.filter(node => node.nodeName !== "AdaptiveSparkPlan")
+    const filteredEdges: EnrichedSqlEdge[] = g.edges().map((edge: Edge) => { return {fromId: parseInt(edge.v), toId: parseInt(edge.w)} });
+
+    return [filteredEdges, nodes.filter(node => node.isVisible)]
+}
+
+function updateSqlMetrics(existingSql: EnrichedSparkSQL, sql: SparkSQL): EnrichedSparkSQL {
+    const nodesWithUpdatedMetrics = existingSql.nodes.map(node => {
+        const newNode = sql.nodes.filter(curNode => curNode.nodeId === node.nodeId)[0];
+        const newMetrics = calcNodeMetrics(node.type, newNode.metrics as EnrichedSqlMetric[]);
+
+        const updatedMetrics = newMetrics.map(newMetric => {
+            const existingMetrics = node.metrics.filter(curMetric => curMetric.name === newMetric.name);
+            if(existingMetrics.length === 0) {
+                return newMetric;
+            }
+            const existingMetric = existingMetrics[0];
+            if (newMetric.value === existingMetric.value) {
+                return existingMetric;
+            }
+            return {...existingMetric, value: newMetric.value};
+        });
+
+        return {...node, metrics: updatedMetrics};
+    });
+
+    return {...existingSql, nodes: nodesWithUpdatedMetrics};
+}
+
+function calculateSql(sql: SparkSQL): EnrichedSparkSQL {
+    const enrichedSql = sql as EnrichedSparkSQL;
+    const typeEnrichedNodes = enrichedSql.nodes.map(node => {
+        const type = calcNodeType(node.nodeName);
+        return {...node, type: type, isVisible: type !== "other"};
+    });
+
+    if(typeEnrichedNodes.filter(node => node.type === 'output').length === 0) {
+        // if there is no output, update the last node which is not "AdaptiveSparkPlan" or WholeStageCodegen to be the output
+        const filtered = typeEnrichedNodes.filter(node => node.nodeName !== "AdaptiveSparkPlan" && !node.nodeName.includes("WholeStageCodegen"))
         const lastNode = filtered[filtered.length - 1];
         lastNode.type = 'output';
         lastNode.isVisible = true;
     }
+    
+    const [filteredEdges, filteredNodes] = cleanUpDAG(enrichedSql.edges, typeEnrichedNodes)
 
-    return {...enrichedSql, nodes: nodes};
+    const metricEnrichedNodes = filteredNodes.map(node => {
+        return {...node, metrics: calcNodeMetrics(node.type, node.metrics)};
+    });
+
+    return {...enrichedSql, nodes: metricEnrichedNodes, edges: filteredEdges};
 }
 
 function calculateSqls(sqls: SparkSQLs): EnrichedSparkSQL[] {
@@ -76,17 +134,22 @@ function calculateSqlStore(currentStore: SparkSQLStore | undefined, sqls: SparkS
     if(currentStore === undefined) {
         return { sqls: calculateSqls(sqls) };
     }
-    else if(currentStore.sqls.length === sqls.length) {
-        const updatedCurrentSql = calculateSql(sqls[sqls.length - 1])
-        if(isEqual(updatedCurrentSql, currentStore.sqls[currentStore.sqls.length - 1] )) {
-            return currentStore;
-        } else {
-            return { sqls: [...currentStore.sqls.slice(0, currentStore.sqls.length - 2), updatedCurrentSql] };
-        }
 
-    } else {
+    const currentLastSqlId = Math.max(...currentStore.sqls.map(sql => parseInt(sql.id)))
+    const newLastSqlId = Math.max(...sqls.map(sql => parseInt(sql.id)))
+
+    if(currentLastSqlId !== newLastSqlId) {
         return { sqls: [...currentStore.sqls, ...calculateSqls(sqls.slice(currentStore.sqls.length - 1))] };
-    }
+    } 
+
+    // if we already build the initial sql we don't need to rebuild the DAG
+    const lastNewSql = sqls[sqls.length - 1];
+    const lastCurrentSql = currentStore.sqls[currentStore.sqls.length - 1]
+    const updatedCurrentSql = updateSqlMetrics(lastCurrentSql, lastNewSql)
+
+    console.log(updatedCurrentSql.nodes.map(node => node.metrics));
+
+    return { sqls: [...currentStore.sqls.slice(0, currentStore.sqls.length - 2), updatedCurrentSql] };
 }
 
 function calculateStatus(existingStore: StatusStore | undefined, stages: SparkStages): StatusStore {
@@ -115,26 +178,26 @@ function calculateStatus(existingStore: StatusStore | undefined, stages: SparkSt
 }
 
 
-export function sparkApiReducer(state: AppStore, action: ApiAction): AppStore {
+export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
     switch (action.type) {
         case 'setInitial':
             const [appName, config] = extractConfig(action.config)
-            return { ...state, isInitialized: true, appName: appName, appId: action.appId, sparkVersion: action.sparkVersion, config: config, status: undefined, sql: undefined };
+            return { ...store, isInitialized: true, appName: appName, appId: action.appId, sparkVersion: action.sparkVersion, config: config, status: undefined, sql: undefined };
         case 'setSQL':
-            const sqlStore = calculateSqlStore(state.sql, action.value);
-            if(sqlStore === state.sql) {
-                return state;
+            const sqlStore = calculateSqlStore(store.sql, action.value);
+            if(sqlStore === store.sql) {
+                return store;
             } else {
-                return { ...state, sql: sqlStore };
+                return { ...store, sql: sqlStore };
             }
         case 'setStatus':
-            const status = calculateStatus(state.status, action.value);
-            if(status === state.status) {
-                return state;
+            const status = calculateStatus(store.status, action.value);
+            if(status === store.status) {
+                return store;
             } else {
-                return { ...state, status: status };
+                return { ...store, status: status };
             }
         default:
-            return state;
+            return store;
     }
 }
