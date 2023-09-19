@@ -6,6 +6,7 @@ import { SparkStages } from "../interfaces/SparkStages";
 import { humanFileSize } from "../utils/FormatUtils";
 import isEqual from 'lodash/isEqual';
 import { Edge, Graph } from 'graphlib';
+import { v4 as uuidv4 } from 'uuid';
 
 function extractConfig(sparkConfiguration: SparkConfiguration): [string, Record<string, string>] {
     const sparkPropertiesObj = Object.fromEntries(sparkConfiguration.sparkProperties);
@@ -123,7 +124,7 @@ function calculateSql(sql: SparkSQL): EnrichedSparkSQL {
         return {...node, metrics: calcNodeMetrics(node.type, node.metrics)};
     });
 
-    return {...enrichedSql, nodes: metricEnrichedNodes, edges: filteredEdges};
+    return {...enrichedSql, nodes: metricEnrichedNodes, edges: filteredEdges, uniqueId: uuidv4()};
 }
 
 function calculateSqls(sqls: SparkSQLs): EnrichedSparkSQL[] {
@@ -139,15 +140,20 @@ function calculateSqlStore(currentStore: SparkSQLStore | undefined, sqls: SparkS
     const newLastSqlId = Math.max(...sqls.map(sql => parseInt(sql.id)))
 
     if(currentLastSqlId !== newLastSqlId) {
-        return { sqls: [...currentStore.sqls, ...calculateSqls(sqls.slice(currentStore.sqls.length - 1))] };
-    } 
+        const newSqls = sqls.filter(sql => parseInt(sql.id) > currentLastSqlId);
+        return { sqls: [...currentStore.sqls, ...calculateSqls(newSqls)] };
+    }
 
     // if we already build the initial sql we don't need to rebuild the DAG
     const lastNewSql = sqls[sqls.length - 1];
     const lastCurrentSql = currentStore.sqls[currentStore.sqls.length - 1]
-    const updatedCurrentSql = updateSqlMetrics(lastCurrentSql, lastNewSql)
 
-    console.log(updatedCurrentSql.nodes.map(node => node.metrics));
+    if(lastNewSql.nodes.length !== lastCurrentSql.nodes.length) {
+        // AQE changed the plan, we need to recalculate SQL
+        return { sqls: [...currentStore.sqls.slice(0, currentStore.sqls.length - 2), calculateSql(lastNewSql)] };
+    }
+
+    const updatedCurrentSql = updateSqlMetrics(lastCurrentSql, lastNewSql)
 
     return { sqls: [...currentStore.sqls.slice(0, currentStore.sqls.length - 2), updatedCurrentSql] };
 }

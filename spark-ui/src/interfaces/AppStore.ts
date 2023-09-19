@@ -24,6 +24,7 @@ export interface StatusStore {
 
   export interface EnrichedSparkSQL {
     id: string
+    uniqueId: string
     status: string
     description:string
     planDescription:string
