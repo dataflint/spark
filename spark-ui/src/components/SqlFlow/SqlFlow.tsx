@@ -52,6 +52,8 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = (
         }
     }, [instance, edges]);
 
+    useEffect(() => { }, [nodes]);
+
     const onConnect = useCallback(
         (params: any) =>
             setEdges((eds) =>
