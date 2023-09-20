@@ -41,7 +41,7 @@ export default function App() {
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);
-  
+
   return (
     !store.isInitialized ?
       (
@@ -90,10 +90,10 @@ export default function App() {
               pt: '64px'
             }}
           >
-          {selectedTab === 'status' ? 
-            <StatusTab sql={store.sql} status={store.status} />  : 
-            <ConfigurationTab config={(store.config as Record<string, string>)} />}
+            {selectedTab === 'status' ?
+              <StatusTab sql={store.sql} status={store.status} /> :
+              <ConfigurationTab config={(store.config as Record<string, string>)} />}
           </Box>
         </Box>
-        ))
+      ))
 }

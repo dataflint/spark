@@ -6,13 +6,14 @@ import { StageNodeName } from "./StageNode";
 import { EnrichedSparkSQL, EnrichedSqlEdge, EnrichedSqlNode } from "../../interfaces/AppStore";
 
 
-const dagreGraph = new dagre.graphlib.Graph();
-dagreGraph.setDefaultEdgeLabel(() => ({}));
+
 
 const nodeWidth = 180;
 const nodeHeight = 150;
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[]): { nodes: Node[], edges: Edge[] } => {
+    const dagreGraph = new dagre.graphlib.Graph();
+    dagreGraph.setDefaultEdgeLabel(() => ({}));
     dagreGraph.setGraph({ rankdir: 'LR' });
 
     nodes.forEach((node) => {
@@ -44,12 +45,12 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]): { nodes: Node[], edg
 };
 
 class SqlLayoutService {
-    static SqlElementsToLayout(sqlNodes: EnrichedSqlNode[], sqlEdges: EnrichedSqlEdge[]): { nodes: Node[], edges: Edge[] } {
+    static SqlElementsToLayout(sqlNodes: EnrichedSqlNode[], sqlEdges: EnrichedSqlEdge[]): { layoutNodes: Node[], layoutEdges: Edge[] } {
         const flowNodes: Node[] = sqlNodes.filter(node => node.isVisible).map((node: EnrichedSqlNode) => {
             return {
                 id: node.nodeId.toString(),
                 data: { label: node.nodeName, metrics: node.metrics },
-            type: StageNodeName,
+                type: StageNodeName,
                 position: { x: 0, y: 0 }
             }
         });
@@ -63,7 +64,7 @@ class SqlLayoutService {
         });
 
         const { nodes, edges } = getLayoutedElements(flowNodes, flowEdges);
-        return { nodes, edges };
+        return { layoutNodes: nodes, layoutEdges: edges };
     }
 }
 

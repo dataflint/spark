@@ -6,6 +6,8 @@ import ReactFlow, {
     useNodesState,
     useEdgesState,
     ReactFlowInstance,
+    Controls,
+    MiniMap,
 } from 'reactflow';
 import dagre, { Edge } from 'dagre';
 
@@ -26,12 +28,29 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = (
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
     React.useEffect(() => {
-        const { nodes, edges } = SqlLayoutService.SqlElementsToLayout(
-            sparkSQL.nodes.filter((node) => node.isVisible), sparkSQL.edges);
-        setNodes(nodes);
-        setEdges(edges);
-        instance?.fitView();
-    }, [sparkSQL]);
+        if (!sparkSQL)
+            return;
+        const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
+            sparkSQL.nodes, sparkSQL.edges);
+
+        setNodes(layoutNodes);
+    }, [sparkSQL.metricUpdateId]);
+
+    useEffect(() => {
+        if (!sparkSQL)
+            return;
+        const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
+            sparkSQL.nodes, sparkSQL.edges);
+
+        setNodes(layoutNodes);
+        setEdges(layoutEdges);
+    }, [sparkSQL.uniqueId]);
+
+    useEffect(() => {
+        if (instance) {
+            setTimeout(instance.fitView);
+        }
+    }, [instance, edges]);
 
     const onConnect = useCallback(
         (params: any) =>
@@ -55,8 +74,11 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = (
             nodesDraggable={false}
             nodesConnectable={false}
             proOptions={options}
+            maxZoom={0.9}
+            minZoom={0.2}
             fitView
         >
+            <Controls />
         </ReactFlow>
     );
 };
