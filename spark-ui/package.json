@@ -28,6 +28,7 @@
     "start-tpch": "REACT_APP_BASE_PATH=http://localhost:8012/proxy react-scripts start",
     "start-win": "set \"REACT_APP_BASE_PATH=http://localhost:10000\" && react-scripts start",
     "start-win-history": "set \"REACT_APP_BASE_PATH=http://localhost:18080\" && react-scripts start",
+    "start-win-tpch": "set \"REACT_APP_BASE_PATH=http://localhost:4040\" && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
