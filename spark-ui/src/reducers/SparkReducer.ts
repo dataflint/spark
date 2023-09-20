@@ -7,6 +7,7 @@ import { humanFileSize } from "../utils/FormatUtils";
 import isEqual from 'lodash/isEqual';
 import { Edge, Graph } from 'graphlib';
 import { v4 as uuidv4 } from 'uuid';
+import { NodesMetrics } from "../interfaces/SqlMetrics";
 
 function extractConfig(sparkConfiguration: SparkConfiguration): [string, Record<string, string>] {
     const sparkPropertiesObj = Object.fromEntries(sparkConfiguration.sparkProperties);
@@ -80,28 +81,28 @@ export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): 
     return [filteredEdges, nodes.filter(node => node.isVisible)]
 }
 
-function updateSqlMetrics(existingSql: EnrichedSparkSQL, sql: SparkSQL): EnrichedSparkSQL {
-    const nodesWithUpdatedMetrics = existingSql.nodes.map(node => {
-        const newNode = sql.nodes.filter(curNode => curNode.nodeId === node.nodeId)[0];
-        const newMetrics = calcNodeMetrics(node.type, newNode.metrics as EnrichedSqlMetric[]);
+// function updateSqlMetrics(existingSql: EnrichedSparkSQL, sql: SparkSQL): EnrichedSparkSQL {
+//     const nodesWithUpdatedMetrics = existingSql.nodes.map(node => {
+//         const newNode = sql.nodes.filter(curNode => curNode.nodeId === node.nodeId)[0];
+//         const newMetrics = calcNodeMetrics(node.type, newNode.metrics as EnrichedSqlMetric[]);
 
-        const updatedMetrics = newMetrics.map(newMetric => {
-            const existingMetrics = node.metrics.filter(curMetric => curMetric.name === newMetric.name);
-            if(existingMetrics.length === 0) {
-                return newMetric;
-            }
-            const existingMetric = existingMetrics[0];
-            if (newMetric.value === existingMetric.value) {
-                return existingMetric;
-            }
-            return {...existingMetric, value: newMetric.value};
-        });
+//         const updatedMetrics = newMetrics.map(newMetric => {
+//             const existingMetrics = node.metrics.filter(curMetric => curMetric.name === newMetric.name);
+//             if(existingMetrics.length === 0) {
+//                 return newMetric;
+//             }
+//             const existingMetric = existingMetrics[0];
+//             if (newMetric.value === existingMetric.value) {
+//                 return existingMetric;
+//             }
+//             return {...existingMetric, value: newMetric.value};
+//         });
 
-        return {...node, metrics: updatedMetrics};
-    });
+//         return {...node, metrics: updatedMetrics};
+//     });
 
-    return {...existingSql, metricUpdateId: uuidv4(), nodes: nodesWithUpdatedMetrics};
-}
+//     return {...existingSql, metricUpdateId: uuidv4(), nodes: nodesWithUpdatedMetrics};
+// }
 
 function calculateSql(sql: SparkSQL): EnrichedSparkSQL {
     const enrichedSql = sql as EnrichedSparkSQL;
@@ -153,10 +154,35 @@ function calculateSqlStore(currentStore: SparkSQLStore | undefined, sqls: SparkS
         return { sqls: [...currentStore.sqls.slice(0, currentStore.sqls.length - 2), calculateSql(lastNewSql)] };
     }
 
-    const updatedCurrentSql = updateSqlMetrics(lastCurrentSql, lastNewSql)
+    // no need to update, as the SQL haven't changed
+    // const updatedCurrentSql = updateSqlMetrics(lastCurrentSql, lastNewSql)
 
-    return { sqls: [...currentStore.sqls.slice(0, currentStore.sqls.length - 2), updatedCurrentSql] };
+    return currentStore;
 }
+
+function updateSqlMetrics(currentStore: SparkSQLStore, sqlId: string, sqlMetrics: NodesMetrics): SparkSQLStore {
+    const runningSqls = currentStore.sqls.filter(sql => sql.id === sqlId)
+    if(runningSqls.length === 0) {
+        // Shouldn't happen as if we ask for updated SQL metric we should have the SQL in store
+        return currentStore;
+    }
+
+    const notEffectedSqls = currentStore.sqls.filter(sql => sql.id !== sqlId);
+    const runningSql = runningSqls[0];
+    const nodes = runningSql.nodes.map(node => {
+        const matchedMetricsNodes = sqlMetrics.filter(nodeMetrics => nodeMetrics.id === node.nodeId);
+        if(matchedMetricsNodes.length === 0) {
+            return node;
+        }
+        // TODO: maybe do a smarter replacement, or send only the initialized metrics
+        return {...node, metrics: calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics)}
+    })
+
+    const updatedSql = {...runningSql, nodes: nodes};
+    return {...currentStore, sqls: [...notEffectedSqls, updatedSql ]};
+
+}
+
 
 function calculateStatus(existingStore: StatusStore | undefined, stages: SparkStages): StatusStore {
     const stagesDataClean = stages.filter((stage: Record<string, any>) => stage.status != "SKIPPED")
@@ -202,6 +228,13 @@ export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
                 return store;
             } else {
                 return { ...store, status: status };
+            }
+        case 'setSQMetrics':
+            if(store.sql === undefined) {
+                // Shouldn't happen as store should be initialized when we get updated metrics
+                return store;
+            } else {
+                return {...store, sql: updateSqlMetrics(store.sql, action.sqlId, action.value) };
             }
         default:
             return store;
