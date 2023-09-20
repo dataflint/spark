@@ -103,9 +103,7 @@ function calculateSql(sql: SparkSQL): EnrichedSparkSQL {
         return {...node, metrics: calcNodeMetrics(node.type, node.metrics)};
     });
 
-    console.log("recalculated sql query " + enrichedSql.id.toString());
-
-    return {...enrichedSql, nodes: metricEnrichedNodes, edges: filteredEdges, uniqueId: uuidv4(), originalNumOfNodes: originalNumOfNodes};
+    return {...enrichedSql, nodes: metricEnrichedNodes, edges: filteredEdges, uniqueId: uuidv4(), metricUpdateId: uuidv4(), originalNumOfNodes: originalNumOfNodes};
 }
 
 function calculateSqls(sqls: SparkSQLs): EnrichedSparkSQL[] {
@@ -131,7 +129,8 @@ function calculateSqlStore(currentStore: SparkSQLStore | undefined, sqls: SparkS
 
     if(lastNewSql.nodes.length !== lastCurrentSql.originalNumOfNodes) {
         // AQE changed the plan, we need to recalculate SQL
-        return { sqls: [...currentStore.sqls.slice(0, currentStore.sqls.length - 2), calculateSql(lastNewSql)] };
+        const updatedSql = calculateSql(lastNewSql)
+        return { sqls: [...currentStore.sqls.slice(0, currentStore.sqls.length - 2), updatedSql] };
     }
 
     return currentStore;

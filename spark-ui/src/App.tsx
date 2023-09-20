@@ -37,7 +37,7 @@ export default function App() {
   const [selectedTab, setSelectedTab] = React.useState('status');
 
   React.useEffect(() => {
-    const sparkAPI = new SparkAPI(BASE_PATH, dispatcher, () => store)
+    const sparkAPI = new SparkAPI(BASE_PATH, dispatcher)
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);
