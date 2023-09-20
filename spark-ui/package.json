@@ -25,7 +25,8 @@
   "scripts": {
     "start": "REACT_APP_BASE_PATH=http://localhost:8010/proxy react-scripts start",
     "start-history": "REACT_APP_BASE_PATH=http://localhost:8011/proxy react-scripts start",
-    "start-windows": "set \"REACT_APP_BASE_PATH=http://localhost:10000\" && react-scripts start",
+    "start-win": "set \"REACT_APP_BASE_PATH=http://localhost:10000\" && react-scripts start",
+    "start-win-history": "set \"REACT_APP_BASE_PATH=http://localhost:18080\" && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
