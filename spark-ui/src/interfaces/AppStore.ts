@@ -26,6 +26,7 @@ export interface StatusStore {
     id: string
     uniqueId: string
     metricUpdateId: string
+    originalNumOfNodes: number
     status: string
     description:string
     planDescription:string

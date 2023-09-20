@@ -81,31 +81,9 @@ export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): 
     return [filteredEdges, nodes.filter(node => node.isVisible)]
 }
 
-// function updateSqlMetrics(existingSql: EnrichedSparkSQL, sql: SparkSQL): EnrichedSparkSQL {
-//     const nodesWithUpdatedMetrics = existingSql.nodes.map(node => {
-//         const newNode = sql.nodes.filter(curNode => curNode.nodeId === node.nodeId)[0];
-//         const newMetrics = calcNodeMetrics(node.type, newNode.metrics as EnrichedSqlMetric[]);
-
-//         const updatedMetrics = newMetrics.map(newMetric => {
-//             const existingMetrics = node.metrics.filter(curMetric => curMetric.name === newMetric.name);
-//             if(existingMetrics.length === 0) {
-//                 return newMetric;
-//             }
-//             const existingMetric = existingMetrics[0];
-//             if (newMetric.value === existingMetric.value) {
-//                 return existingMetric;
-//             }
-//             return {...existingMetric, value: newMetric.value};
-//         });
-
-//         return {...node, metrics: updatedMetrics};
-//     });
-
-//     return {...existingSql, metricUpdateId: uuidv4(), nodes: nodesWithUpdatedMetrics};
-// }
-
 function calculateSql(sql: SparkSQL): EnrichedSparkSQL {
     const enrichedSql = sql as EnrichedSparkSQL;
+    const originalNumOfNodes = enrichedSql.nodes.length;
     const typeEnrichedNodes = enrichedSql.nodes.map(node => {
         const type = calcNodeType(node.nodeName);
         return {...node, type: type, isVisible: type !== "other"};
@@ -119,13 +97,15 @@ function calculateSql(sql: SparkSQL): EnrichedSparkSQL {
         lastNode.isVisible = true;
     }
     
-    const [filteredEdges, filteredNodes] = cleanUpDAG(enrichedSql.edges, typeEnrichedNodes)
+    const [filteredEdges, filteredNodes] = cleanUpDAG(enrichedSql.edges, typeEnrichedNodes);
 
     const metricEnrichedNodes = filteredNodes.map(node => {
         return {...node, metrics: calcNodeMetrics(node.type, node.metrics)};
     });
 
-    return {...enrichedSql, nodes: metricEnrichedNodes, edges: filteredEdges, uniqueId: uuidv4()};
+    console.log("recalculated sql query " + enrichedSql.id.toString());
+
+    return {...enrichedSql, nodes: metricEnrichedNodes, edges: filteredEdges, uniqueId: uuidv4(), originalNumOfNodes: originalNumOfNodes};
 }
 
 function calculateSqls(sqls: SparkSQLs): EnrichedSparkSQL[] {
@@ -149,13 +129,10 @@ function calculateSqlStore(currentStore: SparkSQLStore | undefined, sqls: SparkS
     const lastNewSql = sqls[sqls.length - 1];
     const lastCurrentSql = currentStore.sqls[currentStore.sqls.length - 1]
 
-    if(lastNewSql.nodes.length !== lastCurrentSql.nodes.length) {
+    if(lastNewSql.nodes.length !== lastCurrentSql.originalNumOfNodes) {
         // AQE changed the plan, we need to recalculate SQL
         return { sqls: [...currentStore.sqls.slice(0, currentStore.sqls.length - 2), calculateSql(lastNewSql)] };
     }
-
-    // no need to update, as the SQL haven't changed
-    // const updatedCurrentSql = updateSqlMetrics(lastCurrentSql, lastNewSql)
 
     return currentStore;
 }
@@ -178,7 +155,7 @@ function updateSqlMetrics(currentStore: SparkSQLStore, sqlId: string, sqlMetrics
         return {...node, metrics: calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics)}
     })
 
-    const updatedSql = {...runningSql, nodes: nodes};
+    const updatedSql = {...runningSql, nodes: nodes, metricUpdateId: uuidv4()};
     return {...currentStore, sqls: [...notEffectedSqls, updatedSql ]};
 
 }
