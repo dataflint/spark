@@ -50,17 +50,10 @@ function calculateStatus(existingStore: StatusStore | undefined, stages: SparkSt
 }
 
 function calculateSparkExecutorsStatus(existingStore: SparkExecutorsStatus | undefined, sparkExecutors: SparkExecutors): SparkExecutorsStatus {
-    const driver = sparkExecutors.filter(executor => executor.id === "driver")[0];
     const executors = sparkExecutors.filter(executor => executor.id !== "driver");
     const numOfExecutors = executors.length;
-    const availableExecutorCores = numOfExecutors !== 0 ? executors.map(executor => executor.totalCores).reduce((a, b) => a + b, 0) : 0;
-    const driverMemoryUtilizationPrecentage = driver.maxMemory !== 0 ? (driver.memoryUsed / driver.maxMemory) * 100 : 0;
-    const maxExecutorsMemoryUtilizationPrecentage = numOfExecutors !== 0 ? Math.max(...executors.map(executor => executor.maxMemory !== 0 ? (executor.memoryUsed / executor.maxMemory) * 100 : 0)) : 0;
     const state = {
-        numOfExecutors,
-        driverMemoryUtilizationPrecentage,
-        maxExecutorsMemoryUtilizationPrecentage,
-        availableExecutorCores
+        numOfExecutors
     }
 
     if(existingStore === undefined) {

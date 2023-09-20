@@ -63,9 +63,6 @@ export interface EnrichedSqlEdge{
 
 export interface SparkExecutorsStatus {
     numOfExecutors: number;
-    availableExecutorCores: number;
-    driverMemoryUtilizationPrecentage: number;
-    maxExecutorsMemoryUtilizationPrecentage: number;
 }
 
 export interface SparkJobsStore{

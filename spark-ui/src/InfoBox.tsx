@@ -29,7 +29,7 @@ export default function InfoBox({title, text, color, icon} : InfoBoxProps) {
         p: 2,
         display: 'flex',
         flexDirection: 'column',
-        height: 120,
+        height: 110,
       }}
     >
       <React.Fragment>

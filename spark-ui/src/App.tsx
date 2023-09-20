@@ -92,7 +92,7 @@ export default function App() {
             }}
           >
             {selectedTab === 'status' ?
-              <StatusTab sql={store.sql} status={store.status} /> :
+              <StatusTab sql={store.sql} status={store.status} executorStatus={store.executorsStatus} /> :
               <ConfigurationTab config={(store.config as Record<string, string>)} />}
           </Box>
         </Box>
