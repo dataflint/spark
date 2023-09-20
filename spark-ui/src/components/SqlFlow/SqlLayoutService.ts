@@ -49,7 +49,7 @@ class SqlLayoutService {
         const flowNodes: Node[] = sqlNodes.filter(node => node.isVisible).map((node: EnrichedSqlNode) => {
             return {
                 id: node.nodeId.toString(),
-                data: { label: node.nodeName, metrics: node.metrics },
+                data: { node: node },
                 type: StageNodeName,
                 position: { x: 0, y: 0 }
             }

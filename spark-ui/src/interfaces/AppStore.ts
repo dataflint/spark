@@ -27,6 +27,7 @@ export interface StatusStore {
     uniqueId: string
     metricUpdateId: string
     originalNumOfNodes: number
+
     status: string
     description:string
     planDescription:string
@@ -42,6 +43,7 @@ export interface StatusStore {
 export interface EnrichedSqlNode {
     nodeId: number
     nodeName: string
+    enrichedName: string
     metrics: EnrichedSqlMetric[]
     type: NodeType
     isVisible: boolean

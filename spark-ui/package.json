@@ -25,6 +25,7 @@
   "scripts": {
     "start": "REACT_APP_BASE_PATH=http://localhost:8010/proxy react-scripts start",
     "start-history": "REACT_APP_BASE_PATH=http://localhost:8011/proxy react-scripts start",
+    "start-tpch": "REACT_APP_BASE_PATH=http://localhost:8012/proxy react-scripts start",
     "start-win": "set \"REACT_APP_BASE_PATH=http://localhost:10000\" && react-scripts start",
     "start-win-history": "set \"REACT_APP_BASE_PATH=http://localhost:18080\" && react-scripts start",
     "build": "react-scripts build",
@@ -32,6 +33,7 @@
     "eject": "react-scripts eject",
     "proxy": "for i in {1..100}; do lcp --proxyUrl http://localhost:10000 && break || sleep 5; done",
     "proxy-history": "for i in {1..100}; do lcp --proxyUrl http://localhost:18080 --port 8011 && break || sleep 5; done",
+    "proxy-tpch": "for i in {1..100}; do lcp --proxyUrl http://localhost:9000 --port 8012 && break || sleep 5; done",
     "deploy": "react-scripts build && mkdir -p ../spark-plugin/plugin/src/main/resources/com/anecdota/spark/static/ui/ && cp -r ./build/ ../spark-plugin/plugin/src/main/resources/com/anecdota/spark/static/ui",
     "deploy-win": "xcopy \"./build\" \"../spark-plugin/plugin/src/main/resources/com/anecdota/spark/static/ui\" /s /e /y"
   },
