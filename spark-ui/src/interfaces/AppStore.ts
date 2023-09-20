@@ -6,6 +6,7 @@ export interface AppStore {
     sparkVersion: string | undefined
     appName: string | undefined
     status: StatusStore | undefined
+    executorsStatus: SparkExecutorsStatus | undefined
     config: Record<string, string> | undefined
     sql: SparkSQLStore | undefined
 }
@@ -59,3 +60,17 @@ export interface EnrichedSqlEdge{
     fromId: number
     toId: number
 }
+
+export interface SparkExecutorsStatus {
+    numOfExecutors: number;
+    availableExecutorCores: number;
+    driverMemoryUtilizationPrecentage: number;
+    maxExecutorsMemoryUtilizationPrecentage: number;
+}
+
+export interface SparkJobsStore{
+}
+
+export interface SparkJobStore{
+}
+

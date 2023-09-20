@@ -1,10 +1,11 @@
 import { ApiAction } from "../interfaces/APIAction";
-import { AppStore, StatusStore } from '../interfaces/AppStore';
+import { AppStore, SparkExecutorsStatus, StatusStore } from '../interfaces/AppStore';
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
 import { SparkStages } from "../interfaces/SparkStages";
 import { humanFileSize } from "../utils/FormatUtils";
 import isEqual from 'lodash/isEqual';
 import { calculateSqlStore, updateSqlMetrics } from "./SqlReducer";
+import { SparkExecutors } from "../interfaces/SparkExecutors";
 
 function extractConfig(sparkConfiguration: SparkConfiguration): [string, Record<string, string>] {
     const sparkPropertiesObj = Object.fromEntries(sparkConfiguration.sparkProperties);
@@ -48,6 +49,29 @@ function calculateStatus(existingStore: StatusStore | undefined, stages: SparkSt
     }
 }
 
+function calculateSparkExecutorsStatus(existingStore: SparkExecutorsStatus | undefined, sparkExecutors: SparkExecutors): SparkExecutorsStatus {
+    const driver = sparkExecutors.filter(executor => executor.id === "driver")[0];
+    const executors = sparkExecutors.filter(executor => executor.id !== "driver");
+    const numOfExecutors = executors.length;
+    const availableExecutorCores = numOfExecutors !== 0 ? executors.map(executor => executor.totalCores).reduce((a, b) => a + b, 0) : 0;
+    const driverMemoryUtilizationPrecentage = driver.maxMemory !== 0 ? (driver.memoryUsed / driver.maxMemory) * 100 : 0;
+    const maxExecutorsMemoryUtilizationPrecentage = numOfExecutors !== 0 ? Math.max(...executors.map(executor => executor.maxMemory !== 0 ? (executor.memoryUsed / executor.maxMemory) * 100 : 0)) : 0;
+    const state = {
+        numOfExecutors,
+        driverMemoryUtilizationPrecentage,
+        maxExecutorsMemoryUtilizationPrecentage,
+        availableExecutorCores
+    }
+
+    if(existingStore === undefined) {
+        return state;
+    } else if(isEqual(state, existingStore)) {
+        return existingStore;
+    } else {
+        return state;
+    }
+}
+
 
 export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
     switch (action.type) {
@@ -68,6 +92,13 @@ export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
             } else {
                 return { ...store, status: status };
             }
+            case 'setSparkExecutors':
+                const executorsStatus = calculateSparkExecutorsStatus(store.executorsStatus, action.value);
+                if(executorsStatus === store.executorsStatus) {
+                    return store;
+                } else {
+                    return { ...store, executorsStatus: executorsStatus };
+                }
         case 'setSQMetrics':
             if(store.sql === undefined) {
                 // Shouldn't happen as store should be initialized when we get updated metrics

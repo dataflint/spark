@@ -1,7 +1,8 @@
 import { ApiAction } from "../interfaces/APIAction";
-import { AppStore } from "../interfaces/AppStore";
 import { SparkApplications } from "../interfaces/SparkApplications";
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
+import { SparkExecutors } from "../interfaces/SparkExecutors";
+import { SparkJobs } from "../interfaces/SparkJobs";
 import { SparkSQLs } from '../interfaces/SparkSQLs';
 import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from '../interfaces/SqlMetrics';
@@ -34,6 +35,14 @@ class SparkAPI {
 
     private getSqlMetricsPath(sqlId: string): string {
         return `${this.applicationPath}/devtool/sql/${sqlId}`
+    }
+
+    private get executorsPath(): string {
+        return `${this.applicationPath}/executors`
+    }
+
+    private get jobsPath(): string {
+        return `${this.applicationPath}/jobs`
     }
 
     constructor(basePath: string, setStore: React.Dispatch<ApiAction>) {
@@ -69,16 +78,24 @@ class SparkAPI {
             const sparkStages: SparkStages = await (await fetch(this.stagesPath)).json();
             this.setStore({type: 'setStatus', value: sparkStages });
 
-            const sparkSQL: SparkSQLs = await (await fetch(this.sqlPath)).json();
+            const sparkExecutors: SparkExecutors = await (await fetch(this.executorsPath)).json();
+            this.setStore({type: 'setSparkExecutors', value: sparkExecutors });
 
-            this.setStore({type: 'setSQL', value: sparkSQL });
+            const sparkJobs: SparkJobs = await (await fetch(this.jobsPath)).json();
+            this.setStore({type: 'setSparkJobs', value: sparkJobs });
 
-            const runningSqlIds = sparkSQL.filter(sql => sql.status === 'RUNNING').map(sql => sql.id)
-            if(runningSqlIds.length !== 0) {
-                const sqlId = runningSqlIds[0];
-                const nodesMetrics: NodesMetrics = await (await fetch(this.getSqlMetricsPath(sqlId))).json();
-                this.setStore({type: 'setSQMetrics', value: nodesMetrics, sqlId: sqlId });
+            const sparkSQLs: SparkSQLs = await (await fetch(this.sqlPath)).json();
+            if(sparkSQLs.length !== 0) {
+                this.setStore({type: 'setSQL', value: sparkSQLs });
+
+                const runningSqlIds = sparkSQLs.filter(sql => sql.status === 'RUNNING').map(sql => sql.id)
+                if(runningSqlIds.length !== 0) {
+                    const sqlId = runningSqlIds[0];
+                    const nodesMetrics: NodesMetrics = await (await fetch(this.getSqlMetricsPath(sqlId))).json();
+                    this.setStore({type: 'setSQMetrics', value: nodesMetrics, sqlId: sqlId });
+                }
             }
+
           } catch (e) {
             console.log(e);
           }

@@ -26,6 +26,7 @@ if (process.env.NODE_ENV === 'development') {
 export default function App() {
   const initialState: AppStore = {
     isInitialized: false,
+    executorsStatus: undefined,
     appId: undefined,
     sparkVersion: undefined,
     appName: undefined,
