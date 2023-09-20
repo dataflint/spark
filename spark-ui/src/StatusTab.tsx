@@ -5,9 +5,9 @@ import SqlContainer from './components/SqlContainer';
 
 export default function StatusTab({ status, sql }: { status: StatusStore | undefined, sql: SparkSQLStore | undefined }) {
   return (
-    <React.Fragment>
+    <div style={{display:"flex", height: "100%", flexDirection: "column"}}>
       <StatusBar currentStatus={status} />
       <SqlContainer currentSql={sql} />
-    </React.Fragment>
+    </div>
   );
 }

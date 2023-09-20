@@ -11,7 +11,7 @@ const SqlContainer: FC<{currentSql: SparkSQLStore | undefined}> = (
         (
           <Progress />
         ) :
-        (<div style={{ height: '50%'}}>
+        (<div style={{ height: '100%'}}>
         <SqlFlow sparkSQL={currentSql.sqls[currentSql.sqls.length - 1]} />
         </div>);
 };

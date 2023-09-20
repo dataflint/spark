@@ -10,6 +10,8 @@ import ReactFlow, {
     MiniMap,
 } from 'reactflow';
 import dagre, { Edge } from 'dagre';
+import styles from './node-style.module.css'
+
 
 import 'reactflow/dist/style.css';
 import SqlLayoutService from './SqlLayoutService';
@@ -76,7 +78,8 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = (
             nodesDraggable={false}
             nodesConnectable={false}
             proOptions={options}
-            maxZoom={1}
+            minZoom={0.6}
+            maxZoom={0.9}
             fitView
         >
             <Controls />

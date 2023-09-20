@@ -2,10 +2,10 @@
 .node {
     display: flex;
     justify-content: center;
-    width: 180px;
-    height: 150px;
+    width: 220px;
+    height: 125px;
     color: black;
-    padding: 10px;
+    padding: 8px;
     background: white;
     border: 3px solid lightblue;
     border-radius: 10px;
@@ -25,5 +25,5 @@
 }
 
 .nodeMetric {
-    font-size: 13px;
+    font-size: 14px;
 }
