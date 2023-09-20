@@ -76,8 +76,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = (
             nodesDraggable={false}
             nodesConnectable={false}
             proOptions={options}
-            maxZoom={0.9}
-            minZoom={0.2}
+            maxZoom={1}
             fitView
         >
             <Controls />

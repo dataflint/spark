@@ -14,7 +14,7 @@ export const StageNode: FC<{ data: {node: EnrichedSqlNode} }> = ({ data }): JSX.
             <div className={styles.node}>
                 <div className={styles.textWrapper}>
                     <div className={styles.nodeTitle}>{data.node.enrichedName}</div>
-                    {data.node.metrics.map((metric: SqlMetric) => {
+                    {data.node.metrics.filter((metric: SqlMetric) => !!metric.value).map((metric: SqlMetric) => {
                         { return <div key={uuidv4()} className={styles.nodeMetric}>{`${metric.name}: ${metric.value}`}</div> }
                     })}
                 </div>
