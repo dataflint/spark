@@ -14,13 +14,13 @@ export function humanFileSize(bytes: number, si = true): string {
 
 export function humanizeTimeDiff(duration: Duration): string {
   if(duration.asDays() >= 1) {
-    return duration.asDays().toFixed(1) + " days"
+    return duration.asDays().toFixed(1) + "d"
   }
   if(duration.asHours() >= 1) {
-    return duration.asHours().toFixed(1) + " hours"
+    return duration.asHours().toFixed(1) + "h"
   }
-  if(duration.asMinutes() >= 0) {
-    return duration.asMinutes().toFixed(1) + " minutes"
+  if(duration.asMinutes() >= 1) {
+    return duration.asMinutes().toFixed(1) + "m"
   }
-  return duration.asSeconds().toFixed(1) + " seconds"
+  return duration.asSeconds().toFixed(1) + "s"
 }
