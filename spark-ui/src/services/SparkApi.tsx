@@ -71,12 +71,12 @@ class SparkAPI {
         try {
             if (!this.initialized) {
                 const appData: SparkApplications = await (await fetch(this.applicationsPath)).json();
-                this.initialized = true;
                 const currentApplication = appData[0];
                 this.appId = currentApplication.id;
                 const currentAttempt = currentApplication.attempts[currentApplication.attempts.length - 1];
-
+                
                 const sparkConfiguration: SparkConfiguration = await (await fetch(this.environmentPath)).json();
+                this.initialized = true; // should happen after fetching app and env succesfully
                 this.setStore({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
             }
 
