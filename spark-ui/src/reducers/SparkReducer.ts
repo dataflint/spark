@@ -9,6 +9,17 @@ import { SparkExecutor, SparkExecutors } from "../interfaces/SparkExecutors";
 import { Attempt } from '../interfaces/SparkApplications';
 import moment from 'moment'
 
+
+export const initialState: AppStore = {
+    isConnected: false,
+    isInitialized: false,
+    runMetadata: undefined,
+    status: undefined,
+    config: undefined,
+    sql: undefined
+  };
+
+
 function extractRunMetadata(name: string, appId: string, attempt: Attempt): RunMetadataStore {
     const endTime = attempt.endTimeEpoch === -1 ? undefined : attempt.endTimeEpoch;
 
@@ -59,9 +70,9 @@ function calculateStageStatus(existingStore: StagesSummeryStore | undefined, sta
         status: status
     }
 
-    if(existingStore === undefined) {
+    if (existingStore === undefined) {
         return state;
-    } else if(isEqual(state, existingStore)) {
+    } else if (isEqual(state, existingStore)) {
         return existingStore;
     } else {
         return state;
@@ -91,9 +102,9 @@ function calculateSparkExecutorsStatus(existingStore: SparkExecutorsStatus | und
         activityRate
     }
 
-    if(existingStore === undefined) {
+    if (existingStore === undefined) {
         return state;
-    } else if(isEqual(state, existingStore)) {
+    } else if (isEqual(state, existingStore)) {
         return existingStore;
     } else {
         return state;
@@ -113,51 +124,56 @@ export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
             const runMetadata = extractRunMetadata(appName, action.appId, action.attempt);
             const duration = calculateDuration(runMetadata, action.epocCurrentTime);
             const newStatus: StatusStore = { duration, stages: undefined, executors: undefined };
-            const newStore: AppStore = { isInitialized: true, runMetadata: runMetadata, config: config, status: newStatus, sql: undefined };
+            const newStore: AppStore = { isConnected: true, isInitialized: true, runMetadata: runMetadata, config: config, status: newStatus, sql: undefined };
             return newStore
         case 'setSQL':
             const sqlStore = calculateSqlStore(store.sql, action.value);
-            if(sqlStore === store.sql) {
+            if (sqlStore === store.sql) {
                 return store;
             } else {
                 return { ...store, sql: sqlStore };
             }
         case 'setStages':
-            if(!store.isInitialized) {
+            if (!store.isInitialized) {
                 // Shouldn't happen as store should be initialized when we get updated metrics
                 return store;
             }
             const stageStatus = calculateStageStatus(store.status.stages, action.value);
-            if(stageStatus === store.status?.stages) {
+            if (stageStatus === store.status?.stages) {
                 return store;
             } else {
                 return { ...store, status: { ...store.status, stages: stageStatus } };
             }
-            case 'setSparkExecutors':
-                if(!store.isInitialized) {
-                    // Shouldn't happen as store should be initialized when we get updated metrics
-                    return store;
-                }
-                const executorsStatus = calculateSparkExecutorsStatus(store.status.executors, store.status.stages?.totalTaskTimeMs, action.value);
-                if(executorsStatus === store.status.executors) {
-                    return store;
-                } else {
-                    return { ...store, status: {...store.status, executors: executorsStatus }};
-                }
+        case 'setSparkExecutors':
+            if (!store.isInitialized) {
+                // Shouldn't happen as store should be initialized when we get updated metrics
+                return store;
+            }
+            const executorsStatus = calculateSparkExecutorsStatus(store.status.executors, store.status.stages?.totalTaskTimeMs, action.value);
+            if (executorsStatus === store.status.executors) {
+                return store;
+            } else {
+                return { ...store, status: { ...store.status, executors: executorsStatus } };
+            }
         case 'setSQMetrics':
-            if(store.sql === undefined) {
+            if (store.sql === undefined) {
                 // Shouldn't happen as store should be initialized when we get updated metrics
                 return store;
             } else {
-                return {...store, sql: updateSqlMetrics(store.sql, action.sqlId, action.value) };
+                return { ...store, sql: updateSqlMetrics(store.sql, action.sqlId, action.value) };
             }
         case 'updateDuration':
-            if(!store.isInitialized) {
+            if (!store.isInitialized) {
                 // Shouldn't happen as updateDuration should be sent after initialization
                 return store;
             } else {
-                return {...store, status: {...store.status, duration: calculateDuration(store.runMetadata, action.epocCurrentTime)} };
+                return { ...store, status: { ...store.status, duration: calculateDuration(store.runMetadata, action.epocCurrentTime) } };
             }
+        case 'updateConnection':
+            if (store.isConnected === action.isConnected)
+                return store;
+
+            return { ...store, isConnected: action.isConnected }
         default:
             return store;
     }

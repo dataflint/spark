@@ -1,12 +1,14 @@
 export type NodeType = "input" | "output" | "transformation" | "other" | "join";
 
 export type AppStore  = {
+    isConnected: boolean
     isInitialized: false
     runMetadata: RunMetadataStore | undefined
     config: Record<string, string> | undefined
     status: StatusStore | undefined
     sql: SparkSQLStore | undefined
 } | {
+    isConnected: boolean
     isInitialized: true
     runMetadata: RunMetadataStore 
     config: Record<string, string>

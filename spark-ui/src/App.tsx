@@ -14,6 +14,9 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import { sparkApiReducer } from './reducers/SparkReducer';
 import Progress from './components/Progress';
 import { Tab, renderTab, renderTabIcon } from './tabs/TabsSwitcher';
+import { AppStateContext } from './Context';
+import DisconnectedModal from './components/Modals/DisconnectedModal';
+import { initialState } from './reducers/SparkReducer';
 
 const drawerWidth = 240;
 let BASE_PATH = "";
@@ -22,13 +25,6 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export default function App() {
-  const initialState: AppStore = {
-    isInitialized: false,
-    runMetadata: undefined,
-    status: undefined,
-    config: undefined,
-    sql: undefined
-  };
   const [store, dispatcher] = React.useReducer(sparkApiReducer, initialState);
   const [selectedTab, setSelectedTab] = React.useState(Tab.Status);
 
@@ -37,7 +33,7 @@ export default function App() {
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);
-  
+
   return (
     !store.isInitialized ?
       (
@@ -45,49 +41,52 @@ export default function App() {
       )
       :
       (
-        <Box sx={{ display: 'flex' }}>
-          <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }} color="primary" enableColorOnDark>
-            <DevtoolAppBar appName={store.runMetadata.appName ?? ""} />
-          </AppBar>
-          <Drawer
-            variant="permanent"
-            sx={{
-              width: drawerWidth,
-              flexShrink: 0,
-              [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
-            }}
-          >
-            <Toolbar />
-            <Box sx={{ overflow: 'auto' }}>
-              <List>
-              {Object.values(Tab).map((tab) => (
-                  <ListItem key={tab} disablePadding >
-                    <ListItemButton selected={selectedTab === tab} onClick={() => setSelectedTab(tab)}>
-                      <ListItemIcon>
-                        { renderTabIcon(tab) }
-                      </ListItemIcon>
-                      <ListItemText primary={tab.toString()} />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-              </List>
+        <AppStateContext.Provider value={{ isConnected: store.isConnected, isInitialized: store.isInitialized }}>
+          <Box sx={{ display: 'flex' }}>
+            <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }} color="primary" enableColorOnDark>
+              <DevtoolAppBar appName={store.runMetadata.appName ?? ""} />
+            </AppBar>
+            <Drawer
+              variant="permanent"
+              sx={{
+                width: drawerWidth,
+                flexShrink: 0,
+                [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+              }}
+            >
+              <DisconnectedModal />
+              <Toolbar />
+              <Box sx={{ overflow: 'auto' }}>
+                <List>
+                  {Object.values(Tab).map((tab) => (
+                    <ListItem key={tab} disablePadding >
+                      <ListItemButton selected={selectedTab === tab} onClick={() => setSelectedTab(tab)}>
+                        <ListItemIcon>
+                          {renderTabIcon(tab)}
+                        </ListItemIcon>
+                        <ListItemText primary={tab.toString()} />
+                      </ListItemButton>
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            </Drawer>
+            <Box
+              component="main"
+              sx={{
+                backgroundColor: (theme) =>
+                  theme.palette.mode === 'light'
+                    ? theme.palette.grey[100]
+                    : theme.palette.grey[900],
+                flexGrow: 1,
+                height: '100vh',
+                overflow: 'auto',
+                pt: '64px'
+              }}
+            >
+              {renderTab(selectedTab, store)}
             </Box>
-          </Drawer>
-          <Box
-            component="main"
-            sx={{
-              backgroundColor: (theme) =>
-                theme.palette.mode === 'light'
-                  ? theme.palette.grey[100]
-                  : theme.palette.grey[900],
-              flexGrow: 1,
-              height: '100vh',
-              overflow: 'auto',
-              pt: '64px'
-            }}
-          >
-            {renderTab(selectedTab, store)}
           </Box>
-        </Box>
+        </AppStateContext.Provider>
       ))
 }

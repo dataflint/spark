@@ -1,10 +1,11 @@
 
-import { EnrichedSparkSQL, EnrichedSqlMetric, NodeType, SparkSQLStore, EnrichedSqlEdge, EnrichedSqlNode } from '../interfaces/AppStore';
+import { EnrichedSparkSQL, EnrichedSqlMetric, NodeType, SparkSQLStore, EnrichedSqlEdge, EnrichedSqlNode, AppStore } from '../interfaces/AppStore';
 import { SparkSQL, SparkSQLs } from "../interfaces/SparkSQLs";
 import { Edge, Graph } from 'graphlib';
 import { v4 as uuidv4 } from 'uuid';
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { calcNodeMetrics, calcNodeType, nodeEnrichedNameBuilder } from './SqlReducerUtils';
+
 
 export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): [EnrichedSqlEdge[], EnrichedSqlNode[]] {
     var g = new Graph();

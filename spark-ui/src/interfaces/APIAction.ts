@@ -13,4 +13,5 @@ export type ApiAction =
     { type: 'setSQMetrics', value: NodesMetrics, sqlId: string } |
     { type: 'setSparkJobs', value: SparkJobs } |
     { type: 'setSQL', value: SparkSQLs } | 
+    { type: 'updateConnection', isConnected: boolean } | 
     { type: 'updateDuration', epocCurrentTime: number };

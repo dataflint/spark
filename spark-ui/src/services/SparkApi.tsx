@@ -14,6 +14,7 @@ const SQL_QUERY_LENGTH = 100
 class SparkAPI {
     basePath: string
     initialized: boolean = false;
+    isConnected: boolean = false;
     appId: string = "";
     apiPath: string;
     applicationsPath: string;
@@ -49,6 +50,11 @@ class SparkAPI {
         return `${this.applicationPath}/jobs`
     }
 
+    private resetState(): void {
+        this.lastCompletedSqlId = -1;
+        this.appId = "";
+    }
+
     constructor(basePath: string, dispatch: React.Dispatch<ApiAction>) {
         this.basePath = basePath;
         this.apiPath = `${basePath}/api/v1`;
@@ -61,8 +67,6 @@ class SparkAPI {
         return () => this.pollingStopped = true;
     }
 
-
-
     async fetchData(): Promise<void> {
         if (document.hidden || this.pollingStopped) {
             // skip fetching when tab is not in focus
@@ -70,7 +74,8 @@ class SparkAPI {
             return;
         }
         try {
-            if (!this.initialized) {
+            if (!this.initialized || !this.isConnected) {
+                this.resetState(); // In case of disconnection
                 const appData: SparkApplications = await (await fetch(this.applicationsPath)).json();
                 const currentApplication = appData[0];
                 this.appId = currentApplication.id;
@@ -78,7 +83,8 @@ class SparkAPI {
 
                 const sparkConfiguration: SparkConfiguration = await (await fetch(this.environmentPath)).json();
                 this.initialized = true; // should happen after fetching app and env succesfully
-                this.dispatch({type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
+                this.isConnected = true;
+                this.dispatch({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
             }
 
             const sparkStages: SparkStages = await (await fetch(this.stagesPath)).json();
@@ -110,6 +116,8 @@ class SparkAPI {
 
             this.dispatch({ type: 'updateDuration', epocCurrentTime: Date.now() });
         } catch (e) {
+            this.isConnected = false;
+            this.dispatch({ type: 'updateConnection', isConnected: false });
             console.log(e);
         }
         finally {
