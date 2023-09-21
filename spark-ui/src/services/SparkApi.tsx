@@ -19,6 +19,7 @@ class SparkAPI {
     applicationsPath: string;
     setStore: React.Dispatch<ApiAction>;
     lastCompletedSqlId: number = -1;
+    pollingStopped: boolean = false;
 
     private get applicationPath(): string {
         return `${this.apiPath}/applications/${this.appId}`
@@ -56,14 +57,14 @@ class SparkAPI {
     }
 
     start(): () => void {
-        const timerId = setInterval(this.fetchData.bind(this), POLL_TIME)
-        return () => clearInterval(timerId)
+        this.fetchData();
+        return () => this.pollingStopped = true;
     }
 
 
 
     async fetchData(): Promise<void> {
-        if (document.hidden) {
+        if (document.hidden || this.pollingStopped) {
             // skip fetching when tab is not in focus
             // TODO: skip also the interval when tab is not in focus
             return;
@@ -74,7 +75,7 @@ class SparkAPI {
                 const currentApplication = appData[0];
                 this.appId = currentApplication.id;
                 const currentAttempt = currentApplication.attempts[currentApplication.attempts.length - 1];
-                
+
                 const sparkConfiguration: SparkConfiguration = await (await fetch(this.environmentPath)).json();
                 this.initialized = true; // should happen after fetching app and env succesfully
                 this.setStore({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
@@ -110,6 +111,10 @@ class SparkAPI {
             this.setStore({ type: 'updateDuration', epocCurrentTime: Date.now() });
         } catch (e) {
             console.log(e);
+        }
+        finally {
+            if (!this.pollingStopped)
+                setTimeout(this.fetchData.bind(this), POLL_TIME);
         }
     }
 }
