@@ -69,9 +69,10 @@ class SparkAPI {
             return;
         }
         try {
+            console.log('is init:', this.initialized);
             if (!this.initialized) {
-                this.initialized = true;
                 const appData: SparkApplications = await (await fetch(this.applicationsPath)).json();
+                this.initialized = true;
                 const currentApplication = appData[0];
                 this.appId = currentApplication.id;
                 const currentAttempt = currentApplication.attempts[currentApplication.attempts.length - 1];
