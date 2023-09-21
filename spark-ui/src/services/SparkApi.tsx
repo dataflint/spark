@@ -72,12 +72,12 @@ class SparkAPI {
             if (!this.initialized) {
                 this.initialized = true;
                 const appData: SparkApplications = await (await fetch(this.applicationsPath)).json();
-                this.appId = appData[0].id;
-                const generalConfigParsed = appData[0].attempts[0];
-                const currentSparkVersion = generalConfigParsed.appSparkVersion;
+                const currentApplication = appData[0];
+                this.appId = currentApplication.id;
+                const currentAttempt = currentApplication.attempts[currentApplication.attempts.length - 1];
 
                 const sparkConfiguration: SparkConfiguration = await (await fetch(this.environmentPath)).json();
-                this.setStore({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, sparkVersion: currentSparkVersion });
+                this.setStore({type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
             }
 
             const sparkStages: SparkStages = await (await fetch(this.stagesPath)).json();
@@ -111,7 +111,9 @@ class SparkAPI {
                     this.setStore({ type: 'setSQMetrics', value: nodesMetrics, sqlId: sqlId });
                 }
             }
-        } catch (e) {
+
+            this.setStore({type: 'updateDuration', epocCurrentTime: Date.now() });
+          } catch (e) {
             console.log(e);
         }
     }

@@ -1,21 +1,40 @@
 export type NodeType = "input" | "output" | "transformation" | "other" | "join";
 
-export interface AppStore {
-    isInitialized: boolean
-    appId: string | undefined
-    sparkVersion: string | undefined
-    appName: string | undefined
-    status: StatusStore | undefined
-    executorsStatus: SparkExecutorsStatus | undefined
+export type AppStore  = {
+    isInitialized: false
+    runMetadata: RunMetadataStore | undefined
     config: Record<string, string> | undefined
+    status: StatusStore | undefined
+    sql: SparkSQLStore | undefined
+} | {
+    isInitialized: true
+    runMetadata: RunMetadataStore 
+    config: Record<string, string>
+    status: StatusStore
     sql: SparkSQLStore | undefined
 }
 
-export interface StatusStore {
+export interface RunMetadataStore {
+    appId: string
+    sparkVersion: string
+    appName: string
+    startTime: number
+    endTime: number | undefined
+  }
+
+  export interface StatusStore {
+    stages: StagesSummeryStore | undefined
+    executors: SparkExecutorsStatus | undefined
+    duration: number
+}
+
+
+export interface StagesSummeryStore {
     totalActiveTasks: number,
     totalPendingTasks: number,
     totalInput: string
     totalOutput: string
+    totalDiskSpill: string
     status: string
   }
 

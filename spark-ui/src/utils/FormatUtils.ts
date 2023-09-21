@@ -1,3 +1,5 @@
+import { Duration } from 'moment'
+
 export function humanFileSize(bytes: number, si = true): string {
     let thresh = si ? 1000 : 1024;
     if (bytes < thresh) return bytes + ' B';
@@ -9,3 +11,16 @@ export function humanFileSize(bytes: number, si = true): string {
     } while (bytes >= thresh);
     return bytes.toFixed(1) + ' ' + units[u];
   };
+
+export function humanizeTimeDiff(duration: Duration): string {
+  if(duration.asDays() >= 1) {
+    return duration.asDays().toFixed(1) + " days"
+  }
+  if(duration.asHours() >= 1) {
+    return duration.asHours().toFixed(1) + " hours"
+  }
+  if(duration.asMinutes() >= 0) {
+    return duration.asMinutes().toFixed(1) + " minutes"
+  }
+  return duration.asSeconds().toFixed(1) + " seconds"
+}

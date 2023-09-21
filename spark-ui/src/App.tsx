@@ -8,15 +8,13 @@ import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
-import StatusTab from './tabs/StatusTab';
 import DevtoolAppBar from './DevtoolAppBar';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
-import AdjustIcon from '@mui/icons-material/Adjust';
-import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
 import { sparkApiReducer } from './reducers/SparkReducer';
 import Progress from './components/Progress';
-import ConfigurationTab from './tabs/ConfigurationTab';
+import { Tab, renderTab, renderTabIcon } from './tabs/TabsSwitcher';
+
 const drawerWidth = 240;
 let BASE_PATH = "";
 if (process.env.NODE_ENV === 'development') {
@@ -26,23 +24,20 @@ if (process.env.NODE_ENV === 'development') {
 export default function App() {
   const initialState: AppStore = {
     isInitialized: false,
-    executorsStatus: undefined,
-    appId: undefined,
-    sparkVersion: undefined,
-    appName: undefined,
+    runMetadata: undefined,
     status: undefined,
     config: undefined,
     sql: undefined
   };
   const [store, dispatcher] = React.useReducer(sparkApiReducer, initialState);
-  const [selectedTab, setSelectedTab] = React.useState('status');
+  const [selectedTab, setSelectedTab] = React.useState(Tab.Status);
 
   React.useEffect(() => {
     const sparkAPI = new SparkAPI(BASE_PATH, dispatcher)
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);
-
+  
   return (
     !store.isInitialized ?
       (
@@ -52,7 +47,7 @@ export default function App() {
       (
         <Box sx={{ display: 'flex' }}>
           <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }} color="primary" enableColorOnDark>
-            <DevtoolAppBar appName={store.appName ?? ""} />
+            <DevtoolAppBar appName={store.runMetadata.appName ?? ""} />
           </AppBar>
           <Drawer
             variant="permanent"
@@ -65,13 +60,13 @@ export default function App() {
             <Toolbar />
             <Box sx={{ overflow: 'auto' }}>
               <List>
-                {['Status', 'Configuration'].map((text, index) => (
-                  <ListItem key={text} disablePadding >
-                    <ListItemButton selected={selectedTab === text.toLowerCase()} onClick={() => setSelectedTab(text.toLowerCase())}>
+              {Object.values(Tab).map((tab) => (
+                  <ListItem key={tab} disablePadding >
+                    <ListItemButton selected={selectedTab === tab} onClick={() => setSelectedTab(tab)}>
                       <ListItemIcon>
-                        {text == "Status" ? <AdjustIcon /> : <SettingsApplicationsIcon />}
+                        { renderTabIcon(tab) }
                       </ListItemIcon>
-                      <ListItemText primary={text} />
+                      <ListItemText primary={tab.toString()} />
                     </ListItemButton>
                   </ListItem>
                 ))}
@@ -91,9 +86,7 @@ export default function App() {
               pt: '64px'
             }}
           >
-            {selectedTab === 'status' ?
-              <StatusTab sql={store.sql} status={store.status} executorStatus={store.executorsStatus} /> :
-              <ConfigurationTab config={(store.config as Record<string, string>)} />}
+            {renderTab(selectedTab, store)}
           </Box>
         </Box>
       ))

@@ -15,6 +15,7 @@
     "dagre": "^0.8.5",
     "local-cors-proxy": "latest",
     "lodash": "^4.17.21",
+    "moment": "^2.29.4",
     "react": "latest",
     "react-dom": "latest",
     "react-scripts": "latest",
