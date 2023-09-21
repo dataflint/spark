@@ -69,7 +69,6 @@ class SparkAPI {
             return;
         }
         try {
-            console.log('is init:', this.initialized);
             if (!this.initialized) {
                 const appData: SparkApplications = await (await fetch(this.applicationsPath)).json();
                 this.initialized = true;
@@ -78,7 +77,7 @@ class SparkAPI {
                 const currentAttempt = currentApplication.attempts[currentApplication.attempts.length - 1];
 
                 const sparkConfiguration: SparkConfiguration = await (await fetch(this.environmentPath)).json();
-                this.setStore({type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
+                this.setStore({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
             }
 
             const sparkStages: SparkStages = await (await fetch(this.stagesPath)).json();
@@ -102,7 +101,7 @@ class SparkAPI {
                 if (finishedSqls.length > 0) {
                     this.lastCompletedSqlId = Math.max(...finishedSqls.map(sql => parseInt(sql.id)));
                 }
-                
+
                 // console.log('after:', this.lastCompletedSqlId);
 
                 const runningSqlIds = sparkSQLs.filter(sql => sql.status === SqlStatus.Running).map(sql => sql.id)
@@ -113,8 +112,8 @@ class SparkAPI {
                 }
             }
 
-            this.setStore({type: 'updateDuration', epocCurrentTime: Date.now() });
-          } catch (e) {
+            this.setStore({ type: 'updateDuration', epocCurrentTime: Date.now() });
+        } catch (e) {
             console.log(e);
         }
     }
