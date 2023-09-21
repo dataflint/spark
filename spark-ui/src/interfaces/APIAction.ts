@@ -8,8 +8,8 @@ import { NodesMetrics } from "./SqlMetrics";
 
 export type ApiAction =
     { type: 'setInitial', config: SparkConfiguration, appId: string, attempt: Attempt, epocCurrentTime: number } |
-    { type: 'setStatus', value: SparkStages } |
-    { type: 'setSparkExecutors', value: SparkExecutors } |
+    { type: 'setStages', value: SparkStages } |
+    { type: 'setSparkExecutors', value: SparkExecutors, epocCurrentTime: number } |
     { type: 'setSQMetrics', value: NodesMetrics, sqlId: string } |
     { type: 'setSparkJobs', value: SparkJobs } |
     { type: 'setSQL', value: SparkSQLs } | 

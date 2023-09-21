@@ -5,8 +5,9 @@ import { SparkStages } from "../interfaces/SparkStages";
 import { humanFileSize } from "../utils/FormatUtils";
 import isEqual from 'lodash/isEqual';
 import { calculateSqlStore, updateSqlMetrics } from "./SqlReducer";
-import { SparkExecutors } from "../interfaces/SparkExecutors";
+import { SparkExecutor, SparkExecutors } from "../interfaces/SparkExecutors";
 import { Attempt } from '../interfaces/SparkApplications';
+import moment from 'moment'
 
 function extractRunMetadata(name: string, appId: string, attempt: Attempt): RunMetadataStore {
     const endTime = attempt.endTimeEpoch === -1 ? undefined : attempt.endTimeEpoch;
@@ -44,6 +45,8 @@ function calculateStageStatus(existingStore: StagesSummeryStore | undefined, sta
     const totalInput = stagesDataClean.map((stage) => stage.inputBytes).reduce((a, b) => a + b, 0);
     const totalOutput = stagesDataClean.map((stage) => stage.outputBytes).reduce((a, b) => a + b, 0);
     const totalDiskSpill = stagesDataClean.map((stage) => stage.diskBytesSpilled).reduce((a, b) => a + b, 0);
+    const totalTaskTimeMs = stagesDataClean.map((stage) => stage.executorRunTime).reduce((a, b) => a + b, 0);
+
     const status = totalActiveTasks == 0 ? "idle" : "working";
 
     const state: StagesSummeryStore = {
@@ -52,6 +55,7 @@ function calculateStageStatus(existingStore: StagesSummeryStore | undefined, sta
         totalInput: humanFileSize(totalInput),
         totalOutput: humanFileSize(totalOutput),
         totalDiskSpill: humanFileSize(totalDiskSpill),
+        totalTaskTimeMs: totalTaskTimeMs,
         status: status
     }
 
@@ -64,11 +68,27 @@ function calculateStageStatus(existingStore: StagesSummeryStore | undefined, sta
     }
 }
 
-function calculateSparkExecutorsStatus(existingStore: SparkExecutorsStatus | undefined, sparkExecutors: SparkExecutors): SparkExecutorsStatus {
+function calculateSparkExecutorsStatus(existingStore: SparkExecutorsStatus | undefined, totalTaskTimeMs: number | undefined, sparkExecutors: SparkExecutors): SparkExecutorsStatus {
+    function msToHours(ms: number): number {
+        return ms / 1000 / 60 / 60;
+    }
+
+
+    const driver = sparkExecutors.filter(executor => executor.id === "driver")[0];
     const executors = sparkExecutors.filter(executor => executor.id !== "driver");
-    const numOfExecutors = executors.length;
+    const activeExecutors = executors.filter(executor => executor.isActive);
+    const numOfExecutors = activeExecutors.length;
+
+    // if we are in local mode we should only count the driver, if we have executors we should only count the executors
+    // because in local mode the driver does the tasks but in cluster mode the executors do the tasks
+    const totalPotentialTaskTimeMs = numOfExecutors === 0 ? driver.totalDuration * driver.maxTasks : executors.map(executor => executor.totalDuration * executor.maxTasks).reduce((a, b) => a + b, 0);
+    const totalCoreHour = sparkExecutors.map(executor => executor.totalCores * msToHours(executor.totalDuration)).reduce((a, b) => a + b, 0);
+    const activityRate = totalPotentialTaskTimeMs !== 0 && totalTaskTimeMs !== undefined ? Math.min(100, (totalTaskTimeMs / totalPotentialTaskTimeMs * 100)) : 0;
+
     const state = {
-        numOfExecutors
+        numOfExecutors,
+        totalCoreHour,
+        activityRate
     }
 
     if(existingStore === undefined) {
@@ -78,6 +98,7 @@ function calculateSparkExecutorsStatus(existingStore: SparkExecutorsStatus | und
     } else {
         return state;
     }
+
 }
 
 function calculateDuration(runMetadata: RunMetadataStore, currentEpocTime: number): number {
@@ -101,7 +122,7 @@ export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
             } else {
                 return { ...store, sql: sqlStore };
             }
-        case 'setStatus':
+        case 'setStages':
             if(!store.isInitialized) {
                 // Shouldn't happen as store should be initialized when we get updated metrics
                 return store;
@@ -117,7 +138,7 @@ export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
                     // Shouldn't happen as store should be initialized when we get updated metrics
                     return store;
                 }
-                const executorsStatus = calculateSparkExecutorsStatus(store.status.executors, action.value);
+                const executorsStatus = calculateSparkExecutorsStatus(store.status.executors, store.status.stages?.totalTaskTimeMs, action.value);
                 if(executorsStatus === store.status.executors) {
                     return store;
                 } else {

@@ -17,7 +17,7 @@ class SparkAPI {
     appId: string = "";
     apiPath: string;
     applicationsPath: string;
-    setStore: React.Dispatch<ApiAction>;
+    dispatch: React.Dispatch<ApiAction>;
     lastCompletedSqlId: number = -1;
     pollingStopped: boolean = false;
 
@@ -42,18 +42,18 @@ class SparkAPI {
     }
 
     private get executorsPath(): string {
-        return `${this.applicationPath}/executors`
+        return `${this.applicationPath}/allexecutors`
     }
 
     private get jobsPath(): string {
         return `${this.applicationPath}/jobs`
     }
 
-    constructor(basePath: string, setStore: React.Dispatch<ApiAction>) {
+    constructor(basePath: string, dispatch: React.Dispatch<ApiAction>) {
         this.basePath = basePath;
         this.apiPath = `${basePath}/api/v1`;
         this.applicationsPath = `${this.apiPath}/applications`;
-        this.setStore = setStore
+        this.dispatch = dispatch
     }
 
     start(): () => void {
@@ -78,21 +78,21 @@ class SparkAPI {
 
                 const sparkConfiguration: SparkConfiguration = await (await fetch(this.environmentPath)).json();
                 this.initialized = true; // should happen after fetching app and env succesfully
-                this.setStore({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
+                this.dispatch({type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
             }
 
             const sparkStages: SparkStages = await (await fetch(this.stagesPath)).json();
-            this.setStore({ type: 'setStatus', value: sparkStages });
+            this.dispatch({ type: 'setStages', value: sparkStages });
 
             const sparkExecutors: SparkExecutors = await (await fetch(this.executorsPath)).json();
-            this.setStore({ type: 'setSparkExecutors', value: sparkExecutors });
+            this.dispatch({ type: 'setSparkExecutors', value: sparkExecutors, epocCurrentTime: Date.now() });
 
             const sparkJobs: SparkJobs = await (await fetch(this.jobsPath)).json();
-            this.setStore({ type: 'setSparkJobs', value: sparkJobs });
+            this.dispatch({ type: 'setSparkJobs', value: sparkJobs });
 
             const sparkSQLs: SparkSQLs = await (await fetch(this.buildSqlPath(this.lastCompletedSqlId + 1))).json();
             if (sparkSQLs.length !== 0) {
-                this.setStore({ type: 'setSQL', value: sparkSQLs });
+                this.dispatch({ type: 'setSQL', value: sparkSQLs });
 
                 const finishedSqls = sparkSQLs.filter(sql => sql.status === SqlStatus.Completed || sql.status === SqlStatus.Failed);
 
@@ -104,11 +104,11 @@ class SparkAPI {
                 if (runningSqlIds.length !== 0) {
                     const sqlId = runningSqlIds[0];
                     const nodesMetrics: NodesMetrics = await (await fetch(this.getSqlMetricsPath(sqlId))).json();
-                    this.setStore({ type: 'setSQMetrics', value: nodesMetrics, sqlId: sqlId });
+                    this.dispatch({ type: 'setSQMetrics', value: nodesMetrics, sqlId: sqlId });
                 }
             }
 
-            this.setStore({ type: 'updateDuration', epocCurrentTime: Date.now() });
+            this.dispatch({ type: 'updateDuration', epocCurrentTime: Date.now() });
         } catch (e) {
             console.log(e);
         }

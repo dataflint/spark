@@ -30,12 +30,13 @@ export interface RunMetadataStore {
 
 
 export interface StagesSummeryStore {
-    totalActiveTasks: number,
-    totalPendingTasks: number,
+    totalActiveTasks: number
+    totalPendingTasks: number
     totalInput: string
     totalOutput: string
     totalDiskSpill: string
     status: string
+    totalTaskTimeMs: number
   }
 
   export interface SparkSQLStore {
@@ -81,7 +82,10 @@ export interface EnrichedSqlEdge{
 }
 
 export interface SparkExecutorsStatus {
-    numOfExecutors: number;
+    numOfExecutors: number
+    totalCoreHour: number
+    activityRate: number
+
 }
 
 export interface SparkJobsStore{

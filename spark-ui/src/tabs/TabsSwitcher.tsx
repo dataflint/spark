@@ -9,8 +9,8 @@ import SummaryTab from "./SummaryTab";
 
 export enum Tab {
     Status = "Status",
-    Configuration = "Configuration",
     Summary = "Summary",
+    Configuration = "Configuration",
   }
   
 export function renderTab(selectedTab: Tab, store: AppStore): JSX.Element {
