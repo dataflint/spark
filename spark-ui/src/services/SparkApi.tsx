@@ -93,16 +93,11 @@ class SparkAPI {
             if (sparkSQLs.length !== 0) {
                 this.setStore({ type: 'setSQL', value: sparkSQLs });
 
-                // console.log('before:', this.lastCompletedSqlId);
-                // console.log(sparkSQLs);
-
                 const finishedSqls = sparkSQLs.filter(sql => sql.status === SqlStatus.Completed || sql.status === SqlStatus.Failed);
 
                 if (finishedSqls.length > 0) {
                     this.lastCompletedSqlId = Math.max(...finishedSqls.map(sql => parseInt(sql.id)));
                 }
-
-                // console.log('after:', this.lastCompletedSqlId);
 
                 const runningSqlIds = sparkSQLs.filter(sql => sql.status === SqlStatus.Running).map(sql => sql.id)
                 if (runningSqlIds.length !== 0) {
