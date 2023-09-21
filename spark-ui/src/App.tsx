@@ -8,8 +8,7 @@ import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
-import StatusTab from './StatusTab';
-import ConfigurationTab from './ConfigurationTab';
+import StatusTab from './tabs/StatusTab';
 import DevtoolAppBar from './DevtoolAppBar';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -17,6 +16,7 @@ import AdjustIcon from '@mui/icons-material/Adjust';
 import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
 import { sparkApiReducer } from './reducers/SparkReducer';
 import Progress from './components/Progress';
+import ConfigurationTab from './tabs/ConfigurationTab';
 const drawerWidth = 240;
 let BASE_PATH = "";
 if (process.env.NODE_ENV === 'development') {

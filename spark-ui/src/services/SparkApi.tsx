@@ -95,7 +95,6 @@ class SparkAPI {
                     this.setStore({type: 'setSQMetrics', value: nodesMetrics, sqlId: sqlId });
                 }
             }
-
           } catch (e) {
             console.log(e);
           }

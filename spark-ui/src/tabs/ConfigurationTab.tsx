@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Grid from '@mui/material/Grid';
-import ConfigTable from './ConfigTable';
+import ConfigTable from '../components/ConfigTable';
 
 export default function ConfigurationTab({ config }: { config: Record<string, string> }) {
   return (

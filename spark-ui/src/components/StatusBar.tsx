@@ -3,12 +3,12 @@ import 'reactflow/dist/style.css';
 import { Grid } from '@mui/material';
 import { SparkExecutorsStatus, StatusStore } from '../interfaces/AppStore';
 import Progress from './Progress';
-import InfoBox from '../InfoBox';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ApiIcon from '@mui/icons-material/Api';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import QueueIcon from '@mui/icons-material/Queue';
 import WorkIcon from '@mui/icons-material/Work';
+import InfoBox from './InfoBox/InfoBox';
 
 
 const StatusBar: FC<{currentStatus: StatusStore | undefined, executorStatus: SparkExecutorsStatus | undefined}> = (
