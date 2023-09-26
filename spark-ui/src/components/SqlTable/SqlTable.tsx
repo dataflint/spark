@@ -50,48 +50,50 @@ const rows = [
     createData('Gingerbread', 356, 16.0, 49, 3.9),
 ];
 
-export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }: 
-    { 
-        sqlStore: SparkSQLStore | undefined, 
-        selectedSqlId : string | undefined,
-        setSelectedSqlId: React.Dispatch<React.SetStateAction<string | undefined>> 
+export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
+    {
+        sqlStore: SparkSQLStore | undefined,
+        selectedSqlId: string | undefined,
+        setSelectedSqlId: React.Dispatch<React.SetStateAction<string | undefined>>
     }) {
     if (sqlStore === undefined) {
         return <Progress />;
     }
 
     return (
-        <TableContainer component={Paper}>
-            <Table aria-label="customized table" sx={{ width: "70%", margin: "auto" }}>
-                <TableHead>
-                    <TableRow>
-                        <StyledTableCell>id</StyledTableCell>
-                        <StyledTableCell>Description</StyledTableCell>
-                        <StyledTableCell align="right">Duration</StyledTableCell>
-                        <StyledTableCell align="right">Core/hour</StyledTableCell>
-                        <StyledTableCell align="right">Activity Rate</StyledTableCell>
-                        <StyledTableCell align="right">Input</StyledTableCell>
-                        <StyledTableCell align="right">Output</StyledTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {sqlStore.sqls.slice().map((sql) => (
-                        <StyledTableRow sx={{ cursor: 'pointer' }} key={sql.id} selected={sql.id === selectedSqlId} onClick={(event) => setSelectedSqlId(sql.id)} >
-                            <StyledTableCell component="th" scope="row">
-                                {sql.id}
-                            </StyledTableCell>
-                            <StyledTableCell component="th" scope="row">
-                                {sql.description}
-                            </StyledTableCell>
-                            <StyledTableCell align="right">{humanizeTimeDiff(duration(sql.duration))}</StyledTableCell>
-                            <StyledTableCell align="right">{1234}</StyledTableCell>
-                            <StyledTableCell align="right">{1234}</StyledTableCell>
-                            <StyledTableCell align="right">{1234}</StyledTableCell>
-                            <StyledTableCell align="right">{1234}</StyledTableCell>
-                        </StyledTableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </TableContainer>
+        <div style={{ width: "100%", display: "flex", justifyContent: "space-around" }}>
+            <TableContainer component={Paper} sx={{ maxHeight: "75vh", width: "70%", }}>
+                <Table stickyHeader aria-label="customized table" sx={{ margin: "auto" }}>
+                    <TableHead>
+                        <TableRow>
+                            <StyledTableCell>id</StyledTableCell>
+                            <StyledTableCell>Description</StyledTableCell>
+                            <StyledTableCell align="right">Duration</StyledTableCell>
+                            <StyledTableCell align="right">Core/hour</StyledTableCell>
+                            <StyledTableCell align="right">Activity Rate</StyledTableCell>
+                            <StyledTableCell align="right">Input</StyledTableCell>
+                            <StyledTableCell align="right">Output</StyledTableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {sqlStore.sqls.slice().map((sql) => (
+                            <StyledTableRow sx={{ cursor: 'pointer' }} key={sql.id} selected={sql.id === selectedSqlId} onClick={(event) => setSelectedSqlId(sql.id)} >
+                                <StyledTableCell component="th" scope="row">
+                                    {sql.id}
+                                </StyledTableCell>
+                                <StyledTableCell component="th" scope="row">
+                                    {sql.description}
+                                </StyledTableCell>
+                                <StyledTableCell align="right">{humanizeTimeDiff(duration(sql.duration))}</StyledTableCell>
+                                <StyledTableCell align="right">{1234}</StyledTableCell>
+                                <StyledTableCell align="right">{1234}</StyledTableCell>
+                                <StyledTableCell align="right">{1234}</StyledTableCell>
+                                <StyledTableCell align="right">{1234}</StyledTableCell>
+                            </StyledTableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </div>
     );
 }

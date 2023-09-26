@@ -56,7 +56,7 @@ export default function App() {
             >
               <DisconnectedModal />
               <Toolbar />
-              <Box sx={{ overflow: 'auto' }}>
+              <Box>
                 <List>
                   {Object.values(Tab).map((tab) => (
                     <ListItem key={tab} disablePadding >
@@ -80,7 +80,7 @@ export default function App() {
                     : theme.palette.grey[900],
                 flexGrow: 1,
                 height: '100vh',
-                overflow: 'auto',
+                overflow: 'hidden',
                 pt: '64px'
               }}
             >
