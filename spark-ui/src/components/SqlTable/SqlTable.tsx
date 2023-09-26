@@ -10,7 +10,7 @@ import Paper from '@mui/material/Paper';
 import { EnrichedSparkSQL, SparkSQLStore } from '../../interfaces/AppStore';
 import Progress from '../Progress';
 import { duration } from 'moment'
-import { humanizeTimeDiff } from '../../utils/FormatUtils';
+import { humanFileSize, humanizeTimeDiff } from '../../utils/FormatUtils';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
@@ -60,6 +60,8 @@ export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
         return <Progress />;
     }
 
+    const sqlsToShow = sqlStore.sqls.slice().filter(sql => !sql.isSqlCommand);
+
     return (
         <div style={{ width: "100%", display: "flex", justifyContent: "space-around" }}>
             <TableContainer component={Paper} sx={{ maxHeight: "75vh", width: "70%", }}>
@@ -76,7 +78,9 @@ export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {sqlStore.sqls.slice().map((sql) => (
+                        {sqlsToShow.map((sql) => (
+                            // sql metrics should never be null
+                            sql.metrics === undefined ? null : 
                             <StyledTableRow sx={{ cursor: 'pointer' }} key={sql.id} selected={sql.id === selectedSqlId} onClick={(event) => setSelectedSqlId(sql.id)} >
                                 <StyledTableCell component="th" scope="row">
                                     {sql.id}
@@ -87,8 +91,8 @@ export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
                                 <StyledTableCell align="right">{humanizeTimeDiff(duration(sql.duration))}</StyledTableCell>
                                 <StyledTableCell align="right">{1234}</StyledTableCell>
                                 <StyledTableCell align="right">{1234}</StyledTableCell>
-                                <StyledTableCell align="right">{1234}</StyledTableCell>
-                                <StyledTableCell align="right">{1234}</StyledTableCell>
+                                <StyledTableCell align="right">{humanFileSize(sql.metrics.inputBytes)}</StyledTableCell>
+                                <StyledTableCell align="right">{humanFileSize(sql.metrics.outputBytes)}</StyledTableCell>
                             </StyledTableRow>
                         ))}
                     </TableBody>
