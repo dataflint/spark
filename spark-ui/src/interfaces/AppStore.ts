@@ -6,14 +6,18 @@ export type AppStore  = {
     runMetadata: RunMetadataStore | undefined
     config: Record<string, string> | undefined
     status: StatusStore | undefined
-    sql: SparkSQLStore | undefined
+    sql: SparkSQLStore | undefined,
+    jobs: SparkJobsStore | undefined,
+    stages: SparkStagesStore | undefined
 } | {
     isConnected: boolean
     isInitialized: true
     runMetadata: RunMetadataStore 
     config: Record<string, string>
     status: StatusStore
-    sql: SparkSQLStore | undefined
+    sql: SparkSQLStore | undefined,
+    jobs: SparkJobsStore | undefined,
+    stages: SparkStagesStore | undefined
 }
 
 export interface RunMetadataStore {
@@ -50,6 +54,7 @@ export interface StagesSummeryStore {
     uniqueId: string
     metricUpdateId: string
     originalNumOfNodes: number
+    metrics: SparkMetricsStore
 
     status: string
     description:string
@@ -90,9 +95,34 @@ export interface SparkExecutorsStatus {
 
 }
 
-export interface SparkJobsStore{
+export interface SparkMetricsStore{
+    executorRunTime: number
+    diskBytesSpilled: number
+    inputBytes: number
+    outputBytes: number
+    shuffleReadBytes: number
+    shuffleWriteBytes: number
 }
+
+export type SparkJobsStore = SparkJobStore[]
 
 export interface SparkJobStore{
+    jobId: number
+    name: string
+    description: string
+    stageIds: number[]
+    status: string
+
+    metrics: SparkMetricsStore
 }
 
+export type SparkStagesStore = SparkStageStore[]
+
+export interface SparkStageStore{
+    status: string
+    stageId: number
+    numTasks: number
+    name: string
+
+    metrics: SparkMetricsStore
+  }
