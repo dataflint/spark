@@ -1,7 +1,7 @@
 import { EnrichedSqlMetric, NodeType } from "../interfaces/AppStore";
 
 const metricAllowlist: Record<NodeType, Array<string>> = {
-    "input": ["number of output rows", "number of files read", "size of files read"],
+    "input": ["number of output rows", "number of files read", "size of files read", "number of partitions read"],
     "output": ["number of written files", "number of output rows", "written output"],
     "join": ["number of output rows"],
     "transformation": ["number of output rows"],

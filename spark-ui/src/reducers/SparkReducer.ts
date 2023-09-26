@@ -84,7 +84,6 @@ function calculateSparkExecutorsStatus(existingStore: SparkExecutorsStatus | und
         return ms / 1000 / 60 / 60;
     }
 
-
     const driver = sparkExecutors.filter(executor => executor.id === "driver")[0];
     const executors = sparkExecutors.filter(executor => executor.id !== "driver");
     const activeExecutors = executors.filter(executor => executor.isActive);
