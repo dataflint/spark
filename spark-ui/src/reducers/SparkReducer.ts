@@ -83,6 +83,7 @@ export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
 
             return { ...store, isConnected: action.isConnected }
         default:
+            // this shouldn't happen as we suppose to handle all actions
             return store;
     }
 }
