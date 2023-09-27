@@ -1,6 +1,6 @@
 import { number } from "yargs";
 import { ApiAction } from "../interfaces/APIAction";
-import { SparkApplications } from "../interfaces/SparkApplications";
+import { SparkApplication, SparkApplications } from "../interfaces/SparkApplications";
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
 import { SparkExecutors } from "../interfaces/SparkExecutors";
 import { SparkJobs } from "../interfaces/SparkJobs";
@@ -21,6 +21,7 @@ class SparkAPI {
     dispatch: React.Dispatch<ApiAction>;
     lastCompletedSqlId: number = -1;
     pollingStopped: boolean = false;
+    historyServerMode: boolean = false;
 
     private get applicationPath(): string {
         return `${this.apiPath}/applications/${this.appId}`
@@ -55,16 +56,38 @@ class SparkAPI {
         this.appId = "";
     }
 
-    constructor(basePath: string, dispatch: React.Dispatch<ApiAction>) {
+    constructor(basePath: string, dispatch: React.Dispatch<ApiAction>, historyServerMode: boolean = false) {
         this.basePath = basePath;
         this.apiPath = `${basePath}/api/v1`;
         this.applicationsPath = `${this.apiPath}/applications`;
         this.dispatch = dispatch
+        this.historyServerMode = historyServerMode;
     }
 
     start(): () => void {
         this.fetchData();
         return () => this.pollingStopped = true;
+    }
+
+    private getCurrentApp(appData: SparkApplications): SparkApplication {
+        if (this.historyServerMode) {
+            const urlSegments = window.location.href.split('/');
+            try {
+                const historyIndex = urlSegments.findIndex(segment => segment === 'history');
+                const appId = urlSegments[historyIndex + 1];
+                const app = appData.find((app) => app.id === appId);
+                if (!app) {
+                    throw new Error();
+                }
+
+                return app;
+            }
+            catch {
+                throw new Error("Invalid app id");
+            }
+        }
+
+        return appData[0];
     }
 
     async fetchData(): Promise<void> {
@@ -76,8 +99,11 @@ class SparkAPI {
         try {
             if (!this.initialized || !this.isConnected) {
                 this.resetState(); // In case of disconnection
+                console.log('asking for applications')
                 const appData: SparkApplications = await (await fetch(this.applicationsPath)).json();
-                const currentApplication = appData[0];
+                console.log('app response:', appData);
+            
+                const currentApplication = this.getCurrentApp(appData);
                 this.appId = currentApplication.id;
                 const currentAttempt = currentApplication.attempts[currentApplication.attempts.length - 1];
 
@@ -121,7 +147,7 @@ class SparkAPI {
             console.log(e);
         }
         finally {
-            if (!this.pollingStopped)
+            if (!this.pollingStopped && !this.historyServerMode)
                 setTimeout(this.fetchData.bind(this), POLL_TIME);
         }
     }

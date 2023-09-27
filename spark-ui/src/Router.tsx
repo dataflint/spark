@@ -5,11 +5,6 @@ import StatusTab from "./tabs/StatusTab";
 import ConfigurationTab from "./tabs/ConfigurationTab";
 import SummaryTab from "./tabs/SummaryTab";
 
-let BASE_NAME: string | undefined = "/devtool";
-if (process.env.NODE_ENV === 'development') {
-  BASE_NAME = undefined;
-}
-
 export const reactRouter = createHashRouter([
   {
     path: "/",
@@ -31,6 +26,4 @@ export const reactRouter = createHashRouter([
       element: <SummaryTab />,
     },]
   },
-], {
-  basename: BASE_NAME
-});
+]);

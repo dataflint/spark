@@ -28,20 +28,24 @@ if (process.env.NODE_ENV === 'development') {
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   const [store, dispatcher] = React.useReducer(sparkApiReducer, initialState);
   const [selectedTab, setSelectedTab] = React.useState(Tab.Status);
 
+
   React.useEffect(() => {
-    const sparkAPI = new SparkAPI(BASE_PATH, dispatcher)
+    const isHistoryServer = window.location.href.includes('history');
+
+    const sparkAPI = new SparkAPI(BASE_PATH, dispatcher, isHistoryServer);
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);
 
   React.useEffect(() => {
-    if (!location?.pathname)
+    if (!location || !location.pathname)
       return;
-    setSelectedTab(getTabByUrl(location.pathname))
+
+    setSelectedTab(getTabByUrl(location.pathname));
   }, [location])
 
 
