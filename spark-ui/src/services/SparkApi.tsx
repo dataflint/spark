@@ -85,7 +85,9 @@ class SparkAPI {
                 this.initialized = true; // should happen after fetching app and env succesfully
                 this.isConnected = true;
                 this.dispatch({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
-            } 
+            } else {
+                this.dispatch({ type: 'updateDuration', epocCurrentTime: Date.now() });
+            }
 
             const sparkStages: SparkStages = await (await fetch(this.stagesPath)).json();
             this.dispatch({ type: 'setStages', value: sparkStages });
@@ -113,7 +115,6 @@ class SparkAPI {
                     this.dispatch({ type: 'setSQLMetrics', value: nodesMetrics, sqlId: sqlId });
                 }
             }
-            this.dispatch({ type: 'updateDuration', epocCurrentTime: Date.now() });
             this.dispatch({ type: 'calculateSqlQueryLevelMetrics' });
         } catch (e) {
             this.isConnected = false;

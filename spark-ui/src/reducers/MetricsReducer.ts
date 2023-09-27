@@ -3,6 +3,10 @@ import { SparkJobs } from "../interfaces/SparkJobs";
 import { SparkStages } from "../interfaces/SparkStages";
 import isEqual from 'lodash/isEqual';
 import { msToHours } from '../utils/FormatUtils';
+import * as Moment from 'moment';
+import { extendMoment } from 'moment-range';
+
+const moment = extendMoment(Moment);
 
 export function calculateStagesStore(existingStore: SparkStagesStore | undefined, stages: SparkStages): SparkStagesStore {
     //  stages with status SKIPPED does not have metrics, or in the case of numTasks has a "wrong" value
@@ -60,19 +64,21 @@ export function calculateJobsStore(existingStore: SparkJobsStore | undefined, st
 
 function calculateSqlQueryResourceUsage(sql: EnrichedSparkSQL, executors: SparkExecutorsStore): number {
     const queryEndTimeEpoc = sql.submissionTimeEpoc + sql.duration;
-    const queryResourceUsageMs = executors.map(executor => {
-        // if the executor was not active during the query time, skip it
-        if(executor.addTimeEpoc > queryEndTimeEpoc || executor.endTimeEpoc < sql.submissionTimeEpoc) {
-            return 0;
-        }
+    const queryRange = moment.range(moment(sql.submissionTimeEpoc), moment(queryEndTimeEpoc));
+    const intersectsAndExecutors = executors.map(executor => {
+        const executorRange = moment.range(moment(executor.addTimeEpoc), moment(executor.endTimeEpoc));
+        const intersect = executorRange.intersect(queryRange);
+        return {
+            executorId: executor.id,
+            isIntersect: intersect !== null,
+            intersectRange: intersect,
+            intersectTime: intersect === null ? 0 : intersect.valueOf(),
+            cores: executor.totalCores
 
-        // if the executor was active during the query time, calculate the time it was active
-        const executorStartTime = Math.max(executor.addTimeEpoc, sql.submissionTimeEpoc);
-        const executorEndTime = Math.min(executor.endTimeEpoc, queryEndTimeEpoc);
-        const executorDuration = executorEndTime - executorStartTime;
-        return executorDuration * executor.totalCores;
-    }).reduce((a, b) => a + b, 0);
-    return queryResourceUsageMs;
+        };
+    });
+    const intersectTime = intersectsAndExecutors.map(intersect => intersect.intersectTime * intersect.cores).reduce((a, b) => a + b, 0);
+    return intersectTime;
 }
 
 export function calculateSqlQueryLevelMetrics(existingStore: SparkSQLStore, statusStore: StatusStore, jobs: SparkJobsStore, executors: SparkExecutorsStore): SparkSQLStore {
@@ -89,10 +95,11 @@ export function calculateSqlQueryLevelMetrics(existingStore: SparkSQLStore, stat
         return {...sql, stageMetrics: sqlMetric};
 
     }).map(sql => {
-        const queryResourceUsageMs = calculateSqlQueryResourceUsage(sql, executors);
+        const queryResourceUsageWithDriverMs = calculateSqlQueryResourceUsage(sql, executors);
+        const queryResourceUsageExecutorsOnlyMs = executors.length === 1 ? queryResourceUsageWithDriverMs : calculateSqlQueryResourceUsage(sql, executors.filter(executor => !executor.isDriver));
         const totalTasksTime = sql.stageMetrics?.executorRunTime as number;
-        const activityRate = totalTasksTime !== 0 ? Math.min(100, (totalTasksTime / queryResourceUsageMs * 100)) : 0;
-        const coreHourUsage = msToHours(queryResourceUsageMs);
+        const activityRate = queryResourceUsageExecutorsOnlyMs !== 0 ? Math.min(100, (totalTasksTime / queryResourceUsageExecutorsOnlyMs) * 100) : 0;
+        const coreHourUsage = msToHours(queryResourceUsageWithDriverMs);
         const resourceUsageStore: SparkSQLResourceUsageStore = {
             coreHourUsage: coreHourUsage,
             activityRate: activityRate,

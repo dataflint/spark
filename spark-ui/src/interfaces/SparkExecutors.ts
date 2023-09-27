@@ -30,6 +30,8 @@ export interface SparkExecutor {
   resourceProfileId: number
   isExcluded: boolean
   excludedInStages: any[]
+  removeTime: string
+  removeReason: string
 }
 
 export interface ExecutorLogs {

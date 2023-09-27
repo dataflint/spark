@@ -67,13 +67,10 @@ export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
                 return { ...store, status: { ...store.status, stages: stageStatus }, stages: stageStore };
             }
         case 'setSparkExecutors':
-            const executorsStatus = calculateSparkExecutorsStatus(store.status.executors, store.status.stages?.totalTaskTimeMs, action.value);
-            if (executorsStatus === store.status.executors) {
-                return store;
-            } else {
-                const executorsStore = calculateSparkExecutorsStore(store.executors, action.value);
-                return { ...store, status: { ...store.status, executors: executorsStatus }, executors: executorsStore };
-            }
+            const currentEndDate = store.runMetadata.startTime + store.status.duration;
+            const executorsStore = calculateSparkExecutorsStore(store.executors, action.value, currentEndDate);
+            const executorsStatus = calculateSparkExecutorsStatus(executorsStore);
+            return { ...store, status: { ...store.status, executors: executorsStatus }, executors: executorsStore };
         case 'setSQLMetrics':
             if (store.jobs === undefined || store.sql === undefined || store.executors === undefined) {
                 // Shouldn't happen as store should be initialized when we get updated metrics

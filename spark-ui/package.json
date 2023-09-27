@@ -16,6 +16,7 @@
     "local-cors-proxy": "latest",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
+    "moment-range": "^4.0.2",
     "react": "latest",
     "react-dom": "latest",
     "react-router-dom": "^6.16.0",

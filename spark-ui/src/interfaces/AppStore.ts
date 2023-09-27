@@ -36,7 +36,6 @@ export interface StatusStore {
     duration: number
 }
 
-
 export interface StagesSummeryStore {
     totalActiveTasks: number
     totalPendingTasks: number
@@ -144,8 +143,12 @@ export type SparkExecutorsStore = SparkExecutorStore[]
 
 export interface SparkExecutorStore {
     id: string
-    totalDuration: number
+    isActive: boolean
+    isDriver: boolean
+    duration: number
+    totalTaskDuration: number
     addTimeEpoc: number
     endTimeEpoc: number
     totalCores: number
+    maxTasks: number
   }

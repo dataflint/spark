@@ -1,17 +1,21 @@
-import { SparkExecutorsStore } from "../interfaces/AppStore";
+import { RunMetadataStore, SparkExecutorsStore } from "../interfaces/AppStore";
 import { SparkExecutors } from "../interfaces/SparkExecutors";
 import { timeStrToEpocTime } from "../utils/FormatUtils";
 
-export function calculateSparkExecutorsStore(existingStore: SparkExecutorsStore | undefined, sparkExecutors: SparkExecutors): SparkExecutorsStore {
+export function calculateSparkExecutorsStore(existingStore: SparkExecutorsStore | undefined, sparkExecutors: SparkExecutors, currentEndDate: number): SparkExecutorsStore {
     return sparkExecutors.map(executor => {
         const addTimeEpoc = timeStrToEpocTime(executor.addTime);
-        const endTimeEpoc = addTimeEpoc + executor.totalDuration;
+        const endTimeEpoc = executor.removeTime !== undefined ? timeStrToEpocTime(executor.removeTime) : currentEndDate;
         return {
             id: executor.id,
-            totalDuration: executor.totalDuration,
+            isActive: executor.isActive,
+            isDriver: executor.id === "driver",
+            duration: endTimeEpoc - addTimeEpoc,
+            totalTaskDuration: executor.totalDuration,
             addTimeEpoc: addTimeEpoc,
             endTimeEpoc: endTimeEpoc,
-            totalCores: executor.totalCores
+            totalCores: executor.totalCores,
+            maxTasks: executor.maxTasks
         }
     })
 }
