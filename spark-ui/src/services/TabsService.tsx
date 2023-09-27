@@ -2,6 +2,7 @@ import React from "react";
 import AdjustIcon from '@mui/icons-material/Adjust';
 import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import { isHistoryServer } from "../utils/UrlUtils";
 
 export enum Tab {
   Status = "Status",
@@ -17,12 +18,14 @@ export const TabToUrl = {
 
 export const getTabByUrl = (path: string) => {
   switch (path) {
-    case TabToUrl[Tab.Summary]:
-      return Tab.Summary
-    case TabToUrl[Tab.Configuration]:
-      return Tab.Configuration
-    default:
+    case TabToUrl[Tab.Status]:
       return Tab.Status;
+    case TabToUrl[Tab.Summary]:
+      return Tab.Summary;
+    case TabToUrl[Tab.Configuration]:
+      return Tab.Configuration;
+    default:
+      return isHistoryServer() ? Tab.Summary : Tab.Status;
   }
 }
 

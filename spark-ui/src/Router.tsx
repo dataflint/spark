@@ -4,6 +4,10 @@ import App from "./App";
 import StatusTab from "./tabs/StatusTab";
 import ConfigurationTab from "./tabs/ConfigurationTab";
 import SummaryTab from "./tabs/SummaryTab";
+import { isHistoryServer } from "./utils/UrlUtils";
+
+
+const isHistoryServerMode = isHistoryServer();
 
 export const reactRouter = createHashRouter([
   {
@@ -11,7 +15,7 @@ export const reactRouter = createHashRouter([
     element: <App />,
     children: [{
       index: true,
-      element: <StatusTab />,
+      element: isHistoryServerMode ? <SummaryTab /> : <StatusTab />,
     },
     {
       path: "/status",
