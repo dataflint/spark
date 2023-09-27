@@ -8,7 +8,8 @@ export type AppStore = {
     status: StatusStore | undefined
     sql: SparkSQLStore | undefined,
     jobs: SparkJobsStore | undefined,
-    stages: SparkStagesStore | undefined
+    stages: SparkStagesStore | undefined,
+    executors: SparkExecutorsStore | undefined
 } | {
     isConnected: boolean
     isInitialized: true
@@ -17,7 +18,8 @@ export type AppStore = {
     status: StatusStore
     sql: SparkSQLStore | undefined,
     jobs: SparkJobsStore | undefined,
-    stages: SparkStagesStore | undefined
+    stages: SparkStagesStore | undefined,
+    executors: SparkExecutorsStore | undefined
 }
 
 export interface RunMetadataStore {
@@ -33,7 +35,6 @@ export interface StatusStore {
     executors: SparkExecutorsStatus | undefined
     duration: number
 }
-
 
 export interface StagesSummeryStore {
     totalActiveTasks: number
@@ -57,12 +58,13 @@ export interface EnrichedSparkSQL {
     isSqlCommand: boolean
     originalNumOfNodes: number
     // undefined for seperating the reducers more cleanly
-    metrics: SparkMetricsStore | undefined
-
+    stageMetrics: SparkMetricsStore | undefined
+    resourceMetrics: SparkSQLResourceUsageStore | undefined
     status: string
     description: string
     planDescription: string
     submissionTime: string
+    submissionTimeEpoc: number
     duration: number
     runningJobIds: number[]
     successJobIds: number[]
@@ -95,7 +97,6 @@ export interface SparkExecutorsStatus {
     numOfExecutors: number
     totalCoreHour: number
     activityRate: number
-
 }
 
 export interface SparkMetricsStore {
@@ -106,6 +107,13 @@ export interface SparkMetricsStore {
     outputBytes: number
     shuffleReadBytes: number
     shuffleWriteBytes: number
+}
+
+export interface SparkSQLResourceUsageStore {
+    coreHourUsage: number
+    activityRate: number
+    coreHourPercentage: number
+    durationPercentage: number
 }
 
 export type SparkJobsStore = SparkJobStore[]
@@ -130,3 +138,17 @@ export interface SparkStageStore {
 
     metrics: SparkMetricsStore
 }
+
+export type SparkExecutorsStore = SparkExecutorStore[]
+
+export interface SparkExecutorStore {
+    id: string
+    isActive: boolean
+    isDriver: boolean
+    duration: number
+    totalTaskDuration: number
+    addTimeEpoc: number
+    endTimeEpoc: number
+    totalCores: number
+    maxTasks: number
+  }

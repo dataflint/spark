@@ -111,13 +111,15 @@ class SparkAPI {
                 this.initialized = true; // should happen after fetching app and env succesfully
                 this.isConnected = true;
                 this.dispatch({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
+            } else {
+                this.dispatch({ type: 'updateDuration', epocCurrentTime: Date.now() });
             }
 
             const sparkStages: SparkStages = await (await fetch(this.stagesPath)).json();
             this.dispatch({ type: 'setStages', value: sparkStages });
 
             const sparkExecutors: SparkExecutors = await (await fetch(this.executorsPath)).json();
-            this.dispatch({ type: 'setSparkExecutors', value: sparkExecutors, epocCurrentTime: Date.now() });
+            this.dispatch({ type: 'setSparkExecutors', value: sparkExecutors });
 
             const sparkJobs: SparkJobs = await (await fetch(this.jobsPath)).json();
             this.dispatch({ type: 'setSparkJobs', value: sparkJobs });
@@ -136,11 +138,10 @@ class SparkAPI {
                 if (runningSqlIds.length !== 0) {
                     const sqlId = runningSqlIds[0];
                     const nodesMetrics: NodesMetrics = await (await fetch(this.getSqlMetricsPath(sqlId))).json();
-                    this.dispatch({ type: 'setSQMetrics', value: nodesMetrics, sqlId: sqlId });
+                    this.dispatch({ type: 'setSQLMetrics', value: nodesMetrics, sqlId: sqlId });
                 }
             }
-
-            this.dispatch({ type: 'updateDuration', epocCurrentTime: Date.now() });
+            this.dispatch({ type: 'calculateSqlQueryLevelMetrics' });
         } catch (e) {
             this.isConnected = false;
             this.dispatch({ type: 'updateConnection', isConnected: false });

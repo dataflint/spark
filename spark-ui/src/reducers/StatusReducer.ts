@@ -1,6 +1,6 @@
-import { RunMetadataStore, SparkExecutorsStatus, StagesSummeryStore, StatusStore } from '../interfaces/AppStore';
+import { RunMetadataStore, SparkExecutorsStatus, SparkExecutorsStore, StagesSummeryStore, StatusStore } from '../interfaces/AppStore';
 import { SparkStages } from "../interfaces/SparkStages";
-import { humanFileSize } from "../utils/FormatUtils";
+import { humanFileSize, msToHours } from "../utils/FormatUtils";
 import isEqual from 'lodash/isEqual';
 import { SparkExecutors } from "../interfaces/SparkExecutors";
 
@@ -36,20 +36,17 @@ export function calculateStageStatus(existingStore: StagesSummeryStore | undefin
     }
 }
 
-export function calculateSparkExecutorsStatus(existingStore: SparkExecutorsStatus | undefined, totalTaskTimeMs: number | undefined, sparkExecutors: SparkExecutors): SparkExecutorsStatus {
-    function msToHours(ms: number): number {
-        return ms / 1000 / 60 / 60;
-    }
-
-    const driver = sparkExecutors.filter(executor => executor.id === "driver")[0];
-    const executors = sparkExecutors.filter(executor => executor.id !== "driver");
+export function calculateSparkExecutorsStatus(sparkExecutors: SparkExecutorsStore): SparkExecutorsStatus {
+    const driver = sparkExecutors.filter(executor => executor.isDriver)[0];
+    const executors = sparkExecutors.filter(executor => !executor.isDriver);
     const activeExecutors = executors.filter(executor => executor.isActive);
     const numOfExecutors = activeExecutors.length;
 
     // if we are in local mode we should only count the driver, if we have executors we should only count the executors
     // because in local mode the driver does the tasks but in cluster mode the executors do the tasks
-    const totalPotentialTaskTimeMs = numOfExecutors === 0 ? driver.totalDuration * driver.maxTasks : executors.map(executor => executor.totalDuration * executor.maxTasks).reduce((a, b) => a + b, 0);
-    const totalCoreHour = sparkExecutors.map(executor => executor.totalCores * msToHours(executor.totalDuration)).reduce((a, b) => a + b, 0);
+    const totalTaskTimeMs = numOfExecutors === 0 ? driver.totalTaskDuration : executors.map(executor => executor.totalTaskDuration).reduce((a, b) => a + b, 0);
+    const totalPotentialTaskTimeMs = numOfExecutors === 0 ? driver.duration * driver.maxTasks : executors.map(executor => executor.duration * executor.maxTasks).reduce((a, b) => a + b, 0);
+    const totalCoreHour = sparkExecutors.map(executor => executor.totalCores * msToHours(executor.duration)).reduce((a, b) => a + b, 0);
     const activityRate = totalPotentialTaskTimeMs !== 0 && totalTaskTimeMs !== undefined ? Math.min(100, (totalTaskTimeMs / totalPotentialTaskTimeMs * 100)) : 0;
 
     const state = {
@@ -57,15 +54,7 @@ export function calculateSparkExecutorsStatus(existingStore: SparkExecutorsStatu
         totalCoreHour,
         activityRate
     }
-
-    if (existingStore === undefined) {
-        return state;
-    } else if (isEqual(state, existingStore)) {
-        return existingStore;
-    } else {
-        return state;
-    }
-
+    return state;
 }
 
 export function calculateDuration(runMetadata: RunMetadataStore, currentEpocTime: number): number {
