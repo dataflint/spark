@@ -1,10 +1,11 @@
 
 import { EnrichedSparkSQL, EnrichedSqlMetric, NodeType, SparkSQLStore, EnrichedSqlEdge, EnrichedSqlNode, AppStore } from '../interfaces/AppStore';
-import { SparkSQL, SparkSQLs } from "../interfaces/SparkSQLs";
+import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { Edge, Graph } from 'graphlib';
 import { v4 as uuidv4 } from 'uuid';
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { calcNodeMetrics, calcNodeType, nodeEnrichedNameBuilder } from './SqlReducerUtils';
+import { timeStrToEpocTime } from '../utils/FormatUtils';
 
 
 export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): [EnrichedSqlEdge[], EnrichedSqlNode[]] {
@@ -66,7 +67,8 @@ function calculateSql(sql: SparkSQL): EnrichedSparkSQL {
         uniqueId: uuidv4(), 
         metricUpdateId: uuidv4(), 
         isSqlCommand: isSqlCommand,
-        originalNumOfNodes: originalNumOfNodes
+        originalNumOfNodes: originalNumOfNodes,
+        submissionTimeEpoc: timeStrToEpocTime(sql.submissionTime)
      };
 }
 
@@ -79,28 +81,35 @@ export function calculateSqlStore(currentStore: SparkSQLStore | undefined, sqls:
         return { sqls: calculateSqls(sqls) };
     }
 
-    const currentLastSqlId = Math.max(...currentStore.sqls.map(sql => parseInt(sql.id)))
-    const lastNewSqlId = Math.max(...sqls.map(sql => parseInt(sql.id)))
+    const sqlIds = sqls.map(sql => parseInt(sql.id));
+    const minId = Math.min(...sqlIds);
 
-    console.log('currentLastSqlId:', currentLastSqlId)
-    console.log('newLastSqlId:', lastNewSqlId)
+    // add existing completed IDs
+    let updatedSqls: EnrichedSparkSQL[] = currentStore.sqls.slice(0, minId);
 
-    if (currentLastSqlId !== lastNewSqlId) {
-        const newSqls = sqls.filter(sql => parseInt(sql.id) > currentLastSqlId);
-        return { sqls: [...currentStore.sqls, ...calculateSqls(newSqls)] };
+
+    for(const id of sqlIds) {
+        const newSql = sqls.find(existingSql => parseInt(existingSql.id) === id) as SparkSQL;
+        const currentSql = currentStore.sqls.find(existingSql => parseInt(existingSql.id) === id);
+
+        // case 1: SQL does not exist, we add it
+        if(currentSql === undefined) {
+            updatedSqls.push(calculateSql(newSql));
+        // From here currentSql must not be null, and currentSql can't be COMPLETED as it would not be requested by API
+        // case 2: plan status changed from running to completed, so we need to update the SQL 
+        } else if(newSql.status === SqlStatus.Completed.valueOf() || newSql.status === SqlStatus.Failed.valueOf()) {
+            updatedSqls.push(calculateSql(newSql));
+        // From here newSql.status must be RUNNING
+        // case 3: running SQL structure, so we need to update the plan 
+        } else if(currentSql.originalNumOfNodes !== newSql.nodes.length) {
+            updatedSqls.push(calculateSql(newSql));
+        } else {
+            // case 4: SQL is running, but the structure haven't changed, so we update only relevant fields
+            updatedSqls.push({...currentSql, duration: newSql.duration, failedJobIds: newSql.failedJobIds, runningJobIds: newSql.runningJobIds, successJobIds: newSql.successJobIds});
+        }
     }
 
-    // if we already build the initial sql we don't need to rebuild the DAG
-    const lastNewSql = sqls[sqls.length - 1];
-    const lastCurrentSql = currentStore.sqls[currentStore.sqls.length - 1];
-
-    if (lastNewSql.nodes.length !== lastCurrentSql.originalNumOfNodes) {
-        // AQE changed the plan, we need to recalculate SQL
-        const updatedSql = calculateSql(lastNewSql)
-        return { sqls: [...currentStore.sqls.slice(0, currentStore.sqls.length - 1), updatedSql] };
-    }
-
-    return currentStore;
+    return { sqls: updatedSqls };;
 }
 
 export function updateSqlNodeMetrics(currentStore: SparkSQLStore, sqlId: string, sqlMetrics: NodesMetrics): SparkSQLStore {

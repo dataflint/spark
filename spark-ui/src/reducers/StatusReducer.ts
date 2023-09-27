@@ -1,6 +1,6 @@
 import { RunMetadataStore, SparkExecutorsStatus, StagesSummeryStore, StatusStore } from '../interfaces/AppStore';
 import { SparkStages } from "../interfaces/SparkStages";
-import { humanFileSize } from "../utils/FormatUtils";
+import { humanFileSize, msToHours } from "../utils/FormatUtils";
 import isEqual from 'lodash/isEqual';
 import { SparkExecutors } from "../interfaces/SparkExecutors";
 
@@ -37,10 +37,6 @@ export function calculateStageStatus(existingStore: StagesSummeryStore | undefin
 }
 
 export function calculateSparkExecutorsStatus(existingStore: SparkExecutorsStatus | undefined, totalTaskTimeMs: number | undefined, sparkExecutors: SparkExecutors): SparkExecutorsStatus {
-    function msToHours(ms: number): number {
-        return ms / 1000 / 60 / 60;
-    }
-
     const driver = sparkExecutors.filter(executor => executor.id === "driver")[0];
     const executors = sparkExecutors.filter(executor => executor.id !== "driver");
     const activeExecutors = executors.filter(executor => executor.isActive);

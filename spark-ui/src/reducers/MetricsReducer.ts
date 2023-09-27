@@ -1,7 +1,8 @@
-import { SparkJobsStore, SparkMetricsStore, SparkSQLStore, SparkStagesStore } from '../interfaces/AppStore';
+import { EnrichedSparkSQL, SparkExecutorStore, SparkExecutorsStore, SparkJobsStore, SparkMetricsStore, SparkSQLResourceUsageStore, SparkSQLStore, SparkStagesStore, StatusStore } from '../interfaces/AppStore';
 import { SparkJobs } from "../interfaces/SparkJobs";
 import { SparkStages } from "../interfaces/SparkStages";
 import isEqual from 'lodash/isEqual';
+import { msToHours } from '../utils/FormatUtils';
 
 export function calculateStagesStore(existingStore: SparkStagesStore | undefined, stages: SparkStages): SparkStagesStore {
     //  stages with status SKIPPED does not have metrics, or in the case of numTasks has a "wrong" value
@@ -57,18 +58,48 @@ export function calculateJobsStore(existingStore: SparkJobsStore | undefined, st
     return jobsStore;
 }
 
-export function calculateSqlQueryLevelMetrics(existingStore: SparkSQLStore, jobs: SparkJobsStore): SparkSQLStore {
-    const newSqls = existingStore.sqls.map(sql => {
+function calculateSqlQueryResourceUsage(sql: EnrichedSparkSQL, executors: SparkExecutorsStore): number {
+    const queryEndTimeEpoc = sql.submissionTimeEpoc + sql.duration;
+    const queryResourceUsageMs = executors.map(executor => {
+        // if the executor was not active during the query time, skip it
+        if(executor.addTimeEpoc > queryEndTimeEpoc || executor.endTimeEpoc < sql.submissionTimeEpoc) {
+            return 0;
+        }
+
+        // if the executor was active during the query time, calculate the time it was active
+        const executorStartTime = Math.max(executor.addTimeEpoc, sql.submissionTimeEpoc);
+        const executorEndTime = Math.min(executor.endTimeEpoc, queryEndTimeEpoc);
+        const executorDuration = executorEndTime - executorStartTime;
+        return executorDuration * executor.totalCores;
+    }).reduce((a, b) => a + b, 0);
+    return queryResourceUsageMs;
+}
+
+export function calculateSqlQueryLevelMetrics(existingStore: SparkSQLStore, statusStore: StatusStore, jobs: SparkJobsStore, executors: SparkExecutorsStore): SparkSQLStore {
+    const newSqls = existingStore.sqls
+    .map(sql => {
         const allJobsIds = sql.successJobIds.concat(sql.failedJobIds).concat(sql.runningJobIds);
         const sqlJobs = jobs.filter(job => allJobsIds.includes(job.jobId));
         const allMetrics = sqlJobs.map(job => job.metrics);
         const sqlMetric = sumMetricStores(allMetrics);
-        if(isEqual(sqlMetric, sql.metrics)) {
+        if(isEqual(sqlMetric, sql.stageMetrics)) {
             return sql;
         }
 
-        return {...sql, metrics: sqlMetric};
+        return {...sql, stageMetrics: sqlMetric};
 
+    }).map(sql => {
+        const queryResourceUsageMs = calculateSqlQueryResourceUsage(sql, executors);
+        const totalTasksTime = sql.stageMetrics?.executorRunTime as number;
+        const activityRate = totalTasksTime !== 0 ? Math.min(100, (totalTasksTime / queryResourceUsageMs * 100)) : 0;
+        const coreHourUsage = msToHours(queryResourceUsageMs);
+        const resourceUsageStore: SparkSQLResourceUsageStore = {
+            coreHourUsage: coreHourUsage,
+            activityRate: activityRate,
+            coreHourPercentage: statusStore.executors?.totalCoreHour === undefined ? 0 : Math.min(100, (coreHourUsage / statusStore.executors.totalCoreHour) * 100),
+            durationPercentage: statusStore.duration === undefined ? 0 : Math.min(100, (sql.duration / statusStore.duration) * 100)
+        }
+        return {...sql, resourceMetrics: resourceUsageStore};
     })
     return {sqls: newSqls};
 }

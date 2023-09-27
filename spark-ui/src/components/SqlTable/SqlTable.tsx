@@ -11,6 +11,10 @@ import { EnrichedSparkSQL, SparkSQLStore } from '../../interfaces/AppStore';
 import Progress from '../Progress';
 import { duration } from 'moment'
 import { humanFileSize, humanizeTimeDiff } from '../../utils/FormatUtils';
+import { CircularProgress } from '@mui/material';
+import CheckIcon from '@mui/icons-material/Check';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { SqlStatus } from '../../interfaces/SparkSQLs';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
@@ -32,23 +36,19 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
     },
 }));
 
-function createData(
-    name: string,
-    calories: number,
-    fat: number,
-    carbs: number,
-    protein: number,
-) {
-    return { name, calories, fat, carbs, protein };
+function StatusIcon(status: string): JSX.Element {
+    switch (status) {
+        case SqlStatus.Running.valueOf():
+            return <CircularProgress color='info' />;
+        case SqlStatus.Completed.valueOf():
+            return <CheckIcon color='success' />;
+        case SqlStatus.Failed.valueOf():
+            return <ErrorOutlineIcon color='error' />;
+        default:
+            return <div></div>;
+    }
 }
 
-const rows = [
-    createData('Frozen yoghurt', 159, 6.0, 24, 4.0),
-    createData('Ice cream sandwich', 237, 9.0, 37, 4.3),
-    createData('Eclair', 262, 16.0, 24, 6.0),
-    createData('Cupcake', 305, 3.7, 67, 4.3),
-    createData('Gingerbread', 356, 16.0, 49, 3.9),
-];
 
 export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
     {
@@ -69,6 +69,7 @@ export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
                     <TableHead>
                         <TableRow>
                             <StyledTableCell>id</StyledTableCell>
+                            <StyledTableCell>Status</StyledTableCell>
                             <StyledTableCell>Description</StyledTableCell>
                             <StyledTableCell align="right">Duration</StyledTableCell>
                             <StyledTableCell align="right">Core/hour</StyledTableCell>
@@ -80,19 +81,22 @@ export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
                     <TableBody>
                         {sqlsToShow.map((sql) => (
                             // sql metrics should never be null
-                            sql.metrics === undefined ? null : 
+                            sql.stageMetrics === undefined || sql.resourceMetrics === undefined ? null : 
                             <StyledTableRow sx={{ cursor: 'pointer' }} key={sql.id} selected={sql.id === selectedSqlId} onClick={(event) => setSelectedSqlId(sql.id)} >
                                 <StyledTableCell component="th" scope="row">
                                     {sql.id}
                                 </StyledTableCell>
                                 <StyledTableCell component="th" scope="row">
+                                    {StatusIcon(sql.status)}
+                                </StyledTableCell>
+                                <StyledTableCell component="th" scope="row">
                                     {sql.description}
                                 </StyledTableCell>
-                                <StyledTableCell align="right">{humanizeTimeDiff(duration(sql.duration))}</StyledTableCell>
-                                <StyledTableCell align="right">{1234}</StyledTableCell>
-                                <StyledTableCell align="right">{1234}</StyledTableCell>
-                                <StyledTableCell align="right">{humanFileSize(sql.metrics.inputBytes)}</StyledTableCell>
-                                <StyledTableCell align="right">{humanFileSize(sql.metrics.outputBytes)}</StyledTableCell>
+                                <StyledTableCell align="right">{humanizeTimeDiff(duration(sql.duration))} ({sql.resourceMetrics.durationPercentage.toFixed(1)}%)</StyledTableCell>
+                                <StyledTableCell align="right">{sql.resourceMetrics.coreHourUsage.toFixed(4)} ({sql.resourceMetrics.coreHourPercentage.toFixed(1)}%)</StyledTableCell>
+                                <StyledTableCell align="right">{sql.resourceMetrics.activityRate.toFixed(2)}%</StyledTableCell>
+                                <StyledTableCell align="right">{humanFileSize(sql.stageMetrics.inputBytes)}</StyledTableCell>
+                                <StyledTableCell align="right">{humanFileSize(sql.stageMetrics.outputBytes)}</StyledTableCell>
                             </StyledTableRow>
                         ))}
                     </TableBody>
