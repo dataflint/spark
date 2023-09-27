@@ -1,12 +1,13 @@
 import * as React from 'react';
-import { EnrichedSparkSQL, SparkSQLStore, StatusStore } from '../interfaces/AppStore';
 import SummaryBar from '../components/SummaryBar';
 import SqlTable from '../components/SqlTable/SqlTable';
 import SqlFlow from '../components/SqlFlow/SqlFlow';
-import { Button, Fade, Grow } from '@mui/material';
+import { Button, Fade } from '@mui/material';
+import { AppStateContext } from '../Context';
 
 
-export default function SummaryTab({ status, sql }: { status: StatusStore, sql: SparkSQLStore | undefined }) {
+export default function SummaryTab() {
+  const { sql } = React.useContext(AppStateContext);
   const [selectedSqlId, setSelectedSqlId] = React.useState<string | undefined>(undefined);
   const selectedSql = selectedSqlId === undefined ? undefined : sql?.sqls.find(sql => sql.id === selectedSqlId);
 
@@ -16,7 +17,7 @@ export default function SummaryTab({ status, sql }: { status: StatusStore, sql: 
         setSelectedSqlId(undefined);
       }
     }
-  
+
     document.addEventListener('keydown', handleEscapeKey)
     return () => document.removeEventListener('keydown', handleEscapeKey)
   }, [])
@@ -26,7 +27,7 @@ export default function SummaryTab({ status, sql }: { status: StatusStore, sql: 
       {selectedSql === undefined ?
         <Fade in={selectedSqlId === undefined} style={{}}>
           <div style={{ display: "flex", height: "100%", flexDirection: "column" }}>
-            <SummaryBar status={status} />
+            <SummaryBar />
             <SqlTable sqlStore={sql} selectedSqlId={selectedSqlId} setSelectedSqlId={setSelectedSqlId} />
           </div>
         </Fade>

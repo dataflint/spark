@@ -1,8 +1,6 @@
 import { createContext } from 'react';
+import { AppStore } from './interfaces/AppStore';
+import { initialState } from './reducers/SparkReducer';
 
-export default interface AppState {
-    isConnected: boolean
-    isInitialized: boolean
-}
 
-export const AppStateContext = createContext<AppState>({ isConnected: false, isInitialized: false });
+export const AppStateContext = createContext<AppStore>(initialState);

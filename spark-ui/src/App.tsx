@@ -3,7 +3,6 @@ import Box from '@mui/material/Box';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import SparkAPI from './services/SparkApi';
-import { AppStore } from './interfaces/AppStore';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -13,10 +12,12 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import { sparkApiReducer } from './reducers/SparkReducer';
 import Progress from './components/Progress';
-import { Tab, renderTab, renderTabIcon } from './tabs/TabsSwitcher';
+import { Tab, TabToUrl, getTabByUrl, renderTabIcon } from './services/TabsService';
 import { AppStateContext } from './Context';
 import DisconnectedModal from './components/Modals/DisconnectedModal';
 import { initialState } from './reducers/SparkReducer';
+import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+
 
 const drawerWidth = 240;
 let BASE_PATH = "";
@@ -25,6 +26,9 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export default function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
   const [store, dispatcher] = React.useReducer(sparkApiReducer, initialState);
   const [selectedTab, setSelectedTab] = React.useState(Tab.Status);
 
@@ -34,6 +38,18 @@ export default function App() {
     return cleanerFunc;
   }, []);
 
+  React.useEffect(() => {
+    if (!location?.pathname)
+      return;
+    setSelectedTab(getTabByUrl(location.pathname))
+  }, [location])
+
+
+  const onTabChanged = (tab: Tab) => {
+    setSelectedTab(tab);
+    navigate(TabToUrl[tab]);
+  }
+
   return (
     !store.isInitialized ?
       (
@@ -41,7 +57,7 @@ export default function App() {
       )
       :
       (
-        <AppStateContext.Provider value={{ isConnected: store.isConnected, isInitialized: store.isInitialized }}>
+        <AppStateContext.Provider value={store}>
           <Box sx={{ display: 'flex' }}>
             <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }} color="primary" enableColorOnDark>
               <DevtoolAppBar appName={store.runMetadata.appName ?? ""} />
@@ -60,7 +76,7 @@ export default function App() {
                 <List>
                   {Object.values(Tab).map((tab) => (
                     <ListItem key={tab} disablePadding >
-                      <ListItemButton selected={selectedTab === tab} onClick={() => setSelectedTab(tab)}>
+                      <ListItemButton selected={selectedTab === tab} onClick={() => onTabChanged(tab)}>
                         <ListItemIcon>
                           {renderTabIcon(tab)}
                         </ListItemIcon>
@@ -84,7 +100,7 @@ export default function App() {
                 pt: '64px'
               }}
             >
-              {renderTab(selectedTab, store)}
+              <Outlet />
             </Box>
           </Box>
         </AppStateContext.Provider>
