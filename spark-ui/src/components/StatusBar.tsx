@@ -29,8 +29,8 @@ const StatusBar: FC = (): JSX.Element => {
 
   return (<Grid container spacing={3} sx={{ mt: 2, mb: 2 }} display="flex" justifyContent="center" alignItems="center">
     <InfoBox title="Status" text={stagesStatus.status} color="#7e57c2" icon={ApiIcon}></InfoBox>
-    {currentSql === undefined || currentSql.stageMetrics === undefined ? null : <InfoBox title="Query Input" text={humanFileSize(sql.stageMetrics.inputBytes)} color="#26a69a" icon={ArrowDownwardIcon}></InfoBox>}
-    {currentSql === undefined || currentSql.stageMetrics === undefined ? null : <InfoBox title="Query Output" text={humanFileSize(sql.stageMetrics.outputBytes)} color="#ffa726" icon={ArrowUpwardIcon}></InfoBox>}
+    {currentSql === undefined || currentSql.stageMetrics === undefined ? null : <InfoBox title="Query Input" text={humanFileSize(currentSql.stageMetrics.inputBytes)} color="#26a69a" icon={ArrowDownwardIcon}></InfoBox>}
+    {currentSql === undefined || currentSql.stageMetrics === undefined ? null : <InfoBox title="Query Output" text={humanFileSize(currentSql.stageMetrics.outputBytes)} color="#ffa726" icon={ArrowUpwardIcon}></InfoBox>}
     <InfoBox title="Executors" text={numOfExecutorsText} color="#52b202" icon={WorkIcon}></InfoBox>
     <InfoBox title="Pending Tasks" text={stagesStatus.totalPendingTasks.toString()} icon={QueueIcon}></InfoBox>
   </Grid>);
