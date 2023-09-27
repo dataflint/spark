@@ -57,7 +57,17 @@ function calculateSql(sql: SparkSQL): EnrichedSparkSQL {
         return { ...node, metrics: calcNodeMetrics(node.type, node.metrics) };
     });
 
-    return { ...enrichedSql, nodes: metricEnrichedNodes, edges: filteredEdges, uniqueId: uuidv4(), metricUpdateId: uuidv4(), originalNumOfNodes: originalNumOfNodes };
+    const isSqlCommand = sql.runningJobIds.length === 0 && sql.failedJobIds.length === 0 && sql.successJobIds.length === 0;
+
+    return { 
+        ...enrichedSql, 
+        nodes: metricEnrichedNodes, 
+        edges: filteredEdges, 
+        uniqueId: uuidv4(), 
+        metricUpdateId: uuidv4(), 
+        isSqlCommand: isSqlCommand,
+        originalNumOfNodes: originalNumOfNodes
+     };
 }
 
 function calculateSqls(sqls: SparkSQLs): EnrichedSparkSQL[] {
@@ -93,7 +103,7 @@ export function calculateSqlStore(currentStore: SparkSQLStore | undefined, sqls:
     return currentStore;
 }
 
-export function updateSqlMetrics(currentStore: SparkSQLStore, sqlId: string, sqlMetrics: NodesMetrics): SparkSQLStore {
+export function updateSqlNodeMetrics(currentStore: SparkSQLStore, sqlId: string, sqlMetrics: NodesMetrics): SparkSQLStore {
     const runningSqls = currentStore.sqls.filter(sql => sql.id === sqlId)
     if (runningSqls.length === 0) {
         // Shouldn't happen as if we ask for updated SQL metric we should have the SQL in store

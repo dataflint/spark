@@ -1,6 +1,6 @@
 export type NodeType = "input" | "output" | "transformation" | "other" | "join";
 
-export type AppStore  = {
+export type AppStore = {
     isConnected: boolean
     isInitialized: false
     runMetadata: RunMetadataStore | undefined
@@ -12,7 +12,7 @@ export type AppStore  = {
 } | {
     isConnected: boolean
     isInitialized: true
-    runMetadata: RunMetadataStore 
+    runMetadata: RunMetadataStore
     config: Record<string, string>
     status: StatusStore
     sql: SparkSQLStore | undefined,
@@ -26,9 +26,9 @@ export interface RunMetadataStore {
     appName: string
     startTime: number
     endTime: number | undefined
-  }
+}
 
-  export interface StatusStore {
+export interface StatusStore {
     stages: StagesSummeryStore | undefined
     executors: SparkExecutorsStatus | undefined
     duration: number
@@ -43,22 +43,25 @@ export interface StagesSummeryStore {
     totalDiskSpill: string
     status: string
     totalTaskTimeMs: number
-  }
+}
 
-  export interface SparkSQLStore {
+export interface SparkSQLStore {
     sqls: EnrichedSparkSQL[],
-  }
+}
 
-  export interface EnrichedSparkSQL {
+export interface EnrichedSparkSQL {
     id: string
     uniqueId: string
     metricUpdateId: string
+    // sql command is if the sql is not a query but a technical command like creating view and such
+    isSqlCommand: boolean
     originalNumOfNodes: number
-    metrics: SparkMetricsStore
+    // undefined for seperating the reducers more cleanly
+    metrics: SparkMetricsStore | undefined
 
     status: string
-    description:string
-    planDescription:string
+    description: string
+    planDescription: string
     submissionTime: string
     duration: number
     runningJobIds: number[]
@@ -75,7 +78,7 @@ export interface EnrichedSqlNode {
     metrics: EnrichedSqlMetric[]
     type: NodeType
     isVisible: boolean
-    wholeStageCodegenId? :number
+    wholeStageCodegenId?: number
 }
 
 export interface EnrichedSqlMetric {
@@ -83,7 +86,7 @@ export interface EnrichedSqlMetric {
     value: string
 }
 
-export interface EnrichedSqlEdge{
+export interface EnrichedSqlEdge {
     fromId: number
     toId: number
 }
@@ -95,7 +98,8 @@ export interface SparkExecutorsStatus {
 
 }
 
-export interface SparkMetricsStore{
+export interface SparkMetricsStore {
+    totalTasks: number
     executorRunTime: number
     diskBytesSpilled: number
     inputBytes: number
@@ -106,7 +110,7 @@ export interface SparkMetricsStore{
 
 export type SparkJobsStore = SparkJobStore[]
 
-export interface SparkJobStore{
+export interface SparkJobStore {
     jobId: number
     name: string
     description: string
@@ -118,11 +122,11 @@ export interface SparkJobStore{
 
 export type SparkStagesStore = SparkStageStore[]
 
-export interface SparkStageStore{
+export interface SparkStageStore {
     status: string
     stageId: number
     numTasks: number
     name: string
 
     metrics: SparkMetricsStore
-  }
+}

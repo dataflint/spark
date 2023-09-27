@@ -4,12 +4,13 @@ import { SparkConfiguration } from "../interfaces/SparkConfiguration";
 import { SparkStages } from "../interfaces/SparkStages";
 import { humanFileSize } from "../utils/FormatUtils";
 import isEqual from 'lodash/isEqual';
-import { calculateSqlStore, updateSqlMetrics } from "./SqlReducer";
+import { calculateSqlStore, updateSqlNodeMetrics } from "./SqlReducer";
 import { SparkExecutor, SparkExecutors } from "../interfaces/SparkExecutors";
 import { Attempt } from '../interfaces/SparkApplications';
 import moment from 'moment'
 import { extractConfig, extractRunMetadata } from "./ConfigReducer";
 import { calculateDuration, calculateSparkExecutorsStatus, calculateStageStatus } from "./StatusReducer";
+import { calculateJobsStore, calculateStagesStore, calculateSqlQueryLevelMetrics } from "./MetricsReducer";
 
 
 export const initialState: AppStore = {
@@ -52,14 +53,20 @@ export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
             if (sqlStore === store.sql) {
                 return store;
             } else {
-                return { ...store, sql: sqlStore };
+                if(store.jobs === undefined) {
+                    // shouldn't happen as we should have jobs before we have sql
+                    return { ...store, sql: sqlStore };
+                }
+                const sqlWithMetrics = calculateSqlQueryLevelMetrics(sqlStore, store.jobs);
+                return { ...store, sql: sqlWithMetrics };
             }
         case 'setStages':
             const stageStatus = calculateStageStatus(store.status.stages, action.value);
-            if (stageStatus === store.status?.stages) {
+            const stageStore = calculateStagesStore(store.stages, action.value)
+            if (stageStatus === store.status.stages) {
                 return store;
             } else {
-                return { ...store, status: { ...store.status, stages: stageStatus } };
+                return { ...store, status: { ...store.status, stages: stageStatus }, stages: stageStore };
             }
         case 'setSparkExecutors':
             const executorsStatus = calculateSparkExecutorsStatus(store.status.executors, store.status.stages?.totalTaskTimeMs, action.value);
@@ -69,12 +76,13 @@ export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
                 return { ...store, status: { ...store.status, executors: executorsStatus } };
             }
         case 'setSQMetrics':
-            if (store.sql === undefined) {
+            if (store.sql === undefined || store.jobs === undefined) {
                 // Shouldn't happen as store should be initialized when we get updated metrics
                 return store;
-            } else {
-                return { ...store, sql: updateSqlMetrics(store.sql, action.sqlId, action.value) };
             }
+            const sqlWithNodeMetrics = updateSqlNodeMetrics(store.sql, action.sqlId, action.value)
+            const sqlWithMetrics = calculateSqlQueryLevelMetrics(sqlWithNodeMetrics, store.jobs);
+            return { ...store, sql: sqlWithMetrics };
         case 'updateDuration':
             return { ...store, status: { ...store.status, duration: calculateDuration(store.runMetadata, action.epocCurrentTime) } };
         case 'updateConnection':
@@ -82,6 +90,13 @@ export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
                 return store;
 
             return { ...store, isConnected: action.isConnected }
+        case 'setSparkJobs':
+            if (store.stages === undefined) {
+                return store;
+            }
+
+            const jobsStore = calculateJobsStore(store.jobs, store.stages, action.value);
+            return { ...store, jobs: jobsStore };
         default:
             // this shouldn't happen as we suppose to handle all actions
             return store;
