@@ -17,6 +17,7 @@ import { AppStateContext } from './Context';
 import DisconnectedModal from './components/Modals/DisconnectedModal';
 import { initialState } from './reducers/SparkReducer';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+import { isHistoryServer } from './utils/UrlUtils';
 
 
 const drawerWidth = 240;
@@ -34,9 +35,9 @@ export default function App() {
 
 
   React.useEffect(() => {
-    const isHistoryServer = window.location.href.includes('history');
+    const isHistoryServerMode = isHistoryServer()
 
-    const sparkAPI = new SparkAPI(BASE_PATH, dispatcher, isHistoryServer);
+    const sparkAPI = new SparkAPI(BASE_PATH, dispatcher, isHistoryServerMode);
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);
