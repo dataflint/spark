@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.spark.status.api.v1.anecdota
+package org.apache.spark.status.api.v1.dataflint
 
 import org.apache.spark.sql.execution.ui._
 import org.apache.spark.status.api.v1.BaseAppResource
@@ -24,7 +24,7 @@ import javax.ws.rs._
 import javax.ws.rs.core.MediaType
 
 @Produces(Array(MediaType.APPLICATION_JSON))
-private[v1] class AnecdotaSqlResource extends BaseAppResource {
+private[v1] class DataflintSqlResource extends BaseAppResource {
 
   @GET
   @Path("{executionId:\\d+}")

@@ -1,6 +1,6 @@
-# spark-dev-tool
+# DataFlint spark
 
-This is a dev tool for spark
+DataFlint is a observability and visibility tool for Apache Spark
 
 ## build instructions
 

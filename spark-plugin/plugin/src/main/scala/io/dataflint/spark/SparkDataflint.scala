@@ -1,0 +1,9 @@
+package io.dataflint.spark
+
+import org.apache.spark.{SparkContext, DataflintSparkUILoader}
+
+object SparkDataflint {
+  def upgrade(context: SparkContext): Unit = {
+      DataflintSparkUILoader.load(context)
+  }
+}

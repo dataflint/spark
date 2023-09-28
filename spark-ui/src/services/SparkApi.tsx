@@ -36,7 +36,7 @@ class SparkAPI {
     }
 
     private getSqlMetricsPath(sqlId: string): string {
-        return `${this.applicationPath}/devtool/sql/${sqlId}`
+        return `${this.applicationPath}/dataflint/sql/${sqlId}`
     }
 
     private buildSqlPath(offset: number): string {

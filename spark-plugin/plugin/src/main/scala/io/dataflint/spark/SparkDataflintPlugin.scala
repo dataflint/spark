@@ -1,19 +1,19 @@
-package com.anecdota.spark
+package io.dataflint.spark
 
-import org.apache.spark.{SparkContext, SparkUILoader}
+import org.apache.spark.{SparkContext, DataflintSparkUILoader}
 import org.apache.spark.api.plugin.{DriverPlugin, ExecutorPlugin, PluginContext, SparkPlugin}
 import org.apache.spark.internal.Logging
 
 import java.util
 import scala.collection.JavaConverters.mapAsJavaMapConverter
 
-class SparkAnecdotaPlugin extends SparkPlugin {
-  override def driverPlugin(): DriverPlugin = new SparkAnecdotaDriverPlugin()
+class SparkDataflintPlugin extends SparkPlugin {
+  override def driverPlugin(): DriverPlugin = new SparkDataflintDriverPlugin()
 
   override def executorPlugin(): ExecutorPlugin = null
 }
 
-class SparkAnecdotaDriverPlugin extends DriverPlugin with Logging {
+class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
   var sc: SparkContext = null
 
   override def init(sc: SparkContext, pluginContext: PluginContext): util.Map[String, String] = {
@@ -22,8 +22,8 @@ class SparkAnecdotaDriverPlugin extends DriverPlugin with Logging {
   }
 
   override def registerMetrics(appId: String, pluginContext: PluginContext): Unit = {
-    var webUrl = SparkUILoader.load(sc)
-    logInfo(s"spark devtool url is $webUrl/devtool")
+    var webUrl = DataflintSparkUILoader.load(sc)
+    logInfo(s"spark dataflint url is $webUrl/dataflint")
     super.registerMetrics(appId, pluginContext)
   }
 }

@@ -4,7 +4,7 @@ import javax.servlet.http.HttpServletRequest
 import scala.xml.Node
 import org.apache.spark.ui.{SparkUI, UIUtils, WebUITab}
 
-class DevtoolTab(parent: SparkUI) extends WebUITab(parent,"devtool") {
+class DataflintTab(parent: SparkUI) extends WebUITab(parent,"dataflint") {
   def render(request: HttpServletRequest): Seq[Node] = {
     val content =
           <div>
