@@ -29,7 +29,6 @@ export const getTabByUrl = (path: string) => {
   }
 }
 
-
 export function renderTabIcon(selectedTab: Tab): JSX.Element {
   switch (selectedTab) {
     case Tab.Status:
