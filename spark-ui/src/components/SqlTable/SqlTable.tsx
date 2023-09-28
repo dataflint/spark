@@ -64,7 +64,7 @@ export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
 
     return (
         <div style={{ width: "100%", display: "flex", justifyContent: "space-around" }}>
-            <TableContainer component={Paper} sx={{ maxHeight: "75vh", width: "70%", }}>
+            <TableContainer component={Paper} sx={{ maxHeight: "65vh", width: "70%", }}>
                 <Table stickyHeader aria-label="customized table" sx={{ margin: "auto" }}>
                     <TableHead>
                         <TableRow>
