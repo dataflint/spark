@@ -109,9 +109,7 @@ class SparkAPI {
             }
             if (!this.initialized || !this.isConnected) {
                 this.resetState(); // In case of disconnection
-                console.log('asking for applications')
                 const appData: SparkApplications = await this.queryData(this.applicationsPath);
-                console.log('app response:', appData);
             
                 const currentApplication = this.getCurrentApp(appData);
                 this.appId = currentApplication.id;
@@ -148,6 +146,7 @@ class SparkAPI {
                 if (runningSqlIds.length !== 0) {
                     const sqlId = runningSqlIds[0];
                     const nodesMetrics: NodesMetrics = await this.queryData(this.getSqlMetricsPath(sqlId));
+                    console.log('nodesMetrics:', nodesMetrics);
                     this.dispatch({ type: 'setSQLMetrics', value: nodesMetrics, sqlId: sqlId });
                 }
             }
