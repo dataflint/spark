@@ -11,10 +11,14 @@ import { EnrichedSparkSQL, SparkSQLStore } from '../../interfaces/AppStore';
 import Progress from '../Progress';
 import { duration } from 'moment'
 import { humanFileSize, humanizeTimeDiff } from '../../utils/FormatUtils';
-import { CircularProgress } from '@mui/material';
+import { Box, CircularProgress, TableSortLabel } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { SqlStatus } from '../../interfaces/SparkSQLs';
+import { visuallyHidden } from '@mui/utils';
+import _ from 'lodash';
+import { getComparator, stableSort } from './TableUtils';
+import { Data, EnhancedTableProps, HeadCell, Order } from './TableTypes';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
@@ -50,38 +54,160 @@ function StatusIcon(status: string): JSX.Element {
 }
 
 
+const headCells: readonly HeadCell[] = [
+    {
+        id: 'id',
+        numeric: true,
+        disablePadding: false,
+        label: 'id',
+    },
+    {
+        id: 'status',
+        numeric: false,
+        disablePadding: false,
+        label: 'Status',
+    },
+    {
+        id: 'description',
+        numeric: false,
+        disablePadding: false,
+        label: 'Description',
+    },
+    {
+        id: 'duration',
+        numeric: false,
+        disablePadding: false,
+        label: 'Duration',
+    },
+    {
+        id: 'coreHour',
+        numeric: false,
+        disablePadding: false,
+        label: 'Core/Hour',
+    },
+    {
+        id: 'activityRate',
+        numeric: false,
+        disablePadding: false,
+        label: 'Activity Rate',
+    },
+    {
+        id: 'input',
+        numeric: false,
+        disablePadding: false,
+        label: 'Input',
+    },
+    {
+        id: 'output',
+        numeric: false,
+        disablePadding: false,
+        label: 'Output',
+    },
+];
+
+const createSqlTableData = (sqls: EnrichedSparkSQL[]): Data[] => {
+    return sqls.flatMap(sql => {
+        return !sql.stageMetrics || !sql.resourceMetrics ? [] : {
+            id: sql.id,
+            status: sql.status,
+            description: sql.description,
+            duration: sql.duration,
+            durationPercentage: sql.resourceMetrics.durationPercentage,
+            coreHour: sql.resourceMetrics.coreHourUsage,
+            coreHourPercentage: sql.resourceMetrics?.coreHourPercentage,
+            activityRate: sql.resourceMetrics.activityRate,
+            input: sql.stageMetrics.inputBytes,
+            output: sql.stageMetrics.outputBytes,
+        }
+    })
+
+}
+
+function EnhancedTableHead(props: EnhancedTableProps) {
+    const { order, orderBy, onRequestSort } =
+        props;
+    const createSortHandler =
+        (property: keyof Data) => (event: React.MouseEvent<unknown>) => {
+            onRequestSort(event, property);
+        };
+
+    return (
+        <TableHead>
+            <TableRow>
+                {headCells.map((headCell) => (
+                    <TableCell
+                        key={headCell.id}
+                        align={'left'}
+                        padding={headCell.disablePadding ? 'none' : 'normal'}
+                        sortDirection={orderBy === headCell.id ? order : false}
+                    >
+                        <TableSortLabel
+                            active={orderBy === headCell.id}
+                            direction={orderBy === headCell.id ? order : 'asc'}
+                            onClick={createSortHandler(headCell.id)}
+                        >
+                            {headCell.label}
+                            {orderBy === headCell.id ? (
+                                <Box component="span" sx={visuallyHidden}>
+                                    {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                                </Box>
+                            ) : null}
+                        </TableSortLabel>
+                    </TableCell>
+                ))}
+            </TableRow>
+        </TableHead>
+    );
+}
+
+
 export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
     {
         sqlStore: SparkSQLStore | undefined,
         selectedSqlId: string | undefined,
         setSelectedSqlId: React.Dispatch<React.SetStateAction<string | undefined>>
     }) {
+    const [order, setOrder] = React.useState<Order>('asc');
+    const [orderBy, setOrderBy] = React.useState<keyof Data>('id');
+    const [sqlsTableData, setSqlsTableData] = React.useState<Data[]>([]);
+
+
+    React.useEffect(() => {
+        if (!sqlStore)
+            return;
+
+        const sqls = createSqlTableData(sqlStore.sqls.slice().filter(sql => !sql.isSqlCommand))
+        if (_.isEqual(sqls, sqlsTableData))
+            return;
+
+        setSqlsTableData(sqls);
+    }, [sqlStore])
+
+    const handleRequestSort = (
+        event: React.MouseEvent<unknown>,
+        property: keyof Data,
+    ) => {
+        const isAsc = orderBy === property && order === 'asc';
+        setOrder(isAsc ? 'desc' : 'asc');
+        setOrderBy(property);
+    };
+
+    const visibleRows = React.useMemo(
+        () =>
+            stableSort(sqlsTableData, getComparator(order, orderBy)),
+        [order, orderBy, sqlsTableData],
+    );
+
     if (sqlStore === undefined) {
         return <Progress />;
     }
-
-    const sqlsToShow = sqlStore.sqls.slice().filter(sql => !sql.isSqlCommand);
-
     return (
         <div style={{ width: "100%", display: "flex", justifyContent: "space-around" }}>
             <TableContainer component={Paper} sx={{ maxHeight: "65vh", width: "70%", }}>
                 <Table stickyHeader aria-label="customized table" sx={{ margin: "auto" }}>
-                    <TableHead>
-                        <TableRow>
-                            <StyledTableCell>id</StyledTableCell>
-                            <StyledTableCell>Status</StyledTableCell>
-                            <StyledTableCell>Description</StyledTableCell>
-                            <StyledTableCell align="right">Duration</StyledTableCell>
-                            <StyledTableCell align="right">Core/hour</StyledTableCell>
-                            <StyledTableCell align="right">Activity Rate</StyledTableCell>
-                            <StyledTableCell align="right">Input</StyledTableCell>
-                            <StyledTableCell align="right">Output</StyledTableCell>
-                        </TableRow>
-                    </TableHead>
+                    <EnhancedTableHead onRequestSort={handleRequestSort} order={order} orderBy={orderBy} />
                     <TableBody>
-                        {sqlsToShow.map((sql) => (
-                            // sql metrics should never be null
-                            sql.stageMetrics === undefined || sql.resourceMetrics === undefined ? null : 
+                        {visibleRows.map((sql) => (
                             <StyledTableRow sx={{ cursor: 'pointer' }} key={sql.id} selected={sql.id === selectedSqlId} onClick={(event) => setSelectedSqlId(sql.id)} >
                                 <StyledTableCell component="th" scope="row">
                                     {sql.id}
@@ -92,11 +218,11 @@ export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
                                 <StyledTableCell component="th" scope="row">
                                     {sql.description}
                                 </StyledTableCell>
-                                <StyledTableCell align="right">{humanizeTimeDiff(duration(sql.duration))} ({sql.resourceMetrics.durationPercentage.toFixed(1)}%)</StyledTableCell>
-                                <StyledTableCell align="right">{sql.resourceMetrics.coreHourUsage.toFixed(4)} ({sql.resourceMetrics.coreHourPercentage.toFixed(1)}%)</StyledTableCell>
-                                <StyledTableCell align="right">{sql.resourceMetrics.activityRate.toFixed(2)}%</StyledTableCell>
-                                <StyledTableCell align="right">{humanFileSize(sql.stageMetrics.inputBytes)}</StyledTableCell>
-                                <StyledTableCell align="right">{humanFileSize(sql.stageMetrics.outputBytes)}</StyledTableCell>
+                                <StyledTableCell align="right">{humanizeTimeDiff(duration(sql.duration))} ({sql.durationPercentage.toFixed(1)}%)</StyledTableCell>
+                                <StyledTableCell align="right">{sql.coreHour.toFixed(4)} ({sql.coreHourPercentage.toFixed(1)}%)</StyledTableCell>
+                                <StyledTableCell align="right">{sql.activityRate.toFixed(2)}%</StyledTableCell>
+                                <StyledTableCell align="right">{humanFileSize(sql.input)}</StyledTableCell>
+                                <StyledTableCell align="right">{humanFileSize(sql.output)}</StyledTableCell>
                             </StyledTableRow>
                         ))}
                     </TableBody>
