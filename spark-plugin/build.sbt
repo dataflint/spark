@@ -1,5 +1,8 @@
 import xerial.sbt.Sonatype._
 
+ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
+// ThisBuild / sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+
 lazy val dataflint = project
   .in(file("."))
   .aggregate(
