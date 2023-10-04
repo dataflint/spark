@@ -4,12 +4,18 @@ import SqlTable from '../components/SqlTable/SqlTable';
 import SqlFlow from '../components/SqlFlow/SqlFlow';
 import { Button, Fade } from '@mui/material';
 import { AppStateContext } from '../Context';
+import mixpanel from 'mixpanel-browser';
+import { MixpanelEvents } from '../interfaces/Mixpanel';
 
 
 export default function SummaryTab() {
   const { sql } = React.useContext(AppStateContext);
   const [selectedSqlId, setSelectedSqlId] = React.useState<string | undefined>(undefined);
   const selectedSql = selectedSqlId === undefined ? undefined : sql?.sqls.find(sql => sql.id === selectedSqlId);
+
+  React.useEffect(() => {
+    mixpanel.track_pageview();
+  }, [])
 
   React.useEffect(() => {
     function handleEscapeKey(event: KeyboardEvent) {
@@ -20,7 +26,20 @@ export default function SummaryTab() {
 
     document.addEventListener('keydown', handleEscapeKey)
     return () => document.removeEventListener('keydown', handleEscapeKey)
-  }, [])
+  }, []);
+
+  const onSelectingSql = (id: string) => {
+    setSelectedSqlId(id);
+    const currentSql = sql?.sqls.find(sql => sql.id === id);
+
+    mixpanel.track(MixpanelEvents.SqlSummarySelected, {
+      sqlId: currentSql?.id,
+      sqluniqueId: currentSql?.uniqueId,
+      sqlStatus: currentSql?.status,
+      sqlSubmissionTime: currentSql?.submissionTime,
+      sqlDuration: currentSql?.duration
+    });
+  }
 
   return (
     <div style={{ overflow: "hidden", height: "100%" }}>
@@ -28,7 +47,7 @@ export default function SummaryTab() {
         <Fade in={selectedSqlId === undefined} style={{}}>
           <div style={{ display: "flex", height: "100%", flexDirection: "column" }}>
             <SummaryBar />
-            <SqlTable sqlStore={sql} selectedSqlId={selectedSqlId} setSelectedSqlId={setSelectedSqlId} />
+            <SqlTable sqlStore={sql} selectedSqlId={selectedSqlId} setSelectedSqlId={onSelectingSql} />
           </div>
         </Fade>
         :

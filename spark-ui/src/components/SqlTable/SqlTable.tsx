@@ -165,7 +165,7 @@ export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
     {
         sqlStore: SparkSQLStore | undefined,
         selectedSqlId: string | undefined,
-        setSelectedSqlId: React.Dispatch<React.SetStateAction<string | undefined>>
+        setSelectedSqlId: (id:string) => void
     }) {
     const [order, setOrder] = React.useState<Order>('asc');
     const [orderBy, setOrderBy] = React.useState<keyof Data>('id');

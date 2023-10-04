@@ -2,9 +2,14 @@ import * as React from 'react';
 import StatusBar from '../components/StatusBar';
 import SqlContainer from '../components/SqlContainer';
 import { AppStateContext } from '../Context';
+import mixpanel from 'mixpanel-browser';
 
 export default function StatusTab() {
   const { sql } = React.useContext(AppStateContext);
+
+  React.useEffect(() => {
+    mixpanel.track_pageview();
+  }, [])
 
   return (
     <div style={{ display: "flex", height: "100%", flexDirection: "column" }}>

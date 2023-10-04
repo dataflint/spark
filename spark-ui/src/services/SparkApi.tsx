@@ -8,6 +8,8 @@ import { SparkSQLs, SqlStatus } from '../interfaces/SparkSQLs';
 import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from '../interfaces/SqlMetrics';
 import { SQLPlans } from "../interfaces/SQLPlan";
+import mixpanel from "mixpanel-browser";
+import { MixpanelEvents } from "../interfaces/Mixpanel";
 
 const POLL_TIME = 1000
 const SQL_QUERY_LENGTH = 100
@@ -101,7 +103,7 @@ class SparkAPI {
             return await requestContent.json();
         } catch (e) {
             console.log(`request to path: ${path} failed, error: ${e}`);
-            throw(e);
+            throw (e);
         }
     }
 
@@ -115,7 +117,7 @@ class SparkAPI {
             if (!this.initialized || !this.isConnected) {
                 this.resetState(); // In case of disconnection
                 const appData: SparkApplications = await this.queryData(this.applicationsPath);
-            
+
                 const currentApplication = this.getCurrentApp(appData);
                 this.appId = currentApplication.id;
                 const currentAttempt = currentApplication.attempts[currentApplication.attempts.length - 1];
@@ -124,11 +126,16 @@ class SparkAPI {
                 this.initialized = true; // should happen after fetching app and env succesfully
                 this.isConnected = true;
                 this.dispatch({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
+                
+                mixpanel.track(MixpanelEvents.SparkAppInitilized, {
+                    id: currentApplication.id,
+                    sparkApp: currentApplication
+                });
             } else {
                 this.dispatch({ type: 'updateDuration', epocCurrentTime: Date.now() });
             }
 
-            const sparkStages: SparkStages =  await this.queryData(this.stagesPath);
+            const sparkStages: SparkStages = await this.queryData(this.stagesPath);
             this.dispatch({ type: 'setStages', value: sparkStages });
 
             const sparkExecutors: SparkExecutors = await this.queryData(this.executorsPath);
