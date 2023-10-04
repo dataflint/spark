@@ -9,7 +9,7 @@ object DataflintSparkUILoader {
   }
 
   def loadUI(ui: SparkUI): String = {
-    ui.addStaticHandler("io/dataflint/spark/static/ui", ui.basePath + "/dataflint")
+    DataflintJettyUtils.addStaticHandler(ui, "io/dataflint/spark/static/ui", ui.basePath + "/dataflint")
     val tab = new DataflintTab(ui)
     ui.attachTab(tab)
     ui.webUrl
