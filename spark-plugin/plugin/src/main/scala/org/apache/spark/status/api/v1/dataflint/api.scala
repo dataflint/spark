@@ -19,3 +19,7 @@ package org.apache.spark.status.api.v1.dataflint
 case class NodeMetric(name: String, value: Option[String])
 
 case class NodeMetrics(id: Long, name: String, metrics: Seq[NodeMetric])
+
+case class SqlEnrichedData(executionId: Long, numOfNodes:Int, nodesPlan: Seq[NodePlan])
+
+case class NodePlan(id: Long, planDescription: String)

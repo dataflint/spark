@@ -25,9 +25,23 @@ import javax.ws.rs.core.MediaType
 
 @Produces(Array(MediaType.APPLICATION_JSON))
 private[v1] class DataflintSqlResource extends BaseAppResource {
+  @GET
+  @Path("plan")
+  def enrichedPlan(
+  @DefaultValue("0") @QueryParam("offset") offset: Int,
+  @DefaultValue("20") @QueryParam("length") length: Int): Seq[SqlEnrichedData] = {
+    withUI { ui =>
+      val sqlListener = ui.sc.flatMap(_.listenerBus.listeners.toArray().find(_.isInstanceOf[SQLAppStatusListener]).asInstanceOf[Option[SQLAppStatusListener]])
+      val sqlStore = new SQLAppStatusStore(ui.store.store, sqlListener)
+      sqlStore.executionsList(offset, length).map { exec =>
+        val graph = sqlStore.planGraph(exec.executionId)
+        SqlEnrichedData(exec.executionId, graph.allNodes.length, graph.allNodes.map(node => NodePlan(node.id, node.desc)))
+      }
+    }
+  }
 
   @GET
-  @Path("{executionId:\\d+}")
+  @Path("metrics/{executionId:\\d+}")
   def sql(
            @PathParam("executionId") executionId: Long): Seq[NodeMetrics] = {
     withUI { ui =>

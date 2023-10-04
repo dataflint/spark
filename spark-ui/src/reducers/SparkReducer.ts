@@ -52,7 +52,7 @@ export function sparkApiReducer(store: AppStore, action: ApiAction): AppStore {
 
     switch (action.type) {
         case 'setSQL':
-            const sqlStore = calculateSqlStore(store.sql, action.value);
+            const sqlStore = calculateSqlStore(store.sql, action.sqls, action.plans);
             if(store.jobs === undefined || store.executors === undefined) {
                 // shouldn't happen as we should have jobs and executors before we have sql
                 return { ...store, sql: sqlStore };

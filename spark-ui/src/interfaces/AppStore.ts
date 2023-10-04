@@ -73,6 +73,9 @@ export interface EnrichedSparkSQL {
     edges: EnrichedSqlEdge[]
 }
 
+export type ParsedNodePlan = 
+{ type: 'aggregate', operation: string }
+
 export interface EnrichedSqlNode {
     nodeId: number
     nodeName: string
@@ -81,6 +84,7 @@ export interface EnrichedSqlNode {
     type: NodeType
     isVisible: boolean
     wholeStageCodegenId?: number
+    parsedPlan: ParsedNodePlan | undefined
 }
 
 export interface EnrichedSqlMetric {

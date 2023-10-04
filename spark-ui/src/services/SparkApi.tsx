@@ -7,6 +7,7 @@ import { SparkJobs } from "../interfaces/SparkJobs";
 import { SparkSQLs, SqlStatus } from '../interfaces/SparkSQLs';
 import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from '../interfaces/SqlMetrics';
+import { SQLPlans } from "../interfaces/SQLPlan";
 
 const POLL_TIME = 1000
 const SQL_QUERY_LENGTH = 100
@@ -36,11 +37,15 @@ class SparkAPI {
     }
 
     private getSqlMetricsPath(sqlId: string): string {
-        return `${this.applicationPath}/dataflint/sql/${sqlId}`
+        return `${this.applicationPath}/dataflint/sql/metrics/${sqlId}`
     }
 
     private buildSqlPath(offset: number): string {
         return `${this.applicationPath}/sql?offset=${offset}&length=${SQL_QUERY_LENGTH}`
+    }
+
+    private buildSqlPlanPath(offset: number): string {
+        return `${this.applicationPath}/dataflint/sql/plan?offset=${offset}&length=${SQL_QUERY_LENGTH}`
     }
 
     private get executorsPath(): string {
@@ -133,8 +138,10 @@ class SparkAPI {
             this.dispatch({ type: 'setSparkJobs', value: sparkJobs });
 
             const sparkSQLs: SparkSQLs = await this.queryData(this.buildSqlPath(this.lastCompletedSqlId + 1));
+            const sparkPlans: SQLPlans = await this.queryData(this.buildSqlPlanPath(this.lastCompletedSqlId + 1));
+
             if (sparkSQLs.length !== 0) {
-                this.dispatch({ type: 'setSQL', value: sparkSQLs });
+                this.dispatch({ type: 'setSQL', sqls: sparkSQLs, plans: sparkPlans });
 
                 const finishedSqls = sparkSQLs.filter(sql => sql.status === SqlStatus.Completed || sql.status === SqlStatus.Failed);
 

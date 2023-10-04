@@ -1,11 +1,12 @@
 
-import { EnrichedSparkSQL, EnrichedSqlMetric, NodeType, SparkSQLStore, EnrichedSqlEdge, EnrichedSqlNode, AppStore } from '../interfaces/AppStore';
+import { EnrichedSparkSQL, EnrichedSqlMetric, NodeType, SparkSQLStore, EnrichedSqlEdge, EnrichedSqlNode, AppStore, ParsedNodePlan } from '../interfaces/AppStore';
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { Edge, Graph } from 'graphlib';
 import { v4 as uuidv4 } from 'uuid';
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { calcNodeMetrics, calcNodeType, nodeEnrichedNameBuilder } from './SqlReducerUtils';
 import { timeStrToEpocTime } from '../utils/FormatUtils';
+import { SQLNodePlan, SQLPlan, SQLPlans } from '../interfaces/SQLPlan';
 
 
 export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): [EnrichedSqlEdge[], EnrichedSqlNode[]] {
@@ -36,12 +37,26 @@ export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): 
     return [filteredEdges, nodes.filter(node => node.isVisible)]
 }
 
-function calculateSql(sql: SparkSQL): EnrichedSparkSQL {
+export function parseNodePlan(node: EnrichedSqlNode, plan: SQLNodePlan) : ParsedNodePlan | undefined   {
+    if(node.nodeName === "HashAggregate") {
+        return { type: 'aggregate', operation: plan.planDescription }
+    }
+    return undefined
+}
+
+function calculateSql(sql: SparkSQL, plan: SQLPlan | undefined): EnrichedSparkSQL {
     const enrichedSql = sql as EnrichedSparkSQL;
     const originalNumOfNodes = enrichedSql.nodes.length;
     const typeEnrichedNodes = enrichedSql.nodes.map(node => {
         const type = calcNodeType(node.nodeName);
-        return { ...node, type: type, isVisible: type !== "other", enrichedName: nodeEnrichedNameBuilder(node.nodeName) };
+        const nodePlan = plan?.nodesPlan.find(planNode => planNode.id === node.nodeId);
+        const parsedPlan = nodePlan !== undefined ? parseNodePlan(node, nodePlan) : undefined;
+        return { 
+            ...node, 
+            type: type, 
+            isVisible: type !== "other", 
+            parsedPlan: parsedPlan,
+            enrichedName: nodeEnrichedNameBuilder(node.nodeName) };
     });
 
     if (typeEnrichedNodes.filter(node => node.type === 'output').length === 0) {
@@ -72,13 +87,16 @@ function calculateSql(sql: SparkSQL): EnrichedSparkSQL {
      };
 }
 
-function calculateSqls(sqls: SparkSQLs): EnrichedSparkSQL[] {
-    return sqls.map(calculateSql);
+function calculateSqls(sqls: SparkSQLs, plans: SQLPlans): EnrichedSparkSQL[] {
+    return sqls.map(sql => {
+        const plan = plans.find(plan => plan.executionId === parseInt(sql.id));
+        return calculateSql(sql, plan);
+    });
 }
 
-export function calculateSqlStore(currentStore: SparkSQLStore | undefined, sqls: SparkSQLs): SparkSQLStore {
+export function calculateSqlStore(currentStore: SparkSQLStore | undefined, sqls: SparkSQLs, plans: SQLPlans): SparkSQLStore {
     if (currentStore === undefined) {
-        return { sqls: calculateSqls(sqls) };
+        return { sqls: calculateSqls(sqls, plans) };
     }
 
     const sqlIds = sqls.map(sql => parseInt(sql.id));
@@ -91,18 +109,19 @@ export function calculateSqlStore(currentStore: SparkSQLStore | undefined, sqls:
     for(const id of sqlIds) {
         const newSql = sqls.find(existingSql => parseInt(existingSql.id) === id) as SparkSQL;
         const currentSql = currentStore.sqls.find(existingSql => parseInt(existingSql.id) === id);
+        const plan = plans.find(plan => plan.executionId === id);
 
         // case 1: SQL does not exist, we add it
         if(currentSql === undefined) {
-            updatedSqls.push(calculateSql(newSql));
+            updatedSqls.push(calculateSql(newSql, plan));
         // From here currentSql must not be null, and currentSql can't be COMPLETED as it would not be requested by API
         // case 2: plan status changed from running to completed, so we need to update the SQL 
         } else if(newSql.status === SqlStatus.Completed.valueOf() || newSql.status === SqlStatus.Failed.valueOf()) {
-            updatedSqls.push(calculateSql(newSql));
+            updatedSqls.push(calculateSql(newSql, plan));
         // From here newSql.status must be RUNNING
         // case 3: running SQL structure, so we need to update the plan 
         } else if(currentSql.originalNumOfNodes !== newSql.nodes.length) {
-            updatedSqls.push(calculateSql(newSql));
+            updatedSqls.push(calculateSql(newSql ,plan));
         } else {
             // case 4: SQL is running, but the structure haven't changed, so we update only relevant fields
             updatedSqls.push({...currentSql, duration: newSql.duration, failedJobIds: newSql.failedJobIds, runningJobIds: newSql.runningJobIds, successJobIds: newSql.successJobIds});
