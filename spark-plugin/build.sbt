@@ -10,7 +10,8 @@ lazy val dataflint = project
     example_3_1_3,
     example_3_2_4,
     example_3_3_3,
-    example_3_4_1
+    example_3_4_1,
+    example_3_4_1_remote
   ).settings(
     publish / skip := true
   )
@@ -31,8 +32,8 @@ lazy val example_3_1_3 = (project in file("example_3_1_3"))
     name := "DataflintSparkExample313",
     organization := "io.dataflint",
     scalaVersion := "2.12.18",
-    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.1.3" % "provided",
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.1.3" % "provided",
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.1.3",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.1.3",
     publish / skip := true
   ).dependsOn(plugin)
 
@@ -41,8 +42,8 @@ lazy val example_3_2_4 = (project in file("example_3_2_4"))
     name := "DataflintSparkExample324",
     organization := "io.dataflint",
     scalaVersion := "2.12.18",
-    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.2.4" % "provided",
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.2.4" % "provided",
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.2.4",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.2.4",
     publish / skip := true
   ).dependsOn(plugin)
 
@@ -51,8 +52,8 @@ lazy val example_3_3_3 = (project in file("example_3_3_3"))
     name := "DataflintSparkExample333",
     organization := "io.dataflint",
     scalaVersion := "2.12.18",
-    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.3.3" % "provided",
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.3.3" % "provided",
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.3.3",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.3.3",
     publish / skip := true
   ).dependsOn(plugin)
 
@@ -61,7 +62,18 @@ lazy val example_3_4_1 = (project in file("example_3_4_1"))
     name := "DataflintSparkExample341",
     organization := "io.dataflint",
     scalaVersion := "2.12.18",
-    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.4.1" % "provided",
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.4.1" % "provided",
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.4.1",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.4.1",
     publish / skip := true
   ).dependsOn(plugin)
+
+lazy val example_3_4_1_remote = (project in file("example_3_4_1_remote"))
+  .settings(
+      name := "DataflintSparkExample341Remote",
+      organization := "io.dataflint",
+      scalaVersion := "2.12.18",
+      libraryDependencies += "org.apache.spark" %% "spark-core" % "3.4.1",
+      libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.4.1",
+      publish / skip := true
+  ).dependsOn()
+
