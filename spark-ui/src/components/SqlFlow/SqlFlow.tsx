@@ -50,7 +50,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = (
 
     useEffect(() => {
         if (instance) {
-            setTimeout(instance.fitView);
+            setTimeout(instance.fitView, 20);
         }
     }, [instance, edges]);
 
