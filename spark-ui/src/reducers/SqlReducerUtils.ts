@@ -50,7 +50,7 @@ export function calcNodeMetrics(type: NodeType, metrics: EnrichedSqlMetric[]): E
 }
 
 export function calcNodeType(name: string): NodeType {
-    if(name === "Scan csv" || name === "Scan text") {
+    if(name === "Scan csv" || name === "Scan text" || name === "Scan json") {
         return "input";
     } else if(name === "Execute InsertIntoHadoopFsRelationCommand") {
         return "output";
