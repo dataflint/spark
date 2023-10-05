@@ -27,7 +27,7 @@ let BASE_CURRENT_PAGE = hrefWithoutEndSlash();
 if (process.env.NODE_ENV === 'development') {
   BASE_PATH = process.env.REACT_APP_BASE_PATH ?? "";
   BASE_CURRENT_PAGE = `${BASE_PATH}/dataflint`;
-} else if(!isHistoryServerMode && isProxyMode()) {
+} else if (!isHistoryServerMode && isProxyMode()) {
   BASE_PATH = getProxyBasePath()
 }
 
@@ -40,7 +40,7 @@ export default function App() {
 
 
   React.useEffect(() => {
-  const sparkAPI = new SparkAPI(BASE_PATH, BASE_CURRENT_PAGE, dispatcher, isHistoryServerMode);
+    const sparkAPI = new SparkAPI(BASE_PATH, BASE_CURRENT_PAGE, dispatcher, isHistoryServerMode);
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);
@@ -79,7 +79,9 @@ export default function App() {
               }}
             >
               <DisconnectedModal />
-              <img width={100} height={100} src='/logo.png'/>
+              <div style={{display: "flex", justifyContent:"space-around", margin: "20px 0 0 0"}}>
+                <img width={167} height={20} src='/logo.png' />
+              </div>
               {/* <Toolbar /> */}
               <Box>
                 <List>
