@@ -2,6 +2,9 @@ import mixpanel from "mixpanel-browser";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 
 
+const KEEP_ALIVE_INTERVAL_MS = 60 * 1000;
+
+
 export class MixpanelService {
     static InitMixpanel(): void {
         if (!this.ShouldTrack())
@@ -11,6 +14,25 @@ export class MixpanelService {
 
         // For debugging add debug: true to the props
         mixpanel.init(MIX_PANEL_TOKEN, { track_pageview: true, persistence: 'localStorage' });
+        this.StartKeepAlive(KEEP_ALIVE_INTERVAL_MS);
+    }
+
+    /**
+     * Sends keep alive every interval if the tab is focused, in order to keep the mixpanel sessions "alive"
+     * @param interval keep alive interval in ms
+     */
+    static StartKeepAlive(interval: number): void {
+        if (!this.ShouldTrack)
+            return;
+
+        setInterval(() => {
+            if (document.hidden) {
+                // skip keep alive when tab is not in focus
+                return;
+            }
+
+            this.Track(MixpanelEvents.KeepAlive);
+        }, interval)
     }
 
     static Track(event: MixpanelEvents, properties?: { [key: string]: any }): void {
