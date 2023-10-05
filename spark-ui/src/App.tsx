@@ -1,14 +1,6 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
 import SparkAPI from './services/SparkApi';
-import Drawer from '@mui/material/Drawer';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
 import { sparkApiReducer } from './reducers/SparkReducer';
 import Progress from './components/Progress';
 import { Tab, TabToUrl, getTabByUrl, renderTabIcon } from './services/TabsService';
@@ -17,11 +9,10 @@ import DisconnectedModal from './components/Modals/DisconnectedModal';
 import { initialState } from './reducers/SparkReducer';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { getProxyBasePath, hrefWithoutEndSlash, isHistoryServer, isProxyMode } from './utils/UrlUtils';
-import DrawerFooter from './components/DrawerFooter';
+import { AppDrawer } from './components/AppDrawer/AppDrawer';
 
 const isHistoryServerMode = isHistoryServer()
 
-const drawerWidth = 240;
 let BASE_PATH = "";
 let BASE_CURRENT_PAGE = hrefWithoutEndSlash();
 if (process.env.NODE_ENV === 'development') {
@@ -53,7 +44,7 @@ export default function App() {
   }, [location])
 
 
-  const onTabChanged = (tab: Tab) => {
+  const onTabChanged = (tab: Tab): void => {
     setSelectedTab(tab);
     navigate(TabToUrl[tab]);
   }
@@ -70,39 +61,8 @@ export default function App() {
             {/* <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }} color="primary" enableColorOnDark>
               <DevtoolAppBar appName={store.runMetadata.appName ?? ""} />
             </AppBar> */}
-            <Drawer
-              variant="permanent"
-              sx={{
-                width: drawerWidth,
-                flexShrink: 0,
-                [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
-              }}
-            >
-              <DisconnectedModal />
-              <div style={{display: "flex", flexDirection:"column", justifyContent:"space-between", height:"100%"}}>
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-around", marginTop: "20px" }}>
-                    <img width={167} height={20} src='/logo.png' />
-                  </div>
-                  {/* <Toolbar /> */}
-                  <Box>
-                    <List>
-                      {Object.values(Tab).map((tab) => (
-                        <ListItem key={tab} disablePadding >
-                          <ListItemButton selected={selectedTab === tab} onClick={() => onTabChanged(tab)}>
-                            <ListItemIcon>
-                              {renderTabIcon(tab)}
-                            </ListItemIcon>
-                            <ListItemText primary={tab.toString()} />
-                          </ListItemButton>
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Box>
-                </div>
-                <DrawerFooter version={process.env.REACT_APP_VERSION} />
-              </div>
-            </Drawer>
+            <DisconnectedModal />
+            <AppDrawer selectedTab={selectedTab} onTabChanged={onTabChanged} />
             <Box
               component="main"
               sx={{
