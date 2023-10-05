@@ -121,10 +121,13 @@ class SparkAPI {
                 this.initialized = true; // should happen after fetching app and env succesfully
                 this.isConnected = true;
                 this.dispatch({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
-                
+
                 MixpanelService.Track(MixpanelEvents.SparkAppInitilized, {
                     id: currentApplication.id,
-                    sparkApp: currentApplication
+                    sparkVersion: currentAttempt?.appSparkVersion,
+                    startTime: currentAttempt?.startTime,
+                    endTime: currentAttempt?.endTime,
+                    duration: currentAttempt?.duration
                 });
             } else {
                 this.dispatch({ type: 'updateDuration', epocCurrentTime: Date.now() });
