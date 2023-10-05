@@ -218,11 +218,11 @@ export default function SqlTable({ sqlStore, selectedSqlId, setSelectedSqlId }:
                                 <StyledTableCell component="th" scope="row">
                                     {sql.description}
                                 </StyledTableCell>
-                                <StyledTableCell align="right">{humanizeTimeDiff(duration(sql.duration))} ({sql.durationPercentage.toFixed(1)}%)</StyledTableCell>
-                                <StyledTableCell align="right">{sql.coreHour.toFixed(4)} ({sql.coreHourPercentage.toFixed(1)}%)</StyledTableCell>
-                                <StyledTableCell align="right">{sql.activityRate.toFixed(2)}%</StyledTableCell>
-                                <StyledTableCell align="right">{humanFileSize(sql.input)}</StyledTableCell>
-                                <StyledTableCell align="right">{humanFileSize(sql.output)}</StyledTableCell>
+                                <StyledTableCell align="left">{humanizeTimeDiff(duration(sql.duration))} ({sql.durationPercentage.toFixed(1)}%)</StyledTableCell>
+                                <StyledTableCell align="left">{sql.coreHour.toFixed(4)} ({sql.coreHourPercentage.toFixed(1)}%)</StyledTableCell>
+                                <StyledTableCell align="left">{sql.activityRate.toFixed(2)}%</StyledTableCell>
+                                <StyledTableCell align="left">{humanFileSize(sql.input)}</StyledTableCell>
+                                <StyledTableCell align="left">{humanFileSize(sql.output)}</StyledTableCell>
                             </StyledTableRow>
                         ))}
                     </TableBody>
