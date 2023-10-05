@@ -67,9 +67,9 @@ export default function App() {
       (
         <AppStateContext.Provider value={store}>
           <Box sx={{ display: 'flex' }}>
-            <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }} color="primary" enableColorOnDark>
+            {/* <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }} color="primary" enableColorOnDark>
               <DevtoolAppBar appName={store.runMetadata.appName ?? ""} />
-            </AppBar>
+            </AppBar> */}
             <Drawer
               variant="permanent"
               sx={{
@@ -79,7 +79,8 @@ export default function App() {
               }}
             >
               <DisconnectedModal />
-              <Toolbar />
+              <img width={100} height={100} src='/logo.png'/>
+              {/* <Toolbar /> */}
               <Box>
                 <List>
                   {Object.values(Tab).map((tab) => (
@@ -105,7 +106,6 @@ export default function App() {
                 flexGrow: 1,
                 height: '100vh',
                 overflow: 'hidden',
-                pt: '64px'
               }}
             >
               <Outlet />
