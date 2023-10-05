@@ -17,13 +17,18 @@ import { AppStateContext } from './Context';
 import DisconnectedModal from './components/Modals/DisconnectedModal';
 import { initialState } from './reducers/SparkReducer';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { isHistoryServer } from './utils/UrlUtils';
+import { getProxyBasePath, hrefWithoutEndSlash, isHistoryServer, isProxyMode } from './utils/UrlUtils';
 
+const isHistoryServerMode = isHistoryServer()
 
 const drawerWidth = 240;
 let BASE_PATH = "";
+let BASE_CURRENT_PAGE = hrefWithoutEndSlash();
 if (process.env.NODE_ENV === 'development') {
   BASE_PATH = process.env.REACT_APP_BASE_PATH ?? "";
+  BASE_CURRENT_PAGE = `${BASE_PATH}/dataflint`;
+} else if(!isHistoryServerMode && isProxyMode()) {
+  BASE_PATH = getProxyBasePath()
 }
 
 export default function App() {
@@ -35,9 +40,7 @@ export default function App() {
 
 
   React.useEffect(() => {
-    const isHistoryServerMode = isHistoryServer()
-
-    const sparkAPI = new SparkAPI(BASE_PATH, dispatcher, isHistoryServerMode);
+  const sparkAPI = new SparkAPI(BASE_PATH, BASE_CURRENT_PAGE, dispatcher, isHistoryServerMode);
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);

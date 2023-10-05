@@ -9,12 +9,14 @@ import { NodesMetrics } from '../interfaces/SqlMetrics';
 import { SQLPlans } from "../interfaces/SQLPlan";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 import { MixpanelService } from "./MixpanelService";
+import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";
 
 const POLL_TIME = 1000
 const SQL_QUERY_LENGTH = 100
 
 class SparkAPI {
     basePath: string
+    baseCurrentPage: string
     initialized: boolean = false;
     isConnected: boolean = false;
     appId: string = "";
@@ -38,7 +40,7 @@ class SparkAPI {
     }
 
     private getSqlMetricsPath(sqlId: string): string {
-        return `${this.applicationPath}/dataflint/sql/metrics/${sqlId}`
+        return `${this.baseCurrentPage}/sqlmetrics/json?executionId=${sqlId}`
     }
 
     private buildSqlPath(offset: number): string {
@@ -46,7 +48,7 @@ class SparkAPI {
     }
 
     private buildSqlPlanPath(offset: number): string {
-        return `${this.applicationPath}/dataflint/sql/plan?offset=${offset}&length=${SQL_QUERY_LENGTH}`
+        return `${this.baseCurrentPage}/sqlplan/json?offset=${offset}&length=${SQL_QUERY_LENGTH}`
     }
 
     private get executorsPath(): string {
@@ -62,8 +64,9 @@ class SparkAPI {
         this.appId = "";
     }
 
-    constructor(basePath: string, dispatch: React.Dispatch<ApiAction>, historyServerMode: boolean = false) {
+    constructor(basePath: string, baseCurrentPage: string, dispatch: React.Dispatch<ApiAction>, historyServerMode: boolean = false) {
         this.basePath = basePath;
+        this.baseCurrentPage = baseCurrentPage;
         this.apiPath = `${basePath}/api/v1`;
         this.applicationsPath = `${this.apiPath}/applications`;
         this.dispatch = dispatch
@@ -77,20 +80,13 @@ class SparkAPI {
 
     private getCurrentApp(appData: SparkApplications): SparkApplication {
         if (this.historyServerMode) {
-            const urlSegments = window.location.href.split('/');
-            try {
-                const historyIndex = urlSegments.findIndex(segment => segment === 'history');
-                const appId = urlSegments[historyIndex + 1];
-                const app = appData.find((app) => app.id === appId);
-                if (!app) {
-                    throw new Error();
-                }
+            const appId = getHistoryServerCurrentAppId()
+            const app = appData.find((app) => app.id === appId);
+            if (!app) {
+                throw new Error();
+            }
 
-                return app;
-            }
-            catch {
-                throw new Error("Invalid app id");
-            }
+            return app;
         }
 
         return appData[0];
