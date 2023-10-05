@@ -2,13 +2,13 @@ import * as React from 'react';
 import Grid from '@mui/material/Grid';
 import ConfigTable from '../components/ConfigTable';
 import { AppStateContext } from '../Context';
-import mixpanel from 'mixpanel-browser';
+import { MixpanelService } from '../services/MixpanelService';
 
 export default function ConfigurationTab() {
   const { config } = React.useContext(AppStateContext);
 
   React.useEffect(() => {
-    mixpanel.track_pageview();
+    MixpanelService.TrackPageView();
   }, [])
 
   return (

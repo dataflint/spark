@@ -2,13 +2,13 @@ import * as React from 'react';
 import StatusBar from '../components/StatusBar';
 import SqlContainer from '../components/SqlContainer';
 import { AppStateContext } from '../Context';
-import mixpanel from 'mixpanel-browser';
+import { MixpanelService } from '../services/MixpanelService';
 
 export default function StatusTab() {
   const { sql } = React.useContext(AppStateContext);
 
   React.useEffect(() => {
-    mixpanel.track_pageview();
+    MixpanelService.TrackPageView();
   }, [])
 
   return (

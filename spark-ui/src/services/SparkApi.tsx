@@ -1,4 +1,3 @@
-import { number } from "yargs";
 import { ApiAction } from "../interfaces/APIAction";
 import { SparkApplication, SparkApplications } from "../interfaces/SparkApplications";
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
@@ -8,8 +7,8 @@ import { SparkSQLs, SqlStatus } from '../interfaces/SparkSQLs';
 import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from '../interfaces/SqlMetrics';
 import { SQLPlans } from "../interfaces/SQLPlan";
-import mixpanel from "mixpanel-browser";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
+import { MixpanelService } from "./MixpanelService";
 
 const POLL_TIME = 1000
 const SQL_QUERY_LENGTH = 100
@@ -127,7 +126,7 @@ class SparkAPI {
                 this.isConnected = true;
                 this.dispatch({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
                 
-                mixpanel.track(MixpanelEvents.SparkAppInitilized, {
+                MixpanelService.Track(MixpanelEvents.SparkAppInitilized, {
                     id: currentApplication.id,
                     sparkApp: currentApplication
                 });

@@ -6,6 +6,7 @@ import { Button, Fade } from '@mui/material';
 import { AppStateContext } from '../Context';
 import mixpanel from 'mixpanel-browser';
 import { MixpanelEvents } from '../interfaces/Mixpanel';
+import { MixpanelService } from '../services/MixpanelService';
 
 
 export default function SummaryTab() {
@@ -14,7 +15,7 @@ export default function SummaryTab() {
   const selectedSql = selectedSqlId === undefined ? undefined : sql?.sqls.find(sql => sql.id === selectedSqlId);
 
   React.useEffect(() => {
-    mixpanel.track_pageview();
+    MixpanelService.TrackPageView();
   }, [])
 
   React.useEffect(() => {
@@ -32,7 +33,7 @@ export default function SummaryTab() {
     setSelectedSqlId(id);
     const currentSql = sql?.sqls.find(sql => sql.id === id);
 
-    mixpanel.track(MixpanelEvents.SqlSummarySelected, {
+    MixpanelService.Track(MixpanelEvents.SqlSummarySelected, {
       sqlId: currentSql?.id,
       sqluniqueId: currentSql?.uniqueId,
       sqlStatus: currentSql?.status,
