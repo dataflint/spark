@@ -159,7 +159,6 @@ class SparkAPI {
                 if (runningSqlIds.length !== 0) {
                     const sqlId = runningSqlIds[0];
                     const nodesMetrics: NodesMetrics = await this.queryData(this.getSqlMetricsPath(sqlId));
-                    console.log('nodesMetrics:', nodesMetrics);
                     this.dispatch({ type: 'setSQLMetrics', value: nodesMetrics, sqlId: sqlId });
                 }
             }
