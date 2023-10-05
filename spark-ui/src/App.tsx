@@ -7,7 +7,6 @@ import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
-import DevtoolAppBar from './DevtoolAppBar';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import { sparkApiReducer } from './reducers/SparkReducer';
@@ -18,6 +17,7 @@ import DisconnectedModal from './components/Modals/DisconnectedModal';
 import { initialState } from './reducers/SparkReducer';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { getProxyBasePath, hrefWithoutEndSlash, isHistoryServer, isProxyMode } from './utils/UrlUtils';
+import DrawerFooter from './components/DrawerFooter';
 
 const isHistoryServerMode = isHistoryServer()
 
@@ -79,24 +79,29 @@ export default function App() {
               }}
             >
               <DisconnectedModal />
-              <div style={{display: "flex", justifyContent:"space-around", margin: "20px 0 0 0"}}>
-                <img width={167} height={20} src='/logo.png' />
+              <div style={{display: "flex", flexDirection:"column", justifyContent:"space-between", height:"100%"}}>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-around", marginTop: "20px" }}>
+                    <img width={167} height={20} src='/logo.png' />
+                  </div>
+                  {/* <Toolbar /> */}
+                  <Box>
+                    <List>
+                      {Object.values(Tab).map((tab) => (
+                        <ListItem key={tab} disablePadding >
+                          <ListItemButton selected={selectedTab === tab} onClick={() => onTabChanged(tab)}>
+                            <ListItemIcon>
+                              {renderTabIcon(tab)}
+                            </ListItemIcon>
+                            <ListItemText primary={tab.toString()} />
+                          </ListItemButton>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
+                </div>
+                <DrawerFooter version={process.env.REACT_APP_VERSION} />
               </div>
-              {/* <Toolbar /> */}
-              <Box>
-                <List>
-                  {Object.values(Tab).map((tab) => (
-                    <ListItem key={tab} disablePadding >
-                      <ListItemButton selected={selectedTab === tab} onClick={() => onTabChanged(tab)}>
-                        <ListItemIcon>
-                          {renderTabIcon(tab)}
-                        </ListItemIcon>
-                        <ListItemText primary={tab.toString()} />
-                      </ListItemButton>
-                    </ListItem>
-                  ))}
-                </List>
-              </Box>
             </Drawer>
             <Box
               component="main"
