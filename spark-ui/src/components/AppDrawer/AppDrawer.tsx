@@ -1,4 +1,4 @@
-import { Box, CSSObject, Divider, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Theme, styled, useTheme } from "@mui/material";
+import { Box, CSSObject, Divider, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Theme, styled } from "@mui/material";
 import React, { FC } from "react";
 import MuiDrawer from '@mui/material/Drawer';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
@@ -83,7 +83,6 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 export const AppDrawer: FC<{ selectedTab: Tab, onTabChanged: (tab: Tab) => void }> = (
     { selectedTab, onTabChanged }): JSX.Element => {
 
-    const theme = useTheme();
     const [open, setOpen] = React.useState(true);
 
     const handleDrawerChanged = () => {
@@ -97,7 +96,7 @@ export const AppDrawer: FC<{ selectedTab: Tab, onTabChanged: (tab: Tab) => void 
         >
             <DrawerHeader>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                    {open && <img width={167} height={28.5} src='/logo.png' /> }
+                    {open && <img width={167} height={28.5} src='/logo.png' />}
                     <IconButton onClick={handleDrawerChanged}>
                         {open ? <ChevronLeftIcon /> : <ChevronRightIcon />}
                     </IconButton>
@@ -130,7 +129,7 @@ export const AppDrawer: FC<{ selectedTab: Tab, onTabChanged: (tab: Tab) => void 
                         </List>
                     </Box>
                 </div>
-                {open && <DrawerFooter version={process.env.REACT_APP_VERSION} /> }
+                {open && <DrawerFooter version={process.env.REACT_APP_VERSION} />}
             </div>
         </Drawer>
     )
