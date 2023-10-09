@@ -31,11 +31,38 @@ const metricsRenamer: Record<string, string> = {
     "size of files read": "bytes read",
 }
 
+const nodeTypeDict: Record<string, NodeType> = {
+    "LocalTableScan": "input",
+    "Range": "input",
+    "Execute InsertIntoHadoopFsRelationCommand": "output",
+    "CollectLimit": "output",
+    "TakeOrderedAndProject": "output",
+    "BroadcastHashJoin": "join",
+    "SortMergeJoin": "join",
+    "BroadcastNestedLoopJoin": "join",
+    "filter": "transformation",
+}
+
+const nodeRenamerDict: Record<string, string> = {
+    "Execute InsertIntoHadoopFsRelationCommand":  "Write to HDFS",
+    "LocalTableScan":  "Scan in-memory table",
+    "Execute RepairTableCommand":  "Repair table",
+    "Execute CreateDataSourceTableCommand": "Create table",
+    "Execute DropTableCommand":  "Drop table",
+    "SetCatalogAndNamespace": "Set database",
+    "TakeOrderedAndProject": "Take Ordered"
+}
+
 export function nodeEnrichedNameBuilder(name: string): string {
-    if(name === "Execute InsertIntoHadoopFsRelationCommand") {
-        return "Write to HDFS";
+    if(name.includes("Scan")) {
+       const renamedReadName = name.split(" ").slice(0, -2).join(" ").replace("Scan", "Read")
+       return renamedReadName
     }
-    return name
+    const renamedNodeName = nodeRenamerDict[name]
+    if(renamedNodeName === undefined) {
+        return name
+    }
+    return renamedNodeName
 }
 
 export function calcNodeMetrics(type: NodeType, metrics: EnrichedSqlMetric[]): EnrichedSqlMetric[] {
@@ -50,15 +77,12 @@ export function calcNodeMetrics(type: NodeType, metrics: EnrichedSqlMetric[]): E
 }
 
 export function calcNodeType(name: string): NodeType {
-    if(name === "Scan csv" || name === "Scan text" || name === "Scan json") {
-        return "input";
-    } else if(name === "Execute InsertIntoHadoopFsRelationCommand") {
-        return "output";
-    } else if(name === "BroadcastHashJoin" || name === "SortMergeJoin" || name === "CollectLimit" || name === "BroadcastNestedLoopJoin") {
-        return "join";
-    } else if(name === "filter") {
-        return "transformation";
-    } else {
+    if(name.includes("Scan")) {
+        return "input"
+    }
+    const renamedName = nodeTypeDict[name]
+    if(renamedName === undefined) {
         return "other"
     }
+    return renamedName
 }
