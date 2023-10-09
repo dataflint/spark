@@ -29,6 +29,7 @@ const metricsRenamer: Record<string, string> = {
     "written output": "bytes written",
     "number of files read": "file read",
     "size of files read": "bytes read",
+    "number of partitions read": "partitions read"
 }
 
 const nodeTypeDict: Record<string, NodeType> = {
