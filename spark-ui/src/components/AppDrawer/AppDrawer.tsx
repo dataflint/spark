@@ -96,7 +96,7 @@ export const AppDrawer: FC<{ selectedTab: Tab, onTabChanged: (tab: Tab) => void 
         >
             <DrawerHeader>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                    {open && <img width={167} height={28.5} src='/logo.png' />}
+                    {open && <img width={167} height={28.5} src='./logo.png' />}
                     <IconButton onClick={handleDrawerChanged}>
                         {open ? <ChevronLeftIcon /> : <ChevronRightIcon />}
                     </IconButton>
