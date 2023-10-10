@@ -51,13 +51,18 @@ const nodeRenamerDict: Record<string, string> = {
     "Execute CreateDataSourceTableCommand": "Create table",
     "Execute DropTableCommand":  "Drop table",
     "SetCatalogAndNamespace": "Set database",
-    "TakeOrderedAndProject": "Take Ordered"
+    "TakeOrderedAndProject": "Take Ordered",
+    "CollectLimit": "Collect"
 }
 
 export function nodeEnrichedNameBuilder(name: string): string {
     if(name.includes("Scan")) {
-       const renamedReadName = name.split(" ").slice(0, -2).join(" ").replace("Scan", "Read")
-       return renamedReadName
+        const scanRenamed = name.replace("Scan", "Read");
+        const scanNameSliced = scanRenamed.split(" ");
+       if(scanNameSliced.length > 2) {
+            return scanNameSliced.slice(0, 2).join(" ");
+       }
+       return scanRenamed;
     }
     const renamedNodeName = nodeRenamerDict[name]
     if(renamedNodeName === undefined) {
