@@ -42,6 +42,7 @@ const nodeTypeDict: Record<string, NodeType> = {
     "SortMergeJoin": "join",
     "BroadcastNestedLoopJoin": "join",
     "filter": "transformation",
+    "Union": "join"
 }
 
 const nodeRenamerDict: Record<string, string> = {
@@ -52,7 +53,10 @@ const nodeRenamerDict: Record<string, string> = {
     "Execute DropTableCommand":  "Drop table",
     "SetCatalogAndNamespace": "Set database",
     "TakeOrderedAndProject": "Take Ordered",
-    "CollectLimit": "Collect"
+    "CollectLimit": "Collect",
+    "BroadcastHashJoin": "Join (Broadcast Hash)",
+    "SortMergeJoin": "Join (Sort Merge)",
+    "BroadcastNestedLoopJoin": "Join (Broadcast Nested Loop)",
 }
 
 export function nodeEnrichedNameBuilder(name: string): string {

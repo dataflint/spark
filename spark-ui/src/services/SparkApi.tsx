@@ -12,7 +12,7 @@ import { MixpanelService } from "./MixpanelService";
 import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";
 
 const POLL_TIME = 1000
-const SQL_QUERY_LENGTH = 100
+const SQL_QUERY_LENGTH = 300
 
 class SparkAPI {
     basePath: string
@@ -44,7 +44,7 @@ class SparkAPI {
     }
 
     private buildSqlPath(offset: number): string {
-        return `${this.applicationPath}/sql?offset=${offset}&length=${SQL_QUERY_LENGTH}`
+        return `${this.applicationPath}/sql?offset=${offset}&length=${SQL_QUERY_LENGTH}&planDescription=false`
     }
 
     private buildSqlPlanPath(offset: number): string {
