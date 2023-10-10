@@ -85,6 +85,16 @@ export type ParsedTakeOrderedAndProjectPlan = {
     limit: number
 }
 
+export type ParseFileScanPlan = {
+    Location?: string;
+    tableName?: string;
+    orderBy?: string[];
+    PartitionFilters?: string[];
+    PushedFilters?: string[];
+    format?: string;
+    ReadSchema?: {[key: string]: string};
+}
+
 export type ParsedCollectLimitPlan = {
     limit: number
 }
@@ -92,7 +102,8 @@ export type ParsedCollectLimitPlan = {
 export type ParsedNodePlan = 
 { type: 'HashAggregate', plan: ParsedHashAggregatePlan } |
 { type: 'TakeOrderedAndProject', plan: ParsedTakeOrderedAndProjectPlan } |
-{ type: 'CollectLimit', plan: ParsedCollectLimitPlan }
+{ type: 'CollectLimit', plan: ParsedCollectLimitPlan } |
+{ type: 'FileScan', plan: ParseFileScanPlan }
 
 export interface EnrichedSqlNode {
     nodeId: number

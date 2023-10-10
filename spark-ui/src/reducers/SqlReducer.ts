@@ -10,6 +10,7 @@ import { SQLNodePlan, SQLPlan, SQLPlans } from '../interfaces/SQLPlan';
 import { parseHashAggregate } from './PlanParsers/hashAggregateParser';
 import { parseTakeOrderedAndProject } from './PlanParsers/TakeOrderedAndProjectParser';
 import { parseCollectLimit } from './PlanParsers/CollectLimitParser';
+import { parseFileScan } from './PlanParsers/ScanFileParser';
 
 
 export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): [EnrichedSqlEdge[], EnrichedSqlNode[]] {
@@ -43,12 +44,16 @@ export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): 
 export function parseNodePlan(node: EnrichedSqlNode, plan: SQLNodePlan) : ParsedNodePlan | undefined   {
     switch(node.nodeName) {
         case "HashAggregate":
-            return { type: 'HashAggregate', plan: parseHashAggregate(plan.planDescription) }
+            return { type: 'HashAggregate', plan: parseHashAggregate(plan.planDescription) };
         case "TakeOrderedAndProject":
-            return { type: 'TakeOrderedAndProject', plan: parseTakeOrderedAndProject(plan.planDescription) }
+            return { type: 'TakeOrderedAndProject', plan: parseTakeOrderedAndProject(plan.planDescription) };
         case "CollectLimit":
-            return { type: 'CollectLimit', plan: parseCollectLimit(plan.planDescription) }
+            return { type: 'CollectLimit', plan: parseCollectLimit(plan.planDescription) };
             
+    }
+    if(node.nodeName.includes("Scan")) {
+        return { type: 'FileScan', plan: parseFileScan(plan.planDescription, node.nodeName) };
+
     }
     return undefined
 }

@@ -2,8 +2,8 @@
 .node {
     display: flex;
     justify-content: center;
-    width: 220px;
-    height: 125px;
+    width: 280px;
+    height: 180px;
     color: black;
     padding: 8px;
     background: white;
@@ -15,15 +15,4 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-}
-
-
-.nodeTitle {
-    display: flex;
-    justify-content: center;
-    font-size: 16px;
-}
-
-.nodeMetric {
-    font-size: 14px;
 }

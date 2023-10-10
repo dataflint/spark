@@ -8,8 +8,8 @@ import { EnrichedSparkSQL, EnrichedSqlEdge, EnrichedSqlNode } from "../../interf
 
 
 
-const nodeWidth = 220;
-const nodeHeight = 125;
+const nodeWidth = 280;
+const nodeHeight = 180;
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[]): { nodes: Node[], edges: Edge[] } => {
     const dagreGraph = new dagre.graphlib.Graph();
