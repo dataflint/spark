@@ -5,10 +5,13 @@ export const isProxyMode = (): boolean => !(window.location.pathname === "/dataf
 
 export function hrefWithoutEndSlash(): string {
     const href = window.location.href;
-    if (href.endsWith("/")) {
-        return href.substring(0, href.length - 1);
+
+    // We are using a HashRouter so we split by #
+    const baseUrl = href.split('/#/')[0];
+    if (baseUrl.endsWith("/")) {
+        return baseUrl.substring(0, href.length - 1);
     }
-    return href;
+    return baseUrl;
 }
 
 export const getProxyBasePath = (): string => hrefWithoutEndSlash().substring(0, hrefWithoutEndSlash().lastIndexOf("/dataflint"));
