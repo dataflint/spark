@@ -1,4 +1,4 @@
-import { EnrichedSqlMetric, NodeType } from "../interfaces/AppStore";
+import { EnrichedSqlMetric, NodeType, ParsedNodePlan } from "../interfaces/AppStore";
 
 const metricAllowlist: Record<NodeType, Array<string>> = {
     "input": ["number of output rows", "number of files read", "size of files read", "number of partitions read"],
@@ -46,8 +46,9 @@ const nodeTypeDict: Record<string, NodeType> = {
 }
 
 const nodeRenamerDict: Record<string, string> = {
+    "HashAggregate":  "Aggregate",
     "Execute InsertIntoHadoopFsRelationCommand":  "Write to HDFS",
-    "LocalTableScan":  "Scan in-memory table",
+    "LocalTableScan":  "Read in-memory table",
     "Execute RepairTableCommand":  "Repair table",
     "Execute CreateDataSourceTableCommand": "Create table",
     "Execute DropTableCommand":  "Drop table",
@@ -59,7 +60,18 @@ const nodeRenamerDict: Record<string, string> = {
     "BroadcastNestedLoopJoin": "Join (Broadcast Nested Loop)",
 }
 
-export function nodeEnrichedNameBuilder(name: string): string {
+export function nodeEnrichedNameBuilder(name: string, plan: ParsedNodePlan | undefined): string {
+    if(plan !== undefined) {
+        switch(plan.type) {
+            case "HashAggregate":
+                return `Aggregate (${plan.plan.operations.join(", ")})`
+        }
+    }
+
+    const renamedNodeName = nodeRenamerDict[name]
+    if(renamedNodeName !== undefined) {
+        return renamedNodeName
+    }
     if(name.includes("Scan")) {
         const scanRenamed = name.replace("Scan", "Read");
         const scanNameSliced = scanRenamed.split(" ");
@@ -68,11 +80,7 @@ export function nodeEnrichedNameBuilder(name: string): string {
        }
        return scanRenamed;
     }
-    const renamedNodeName = nodeRenamerDict[name]
-    if(renamedNodeName === undefined) {
-        return name
-    }
-    return renamedNodeName
+    return name
 }
 
 export function calcNodeMetrics(type: NodeType, metrics: EnrichedSqlMetric[]): EnrichedSqlMetric[] {

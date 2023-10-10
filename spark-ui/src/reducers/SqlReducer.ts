@@ -2,11 +2,14 @@
 import { EnrichedSparkSQL, EnrichedSqlMetric, NodeType, SparkSQLStore, EnrichedSqlEdge, EnrichedSqlNode, AppStore, ParsedNodePlan } from '../interfaces/AppStore';
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { Edge, Graph } from 'graphlib';
-import { v4 as uuidv4 } from 'uuid';
+import { parse, v4 as uuidv4 } from 'uuid';
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { calcNodeMetrics, calcNodeType, nodeEnrichedNameBuilder } from './SqlReducerUtils';
 import { timeStrToEpocTime } from '../utils/FormatUtils';
 import { SQLNodePlan, SQLPlan, SQLPlans } from '../interfaces/SQLPlan';
+import { parseHashAggregate } from './PlanParsers/hashAggregateParser';
+import { parseTakeOrderedAndProject } from './PlanParsers/TakeOrderedAndProjectParser';
+import { parseCollectLimit } from './PlanParsers/CollectLimitParser';
 
 
 export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): [EnrichedSqlEdge[], EnrichedSqlNode[]] {
@@ -38,8 +41,14 @@ export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): 
 }
 
 export function parseNodePlan(node: EnrichedSqlNode, plan: SQLNodePlan) : ParsedNodePlan | undefined   {
-    if(node.nodeName === "HashAggregate") {
-        return { type: 'aggregate', operation: plan.planDescription }
+    switch(node.nodeName) {
+        case "HashAggregate":
+            return { type: 'HashAggregate', plan: parseHashAggregate(plan.planDescription) }
+        case "TakeOrderedAndProject":
+            return { type: 'TakeOrderedAndProject', plan: parseTakeOrderedAndProject(plan.planDescription) }
+        case "CollectLimit":
+            return { type: 'CollectLimit', plan: parseCollectLimit(plan.planDescription) }
+            
     }
     return undefined
 }
@@ -56,7 +65,7 @@ function calculateSql(sql: SparkSQL, plan: SQLPlan | undefined): EnrichedSparkSQ
             type: type, 
             isVisible: type !== "other", 
             parsedPlan: parsedPlan,
-            enrichedName: nodeEnrichedNameBuilder(node.nodeName) };
+            enrichedName: nodeEnrichedNameBuilder(node.nodeName, parsedPlan) };
     });
 
     if (typeEnrichedNodes.filter(node => node.type === 'output').length === 0) {

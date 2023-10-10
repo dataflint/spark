@@ -73,8 +73,26 @@ export interface EnrichedSparkSQL {
     edges: EnrichedSqlEdge[]
 }
 
+export type ParsedHashAggregatePlan = {
+    keys: string[];
+    functions: string[];
+    operations: string[];
+}
+
+export type ParsedTakeOrderedAndProjectPlan = {
+    output: string[],
+    orderBy: string[],
+    limit: number
+}
+
+export type ParsedCollectLimitPlan = {
+    limit: number
+}
+
 export type ParsedNodePlan = 
-{ type: 'aggregate', operation: string }
+{ type: 'HashAggregate', plan: ParsedHashAggregatePlan } |
+{ type: 'TakeOrderedAndProject', plan: ParsedTakeOrderedAndProjectPlan } |
+{ type: 'CollectLimit', plan: ParsedCollectLimitPlan }
 
 export interface EnrichedSqlNode {
     nodeId: number
