@@ -42,23 +42,22 @@ export default function SummaryTab() {
     });
   }
 
+  const talbeDisplay = !selectedSqlId ? "flex" : "none";
+
   return (
     <div style={{ overflow: "hidden", height: "100%" }}>
-      {selectedSql === undefined ?
-        <Fade in={selectedSqlId === undefined} style={{}}>
-          <div style={{ display: "flex", height: "100%", flexDirection: "column" }}>
+        <Fade timeout={500} in={selectedSqlId === undefined} style={{}}>
+          <div style={{ display: talbeDisplay, height: "100%", flexDirection: "column"}}>
             <SummaryBar />
             <SqlTable sqlStore={sql} selectedSqlId={selectedSqlId} setSelectedSqlId={onSelectingSql} />
           </div>
         </Fade>
-        :
-        <Fade in={selectedSqlId !== undefined} style={{}}>
+        <Fade timeout={500} in={selectedSqlId !== undefined} style={{}}>
           <div style={{ display: 'flex', height: '100%', width: '100%', flexDirection: "column" }}>
             <Button onClick={() => setSelectedSqlId(undefined)} style={{ width: "100px", margin: "10px" }} variant="outlined">Back</Button>
-            <SqlFlow sparkSQL={selectedSql} />
+            {!!selectedSql && <SqlFlow sparkSQL={selectedSql} />}
           </div>
         </Fade>
-      }
     </div>
   );
 }
