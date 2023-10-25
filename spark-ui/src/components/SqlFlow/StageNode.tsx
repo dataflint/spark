@@ -20,6 +20,17 @@ export const StageNode: FC<{ data: { node: EnrichedSqlNode } }> = ({ data }): JS
             case 'TakeOrderedAndProject':
                 dataTable.push({ name: 'Limit', value: parsedPlan.plan.limit.toString() });
                 break;
+            case 'WriteToHDFS':
+                if(parsedPlan.plan.tableName !== undefined) {
+                    dataTable.push({ name: 'Table name', value: truncateMiddle(parsedPlan.plan.tableName, 25) });
+                }
+                dataTable.push({ name: 'File Path', value: truncateMiddle(parsedPlan.plan.location, 25) });
+                dataTable.push({ name: 'Format', value: parsedPlan.plan.format});
+                dataTable.push({ name: 'Mode', value: parsedPlan.plan.mode });
+                if(parsedPlan.plan.partitionKeys !== undefined) {
+                    dataTable.push({ name: 'Partition Keys', value: truncateMiddle(parsedPlan.plan.partitionKeys.join(","), 25) });
+                }
+                break;
             case 'FileScan':
                 if(parsedPlan.plan.Location !== undefined) {
                     dataTable.unshift({ name: 'File Path', value: truncateMiddle(parsedPlan.plan.Location, 25) });

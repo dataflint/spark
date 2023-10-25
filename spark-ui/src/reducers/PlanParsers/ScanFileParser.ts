@@ -12,9 +12,6 @@ export function parseFileScan(input: string, nodeName: string): ParseFileScanPla
         ReadSchema: /ReadSchema: struct<([\w\W]+)>/.exec(input)
     };
 
-    console.log(nodeName.split(" ").length)
-    console.log(nodeName.split(" ")[2])
-
     if (matches.format) result.format = matches.format[1];
     if (matches.Location && matches.Location[1].includes("...")) {
         const paths = matches.Location[1].split(",");

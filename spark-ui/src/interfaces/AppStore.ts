@@ -95,6 +95,14 @@ export type ParseFileScanPlan = {
     ReadSchema?: {[key: string]: string};
 }
 
+export type ParsedWriteToHDFSPlan = {
+    location: string;
+    format: string;
+    mode: string;
+    tableName?: string;
+    partitionKeys?: string[];
+};
+
 export type ParsedCollectLimitPlan = {
     limit: number
 }
@@ -103,7 +111,8 @@ export type ParsedNodePlan =
 { type: 'HashAggregate', plan: ParsedHashAggregatePlan } |
 { type: 'TakeOrderedAndProject', plan: ParsedTakeOrderedAndProjectPlan } |
 { type: 'CollectLimit', plan: ParsedCollectLimitPlan } |
-{ type: 'FileScan', plan: ParseFileScanPlan }
+{ type: 'FileScan', plan: ParseFileScanPlan } | 
+{ type: 'WriteToHDFS', plan: ParsedWriteToHDFSPlan }
 
 export interface EnrichedSqlNode {
     nodeId: number

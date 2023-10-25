@@ -11,6 +11,7 @@ import { parseHashAggregate } from './PlanParsers/hashAggregateParser';
 import { parseTakeOrderedAndProject } from './PlanParsers/TakeOrderedAndProjectParser';
 import { parseCollectLimit } from './PlanParsers/CollectLimitParser';
 import { parseFileScan } from './PlanParsers/ScanFileParser';
+import { parseWriteToHDFS } from './PlanParsers/WriteToHDFSParser';
 
 
 export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): [EnrichedSqlEdge[], EnrichedSqlNode[]] {
@@ -42,18 +43,23 @@ export function cleanUpDAG(edges: EnrichedSqlEdge[], nodes: EnrichedSqlNode[]): 
 }
 
 export function parseNodePlan(node: EnrichedSqlNode, plan: SQLNodePlan) : ParsedNodePlan | undefined   {
-    switch(node.nodeName) {
-        case "HashAggregate":
-            return { type: 'HashAggregate', plan: parseHashAggregate(plan.planDescription) };
-        case "TakeOrderedAndProject":
-            return { type: 'TakeOrderedAndProject', plan: parseTakeOrderedAndProject(plan.planDescription) };
-        case "CollectLimit":
-            return { type: 'CollectLimit', plan: parseCollectLimit(plan.planDescription) };
-            
-    }
-    if(node.nodeName.includes("Scan")) {
-        return { type: 'FileScan', plan: parseFileScan(plan.planDescription, node.nodeName) };
-
+    try {
+        switch(node.nodeName) {
+            case "HashAggregate":
+                return { type: 'HashAggregate', plan: parseHashAggregate(plan.planDescription) };
+            case "TakeOrderedAndProject":
+                return { type: 'TakeOrderedAndProject', plan: parseTakeOrderedAndProject(plan.planDescription) };
+            case "CollectLimit":
+                return { type: 'CollectLimit', plan: parseCollectLimit(plan.planDescription) };
+            case "Execute InsertIntoHadoopFsRelationCommand":
+                return { type: 'WriteToHDFS', plan: parseWriteToHDFS(plan.planDescription) };
+        }
+        if(node.nodeName.includes("Scan")) {
+            return { type: 'FileScan', plan: parseFileScan(plan.planDescription, node.nodeName) };
+    
+        }
+    } catch(e) {
+        console.log(`failed to parse plan for node type: ${node.nodeName}`, e)
     }
     return undefined
 }
