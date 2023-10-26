@@ -8,12 +8,18 @@ import { SparkStages } from "./SparkStages";
 import { NodesMetrics } from "./SqlMetrics";
 
 export type ApiAction =
-    { type: 'setInitial', config: SparkConfiguration, appId: string, attempt: Attempt, epocCurrentTime: number } |
-    { type: 'setStages', value: SparkStages } |
-    { type: 'setSparkExecutors', value: SparkExecutors } |
-    { type: 'setSQLMetrics', value: NodesMetrics, sqlId: string } |
-    { type: 'setSparkJobs', value: SparkJobs } |
-    { type: 'setSQL', sqls: SparkSQLs, plans: SQLPlans } | 
-    { type: 'updateConnection', isConnected: boolean } | 
-    { type: 'updateDuration', epocCurrentTime: number } | 
-    { type: 'calculateSqlQueryLevelMetrics' };
+  | {
+      type: "setInitial";
+      config: SparkConfiguration;
+      appId: string;
+      attempt: Attempt;
+      epocCurrentTime: number;
+    }
+  | { type: "setStages"; value: SparkStages }
+  | { type: "setSparkExecutors"; value: SparkExecutors }
+  | { type: "setSQLMetrics"; value: NodesMetrics; sqlId: string }
+  | { type: "setSparkJobs"; value: SparkJobs }
+  | { type: "setSQL"; sqls: SparkSQLs; plans: SQLPlans }
+  | { type: "updateConnection"; isConnected: boolean }
+  | { type: "updateDuration"; epocCurrentTime: number }
+  | { type: "calculateSqlQueryLevelMetrics" };

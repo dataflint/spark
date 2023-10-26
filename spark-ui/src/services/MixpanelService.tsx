@@ -1,56 +1,62 @@
 import mixpanel from "mixpanel-browser";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 
-
 const KEEP_ALIVE_INTERVAL_MS = 60 * 1000;
 
-
 export class MixpanelService {
-    static InitMixpanel(): void {
-        if (!this.ShouldTrack())
-            return;
+  static InitMixpanel(): void {
+    if (!this.ShouldTrack()) return;
 
-        const MIX_PANEL_TOKEN = process.env.NODE_ENV === 'development' ? '4b4ba202495eacfd7b46b1147d27f930' : '5251dfa36e60af653d1c6380ccf97857';
+    const MIX_PANEL_TOKEN =
+      process.env.NODE_ENV === "development"
+        ? "4b4ba202495eacfd7b46b1147d27f930"
+        : "5251dfa36e60af653d1c6380ccf97857";
 
-        // For debugging add debug: true to the props
-        mixpanel.init(MIX_PANEL_TOKEN, { track_pageview: true, persistence: 'localStorage' });
-        this.StartKeepAlive(KEEP_ALIVE_INTERVAL_MS);
-    }
+    // For debugging add debug: true to the props
+    mixpanel.init(MIX_PANEL_TOKEN, {
+      track_pageview: true,
+      persistence: "localStorage",
+    });
+    this.StartKeepAlive(KEEP_ALIVE_INTERVAL_MS);
+  }
 
-    /**
-     * Sends keep alive every interval if the tab is focused, in order to keep the mixpanel sessions "alive"
-     * @param interval keep alive interval in ms
-     */
-    static StartKeepAlive(interval: number): void {
-        if (!this.ShouldTrack)
-            return;
+  /**
+   * Sends keep alive every interval if the tab is focused, in order to keep the mixpanel sessions "alive"
+   * @param interval keep alive interval in ms
+   */
+  static StartKeepAlive(interval: number): void {
+    if (!this.ShouldTrack) return;
 
-        setInterval(() => {
-            if (document.hidden) {
-                // skip keep alive when tab is not in focus
-                return;
-            }
+    setInterval(() => {
+      if (document.hidden) {
+        // skip keep alive when tab is not in focus
+        return;
+      }
 
-            this.Track(MixpanelEvents.KeepAlive);
-        }, interval)
-    }
+      this.Track(MixpanelEvents.KeepAlive);
+    }, interval);
+  }
 
-    static Track(event: MixpanelEvents, properties?: { [key: string]: any }): void {
-        if (!this.ShouldTrack())
-            return;
+  static Track(
+    event: MixpanelEvents,
+    properties?: { [key: string]: any },
+  ): void {
+    if (!this.ShouldTrack()) return;
 
-        mixpanel.track(event, properties);
-    }
+    mixpanel.track(event, properties);
+  }
 
-    static TrackPageView(properties?: { [key: string]: any }): void {
-        if (!this.ShouldTrack())
-            return;
+  static TrackPageView(properties?: { [key: string]: any }): void {
+    if (!this.ShouldTrack()) return;
 
-        mixpanel.track_pageview(properties);
-    }
+    mixpanel.track_pageview(properties);
+  }
 
-    static ShouldTrack(): boolean {
-        // For tracking in dev mode set the following env var - 'ENABLE_MIXPANEL_IN_DEV = true'
-        return process.env.NODE_ENV !== 'development' || process.env.ENABLE_MIXPANEL_IN_DEV === 'true';
-    }
+  static ShouldTrack(): boolean {
+    // For tracking in dev mode set the following env var - 'ENABLE_MIXPANEL_IN_DEV = true'
+    return (
+      process.env.NODE_ENV !== "development" ||
+      process.env.ENABLE_MIXPANEL_IN_DEV === "true"
+    );
+  }
 }

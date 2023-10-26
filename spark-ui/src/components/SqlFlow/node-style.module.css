@@ -1,18 +1,17 @@
-
 .node {
-    display: flex;
-    justify-content: center;
-    width: 280px;
-    height: 180px;
-    color: black;
-    padding: 8px;
-    background: white;
-    border: 3px solid lightblue;
-    border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  width: 280px;
+  height: 180px;
+  color: black;
+  padding: 8px;
+  background: white;
+  border: 3px solid lightblue;
+  border-radius: 10px;
 }
 
 .textWrapper {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }

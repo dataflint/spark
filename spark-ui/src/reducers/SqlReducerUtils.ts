@@ -1,106 +1,132 @@
-import { EnrichedSqlMetric, NodeType, ParsedNodePlan } from "../interfaces/AppStore";
+import {
+  EnrichedSqlMetric,
+  NodeType,
+  ParsedNodePlan,
+} from "../interfaces/AppStore";
 
 const metricAllowlist: Record<NodeType, Array<string>> = {
-    "input": ["number of output rows", "number of files read", "size of files read", "number of partitions read"],
-    "output": ["number of written files", "number of output rows", "written output"],
-    "join": ["number of output rows"],
-    "transformation": ["number of output rows"],
-    "other": []
-}
+  input: [
+    "number of output rows",
+    "number of files read",
+    "size of files read",
+    "number of partitions read",
+  ],
+  output: [
+    "number of written files",
+    "number of output rows",
+    "written output",
+  ],
+  join: ["number of output rows"],
+  transformation: ["number of output rows"],
+  other: [],
+};
 
 const metricsValueTransformer: Record<string, (value: string) => string> = {
-    "size of files read": (value: string) => { 
-        const newlineSplit = value.split("\n");
-        if(newlineSplit.length < 2){
-            return value;
-        }
-        const bracetSplit = newlineSplit[1].split("(");
-        if(bracetSplit.length === 0){
-            return value;
-        }
+  "size of files read": (value: string) => {
+    const newlineSplit = value.split("\n");
+    if (newlineSplit.length < 2) {
+      return value;
+    }
+    const bracetSplit = newlineSplit[1].split("(");
+    if (bracetSplit.length === 0) {
+      return value;
+    }
 
-        return bracetSplit[0].trim()
-    },
-}
+    return bracetSplit[0].trim();
+  },
+};
 
 const metricsRenamer: Record<string, string> = {
-    "number of output rows": "rows",
-    "number of written files": "files written",
-    "written output": "bytes written",
-    "number of files read": "file read",
-    "size of files read": "bytes read",
-    "number of partitions read": "partitions read"
-}
+  "number of output rows": "rows",
+  "number of written files": "files written",
+  "written output": "bytes written",
+  "number of files read": "file read",
+  "size of files read": "bytes read",
+  "number of partitions read": "partitions read",
+};
 
 const nodeTypeDict: Record<string, NodeType> = {
-    "LocalTableScan": "input",
-    "Range": "input",
-    "Execute InsertIntoHadoopFsRelationCommand": "output",
-    "CollectLimit": "output",
-    "TakeOrderedAndProject": "output",
-    "BroadcastHashJoin": "join",
-    "SortMergeJoin": "join",
-    "BroadcastNestedLoopJoin": "join",
-    "filter": "transformation",
-    "Union": "join"
-}
+  LocalTableScan: "input",
+  Range: "input",
+  "Execute InsertIntoHadoopFsRelationCommand": "output",
+  CollectLimit: "output",
+  TakeOrderedAndProject: "output",
+  BroadcastHashJoin: "join",
+  SortMergeJoin: "join",
+  BroadcastNestedLoopJoin: "join",
+  filter: "transformation",
+  Union: "join",
+};
 
 const nodeRenamerDict: Record<string, string> = {
-    "HashAggregate":  "Aggregate",
-    "Execute InsertIntoHadoopFsRelationCommand":  "Write to HDFS",
-    "LocalTableScan":  "Read in-memory table",
-    "Execute RepairTableCommand":  "Repair table",
-    "Execute CreateDataSourceTableCommand": "Create table",
-    "Execute DropTableCommand":  "Drop table",
-    "SetCatalogAndNamespace": "Set database",
-    "TakeOrderedAndProject": "Take Ordered",
-    "CollectLimit": "Collect",
-    "BroadcastHashJoin": "Join (Broadcast Hash)",
-    "SortMergeJoin": "Join (Sort Merge)",
-    "BroadcastNestedLoopJoin": "Join (Broadcast Nested Loop)",
+  HashAggregate: "Aggregate",
+  "Execute InsertIntoHadoopFsRelationCommand": "Write to HDFS",
+  LocalTableScan: "Read in-memory table",
+  "Execute RepairTableCommand": "Repair table",
+  "Execute CreateDataSourceTableCommand": "Create table",
+  "Execute DropTableCommand": "Drop table",
+  SetCatalogAndNamespace: "Set database",
+  TakeOrderedAndProject: "Take Ordered",
+  CollectLimit: "Collect",
+  BroadcastHashJoin: "Join (Broadcast Hash)",
+  SortMergeJoin: "Join (Sort Merge)",
+  BroadcastNestedLoopJoin: "Join (Broadcast Nested Loop)",
+};
+
+export function nodeEnrichedNameBuilder(
+  name: string,
+  plan: ParsedNodePlan | undefined,
+): string {
+  if (plan !== undefined) {
+    switch (plan.type) {
+      case "HashAggregate":
+        return `Aggregate (${plan.plan.operations.join(", ")})`;
+    }
+  }
+
+  const renamedNodeName = nodeRenamerDict[name];
+  if (renamedNodeName !== undefined) {
+    return renamedNodeName;
+  }
+  if (name.includes("Scan")) {
+    const scanRenamed = name.replace("Scan", "Read");
+    const scanNameSliced = scanRenamed.split(" ");
+    if (scanNameSliced.length > 2) {
+      return scanNameSliced.slice(0, 2).join(" ");
+    }
+    return scanRenamed;
+  }
+  return name;
 }
 
-export function nodeEnrichedNameBuilder(name: string, plan: ParsedNodePlan | undefined): string {
-    if(plan !== undefined) {
-        switch(plan.type) {
-            case "HashAggregate":
-                return `Aggregate (${plan.plan.operations.join(", ")})`
-        }
-    }
-
-    const renamedNodeName = nodeRenamerDict[name]
-    if(renamedNodeName !== undefined) {
-        return renamedNodeName
-    }
-    if(name.includes("Scan")) {
-        const scanRenamed = name.replace("Scan", "Read");
-        const scanNameSliced = scanRenamed.split(" ");
-       if(scanNameSliced.length > 2) {
-            return scanNameSliced.slice(0, 2).join(" ");
-       }
-       return scanRenamed;
-    }
-    return name
-}
-
-export function calcNodeMetrics(type: NodeType, metrics: EnrichedSqlMetric[]): EnrichedSqlMetric[] {
-    const allowList = metricAllowlist[type];
-    return metrics.filter(metric => allowList.includes(metric.name)).map(metric => {
-        const valueTransformer = metricsValueTransformer[metric.name]
-        return valueTransformer === undefined ? metric : {...metric, value: valueTransformer(metric.value) };
-    }).map(metric => {
-        const metricNameRenamed = metricsRenamer[metric.name]
-        return metricNameRenamed === undefined ? metric : {...metric, name: metricNameRenamed };
+export function calcNodeMetrics(
+  type: NodeType,
+  metrics: EnrichedSqlMetric[],
+): EnrichedSqlMetric[] {
+  const allowList = metricAllowlist[type];
+  return metrics
+    .filter((metric) => allowList.includes(metric.name))
+    .map((metric) => {
+      const valueTransformer = metricsValueTransformer[metric.name];
+      return valueTransformer === undefined
+        ? metric
+        : { ...metric, value: valueTransformer(metric.value) };
     })
+    .map((metric) => {
+      const metricNameRenamed = metricsRenamer[metric.name];
+      return metricNameRenamed === undefined
+        ? metric
+        : { ...metric, name: metricNameRenamed };
+    });
 }
 
 export function calcNodeType(name: string): NodeType {
-    if(name.includes("Scan")) {
-        return "input"
-    }
-    const renamedName = nodeTypeDict[name]
-    if(renamedName === undefined) {
-        return "other"
-    }
-    return renamedName
+  if (name.includes("Scan")) {
+    return "input";
+  }
+  const renamedName = nodeTypeDict[name];
+  if (renamedName === undefined) {
+    return "other";
+  }
+  return renamedName;
 }
