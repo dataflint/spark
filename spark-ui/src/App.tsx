@@ -22,8 +22,6 @@ if (process.env.NODE_ENV === 'development') {
   BASE_PATH = getProxyBasePath()
 }
 
-console.log('basepath', BASE_CURRENT_PAGE);
-
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
