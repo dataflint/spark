@@ -27,3 +27,7 @@ export function getHistoryServerCurrentAppId(): string {
         throw new Error("Invalid history server app id");
     }
 }
+
+export const getBaseAppUrl = (appPath: string): string => {
+    return appPath.split('/dataflint')[0];
+}

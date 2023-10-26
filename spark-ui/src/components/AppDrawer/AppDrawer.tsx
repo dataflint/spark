@@ -80,8 +80,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 );
 
 
-export const AppDrawer: FC<{ selectedTab: Tab, onTabChanged: (tab: Tab) => void }> = (
-    { selectedTab, onTabChanged }): JSX.Element => {
+export const AppDrawer: FC<{ selectedTab: Tab, onTabChanged: (tab: Tab) => void, appBasePath: string}> = (
+    { selectedTab, onTabChanged, appBasePath }): JSX.Element => {
 
     const [open, setOpen] = React.useState(true);
 
@@ -129,7 +129,7 @@ export const AppDrawer: FC<{ selectedTab: Tab, onTabChanged: (tab: Tab) => void 
                         </List>
                     </Box>
                 </div>
-                {open && <DrawerFooter version={process.env.REACT_APP_VERSION} />}
+                {open && <DrawerFooter appBasePath={appBasePath} version={process.env.REACT_APP_VERSION} />}
             </div>
         </Drawer>
     )

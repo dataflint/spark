@@ -22,6 +22,8 @@ if (process.env.NODE_ENV === 'development') {
   BASE_PATH = getProxyBasePath()
 }
 
+console.log('basepath', BASE_CURRENT_PAGE);
+
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -62,7 +64,7 @@ export default function App() {
               <DevtoolAppBar appName={store.runMetadata.appName ?? ""} />
             </AppBar> */}
             <DisconnectedModal />
-            <AppDrawer selectedTab={selectedTab} onTabChanged={onTabChanged} />
+            <AppDrawer appBasePath={BASE_CURRENT_PAGE} selectedTab={selectedTab} onTabChanged={onTabChanged} />
             <Box
               component="main"
               sx={{
