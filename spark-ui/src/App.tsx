@@ -1,15 +1,13 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import SparkAPI from './services/SparkApi';
-import { sparkApiReducer } from './reducers/SparkReducer';
 import Progress from './components/Progress';
 import { Tab, TabToUrl, getTabByUrl, renderTabIcon } from './services/TabsService';
-import { AppStateContext } from './Context';
 import DisconnectedModal from './components/Modals/DisconnectedModal';
-import { initialState } from './reducers/SparkReducer';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { getProxyBasePath, hrefWithoutEndSlash, isHistoryServer, isProxyMode } from './utils/UrlUtils';
 import { AppDrawer } from './components/AppDrawer/AppDrawer';
+import { useAppDispatch, useAppSelector } from './Hooks';
 
 const isHistoryServerMode = isHistoryServer()
 
@@ -26,12 +24,12 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [store, dispatcher] = React.useReducer(sparkApiReducer, initialState);
+  const dispatch = useAppDispatch();
+  const store = useAppSelector((state) => state.spark)
   const [selectedTab, setSelectedTab] = React.useState(Tab.Status);
 
-
   React.useEffect(() => {
-    const sparkAPI = new SparkAPI(BASE_PATH, BASE_CURRENT_PAGE, dispatcher, isHistoryServerMode);
+    const sparkAPI = new SparkAPI(BASE_PATH, BASE_CURRENT_PAGE, dispatch, isHistoryServerMode);
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);
@@ -56,7 +54,6 @@ export default function App() {
       )
       :
       (
-        <AppStateContext.Provider value={store}>
           <Box sx={{ display: 'flex' }}>
             {/* <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }} color="primary" enableColorOnDark>
               <DevtoolAppBar appName={store.runMetadata.appName ?? ""} />
@@ -78,6 +75,5 @@ export default function App() {
               <Outlet />
             </Box>
           </Box>
-        </AppStateContext.Provider>
       ))
 }

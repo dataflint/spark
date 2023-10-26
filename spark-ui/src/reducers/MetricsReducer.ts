@@ -81,7 +81,7 @@ function calculateSqlQueryResourceUsage(sql: EnrichedSparkSQL, executors: SparkE
     return intersectTime;
 }
 
-export function calculateSqlQueryLevelMetrics(existingStore: SparkSQLStore, statusStore: StatusStore, jobs: SparkJobsStore, executors: SparkExecutorsStore): SparkSQLStore {
+export function calculateSqlQueryLevelMetricsReducer(existingStore: SparkSQLStore, statusStore: StatusStore, jobs: SparkJobsStore, executors: SparkExecutorsStore): SparkSQLStore {
     const newSqls = existingStore.sqls
     .map(sql => {
         const allJobsIds = sql.successJobIds.concat(sql.failedJobIds).concat(sql.runningJobIds);

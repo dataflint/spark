@@ -11,10 +11,10 @@ import { humanizeTimeDiff } from '../utils/FormatUtils';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import MemoryIcon from '@mui/icons-material/Memory';
-import { AppStateContext } from '../Context';
+import { useAppSelector } from '../Hooks';
 
 const SummaryBar: FC = (): JSX.Element => {
-  const { status } = useContext(AppStateContext);
+  const status = useAppSelector(state => state.spark.status);
 
   if (status?.executors === undefined || status.stages === undefined) {
     return <Progress />;

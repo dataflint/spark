@@ -1,11 +1,11 @@
 import * as React from 'react';
 import Grid from '@mui/material/Grid';
 import ConfigTable from '../components/ConfigTable';
-import { AppStateContext } from '../Context';
 import { MixpanelService } from '../services/MixpanelService';
+import { useAppSelector } from '../Hooks';
 
 export default function ConfigurationTab() {
-  const { config } = React.useContext(AppStateContext);
+  const config = useAppSelector(state => state.spark.config);
 
   React.useEffect(() => {
     MixpanelService.TrackPageView();

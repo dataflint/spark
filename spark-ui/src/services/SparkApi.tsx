@@ -10,6 +10,8 @@ import { SQLPlans } from "../interfaces/SQLPlan";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 import { MixpanelService } from "./MixpanelService";
 import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";
+import { AppDispatch } from "../Store";
+import { calculateSqlQueryLevelMetrics, setInitial, setSQL, setSQLMetrics, setSparkExecutors, setSparkJobs, setStages, updateConnection, updateDuration } from "../reducers/SparkSlice";
 
 const POLL_TIME = 1000
 const SQL_QUERY_LENGTH = 300
@@ -22,7 +24,7 @@ class SparkAPI {
     appId: string = "";
     apiPath: string;
     applicationsPath: string;
-    dispatch: React.Dispatch<ApiAction>;
+    dispatch: AppDispatch;
     lastCompletedSqlId: number = -1;
     pollingStopped: boolean = false;
     historyServerMode: boolean = false;
@@ -64,7 +66,7 @@ class SparkAPI {
         this.appId = "";
     }
 
-    constructor(basePath: string, baseCurrentPage: string, dispatch: React.Dispatch<ApiAction>, historyServerMode: boolean = false) {
+    constructor(basePath: string, baseCurrentPage: string, dispatch: AppDispatch, historyServerMode: boolean = false) {
         this.basePath = basePath;
         this.baseCurrentPage = baseCurrentPage;
         this.apiPath = `${basePath}/api/v1`;
@@ -120,7 +122,7 @@ class SparkAPI {
                 const sparkConfiguration: SparkConfiguration = await this.queryData(this.environmentPath);
                 this.initialized = true; // should happen after fetching app and env succesfully
                 this.isConnected = true;
-                this.dispatch({ type: 'setInitial', config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() });
+                this.dispatch(setInitial({config: sparkConfiguration, appId: this.appId, attempt: currentAttempt, epocCurrentTime: Date.now() }));
 
                 MixpanelService.Track(MixpanelEvents.SparkAppInitilized, {
                     id: currentApplication.id,
@@ -130,23 +132,23 @@ class SparkAPI {
                     duration: currentAttempt?.duration
                 });
             } else {
-                this.dispatch({ type: 'updateDuration', epocCurrentTime: Date.now() });
+                this.dispatch(updateDuration({epocCurrentTime: Date.now()}));
             }
 
             const sparkStages: SparkStages = await this.queryData(this.stagesPath);
-            this.dispatch({ type: 'setStages', value: sparkStages });
+            this.dispatch(setStages({ value: sparkStages }));
 
             const sparkExecutors: SparkExecutors = await this.queryData(this.executorsPath);
-            this.dispatch({ type: 'setSparkExecutors', value: sparkExecutors });
+            this.dispatch(setSparkExecutors({ value: sparkExecutors }));
 
             const sparkJobs: SparkJobs = await this.queryData(this.jobsPath);
-            this.dispatch({ type: 'setSparkJobs', value: sparkJobs });
+            this.dispatch(setSparkJobs({ value: sparkJobs }));
 
             const sparkSQLs: SparkSQLs = await this.queryData(this.buildSqlPath(this.lastCompletedSqlId + 1));
             const sparkPlans: SQLPlans = await this.queryData(this.buildSqlPlanPath(this.lastCompletedSqlId + 1));
 
             if (sparkSQLs.length !== 0) {
-                this.dispatch({ type: 'setSQL', sqls: sparkSQLs, plans: sparkPlans });
+                this.dispatch(setSQL({sqls: sparkSQLs, plans: sparkPlans }));
 
                 const finishedSqls = sparkSQLs.filter(sql => sql.status === SqlStatus.Completed || sql.status === SqlStatus.Failed);
 
@@ -158,14 +160,14 @@ class SparkAPI {
                 if (runningSqlIds.length !== 0) {
                     const sqlId = runningSqlIds[0];
                     const nodesMetrics: NodesMetrics = await this.queryData(this.getSqlMetricsPath(sqlId));
-                    this.dispatch({ type: 'setSQLMetrics', value: nodesMetrics, sqlId: sqlId });
+                    this.dispatch(setSQLMetrics({ value: nodesMetrics, sqlId: sqlId }));
                 }
             }
-            this.dispatch({ type: 'calculateSqlQueryLevelMetrics' });
+            this.dispatch(calculateSqlQueryLevelMetrics());
         } catch (e) {
-            this.isConnected = false;
-            this.dispatch({ type: 'updateConnection', isConnected: false });
             console.log(e);
+            this.isConnected = false;
+            this.dispatch(updateConnection({isConnected: false }));
         }
         finally {
             if (!this.pollingStopped && !this.historyServerMode)

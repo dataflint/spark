@@ -10,13 +10,11 @@ import QueueIcon from '@mui/icons-material/Queue';
 import WorkIcon from '@mui/icons-material/Work';
 import InfoBox from './InfoBox/InfoBox';
 import { humanFileSize } from '../utils/FormatUtils';
-import { AppStateContext } from '../Context';
-
-
+import { useAppSelector } from '../Hooks';
 
 
 const StatusBar: FC = (): JSX.Element => {
-  const { status, sql } = useContext(AppStateContext);
+  const { status, sql } = useAppSelector(state => state.spark);
 
   const currentSql = sql === undefined ? undefined : sql.sqls[sql.sqls.length - 1]
   const stagesStatus = status?.stages;

@@ -3,14 +3,14 @@ import SummaryBar from '../components/SummaryBar';
 import SqlTable from '../components/SqlTable/SqlTable';
 import SqlFlow from '../components/SqlFlow/SqlFlow';
 import { Button, Fade } from '@mui/material';
-import { AppStateContext } from '../Context';
 import mixpanel from 'mixpanel-browser';
 import { MixpanelEvents } from '../interfaces/Mixpanel';
 import { MixpanelService } from '../services/MixpanelService';
+import { useAppSelector } from '../Hooks';
 
 
 export default function SummaryTab() {
-  const { sql } = React.useContext(AppStateContext);
+  const sql = useAppSelector(state => state.spark.sql);
   const [selectedSqlId, setSelectedSqlId] = React.useState<string | undefined>(undefined);
   const selectedSql = selectedSqlId === undefined ? undefined : sql?.sqls.find(sql => sql.id === selectedSqlId);
 

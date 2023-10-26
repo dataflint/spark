@@ -2,11 +2,11 @@ import React, { FC } from 'react';
 import 'reactflow/dist/style.css';
 import Progress from './Progress';
 import SqlFlow from './SqlFlow/SqlFlow';
-import { AppStateContext } from '../Context';
+import { useAppSelector } from '../Hooks';
 
 
 const SqlContainer: FC = (): JSX.Element => {
-  const { sql } = React.useContext(AppStateContext)
+  const sql = useAppSelector(state => state.spark.sql);
   return sql === undefined ?
     (
       <Progress />

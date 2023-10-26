@@ -1,11 +1,11 @@
 import * as React from 'react';
 import StatusBar from '../components/StatusBar';
 import SqlContainer from '../components/SqlContainer';
-import { AppStateContext } from '../Context';
 import { MixpanelService } from '../services/MixpanelService';
+import { useAppSelector } from '../Hooks';
 
 export default function StatusTab() {
-  const { sql } = React.useContext(AppStateContext);
+  const sql = useAppSelector(state => state.spark.sql);
 
   React.useEffect(() => {
     MixpanelService.TrackPageView();

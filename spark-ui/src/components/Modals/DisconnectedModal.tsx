@@ -2,7 +2,7 @@ import { Box, Fade, Modal, Typography } from "@mui/material";
 import React, { useContext } from "react";
 import { FC } from "react";
 import Backdrop from '@mui/material/Backdrop';
-import { AppStateContext } from "../../Context";
+import { useAppSelector } from "../../Hooks";
 
 
 const style = {
@@ -19,7 +19,7 @@ const style = {
 };
 
 const DisconnectedModal: FC = (): JSX.Element => {
-    const { isConnected, isInitialized } = useContext(AppStateContext);
+    const { isConnected, isInitialized } = useAppSelector(state => state.spark);
 
     const open = !isConnected && isInitialized
 
