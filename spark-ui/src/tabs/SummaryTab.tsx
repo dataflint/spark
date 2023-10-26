@@ -1,11 +1,15 @@
-import { Button, Fade } from "@mui/material";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import BuildIcon from '@mui/icons-material/Build';
+import { Box, Fade, IconButton, Tooltip } from "@mui/material";
 import * as React from "react";
+import { useAppSelector } from "../Hooks";
 import SqlFlow from "../components/SqlFlow/SqlFlow";
 import SqlTable from "../components/SqlTable/SqlTable";
 import SummaryBar from "../components/SummaryBar";
-import { useAppSelector } from "../Hooks";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 import { MixpanelService } from "../services/MixpanelService";
+import { BASE_CURRENT_PAGE } from "../utils/UrlConsts";
+import { getBaseAppUrl } from "../utils/UrlUtils";
 
 export default function SummaryTab() {
   const sql = useAppSelector((state) => state.spark.sql);
@@ -31,6 +35,10 @@ export default function SummaryTab() {
     document.addEventListener("keydown", handleEscapeKey);
     return () => document.removeEventListener("keydown", handleEscapeKey);
   }, []);
+
+  const onSparkUiSQLClick = (): void => {
+    window.open(`${getBaseAppUrl(BASE_CURRENT_PAGE)}/SQL/execution/?id=${selectedSqlId}`, "_blank");
+  };
 
   const onSelectingSql = (id: string) => {
     setSelectedSqlId(id);
@@ -74,13 +82,24 @@ export default function SummaryTab() {
             flexDirection: "column",
           }}
         >
-          <Button
-            onClick={() => setSelectedSqlId(undefined)}
-            style={{ width: "100px", margin: "10px" }}
-            variant="outlined"
-          >
-            Back
-          </Button>
+          <Box display={"flex"}>
+            <Tooltip title="Back">
+              <IconButton
+                color="primary"
+                onClick={() => setSelectedSqlId(undefined)}
+              >
+                <ArrowBackIcon style={{ width: "40px", height: "40px" }} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Spark UI SQL View">
+              <IconButton
+                color="secondary"
+                onClick={() => onSparkUiSQLClick()}
+              >
+                <BuildIcon style={{ width: "30px", height: "30px" }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
           {!!selectedSql && <SqlFlow sparkSQL={selectedSql} />}
         </div>
       </Fade>
