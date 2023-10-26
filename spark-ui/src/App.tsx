@@ -1,23 +1,18 @@
-import * as React from "react";
 import Box from "@mui/material/Box";
-import SparkAPI from "./services/SparkApi";
-import Progress from "./components/Progress";
-import {
-  Tab,
-  TabToUrl,
-  getTabByUrl,
-  renderTabIcon,
-} from "./services/TabsService";
+import * as React from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { AppDrawer } from "./components/AppDrawer/AppDrawer";
 import DisconnectedModal from "./components/Modals/DisconnectedModal";
-import { useNavigate, Outlet, useLocation } from "react-router-dom";
+import Progress from "./components/Progress";
+import { useAppDispatch, useAppSelector } from "./Hooks";
+import SparkAPI from "./services/SparkApi";
+import { getTabByUrl, Tab, TabToUrl } from "./services/TabsService";
 import {
   getProxyBasePath,
   hrefWithoutEndSlash,
   isHistoryServer,
   isProxyMode,
 } from "./utils/UrlUtils";
-import { AppDrawer } from "./components/AppDrawer/AppDrawer";
-import { useAppDispatch, useAppSelector } from "./Hooks";
 
 const isHistoryServerMode = isHistoryServer();
 

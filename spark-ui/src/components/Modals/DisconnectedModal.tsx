@@ -1,7 +1,6 @@
 import { Box, Fade, Modal, Typography } from "@mui/material";
-import React, { useContext } from "react";
-import { FC } from "react";
 import Backdrop from "@mui/material/Backdrop";
+import React, { FC } from "react";
 import { useAppSelector } from "../../Hooks";
 
 const style = {

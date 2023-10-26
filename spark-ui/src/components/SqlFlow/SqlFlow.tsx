@@ -2,19 +2,15 @@ import React, { FC, useCallback, useEffect, useState } from "react";
 import ReactFlow, {
   addEdge,
   ConnectionLineType,
-  Panel,
-  useNodesState,
-  useEdgesState,
-  ReactFlowInstance,
   Controls,
-  MiniMap,
+  ReactFlowInstance,
+  useEdgesState,
+  useNodesState,
 } from "reactflow";
-import dagre, { Edge } from "dagre";
-import styles from "./node-style.module.css";
 
 import "reactflow/dist/style.css";
-import SqlLayoutService from "./SqlLayoutService";
 import { EnrichedSparkSQL } from "../../interfaces/AppStore";
+import SqlLayoutService from "./SqlLayoutService";
 import { StageNode, StageNodeName } from "./StageNode";
 
 const options = { hideAttribution: true };

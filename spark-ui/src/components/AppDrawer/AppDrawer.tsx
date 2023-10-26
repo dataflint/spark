@@ -1,3 +1,5 @@
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import {
   Box,
   CSSObject,
@@ -8,16 +10,14 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Theme,
   styled,
+  Theme,
 } from "@mui/material";
-import React, { FC } from "react";
-import MuiDrawer from "@mui/material/Drawer";
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from "@mui/material/AppBar";
-import { Tab, renderTabIcon } from "../../services/TabsService";
+import MuiDrawer from "@mui/material/Drawer";
+import React, { FC } from "react";
+import { renderTabIcon, Tab } from "../../services/TabsService";
 import DrawerFooter from "./DrawerFooter";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 const drawerWidth = 230;
 

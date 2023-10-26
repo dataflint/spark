@@ -1,11 +1,10 @@
+import { Box, Typography } from "@mui/material";
 import React, { FC } from "react";
 import { Handle, Position } from "reactflow";
-import { SqlMetric } from "../../interfaces/SparkSQLs";
-import { v4 as uuidv4 } from "uuid";
-import styles from "./node-style.module.css";
 import { EnrichedSqlNode } from "../../interfaces/AppStore";
-import { Box, Typography } from "@mui/material";
+import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
+import styles from "./node-style.module.css";
 
 export const StageNodeName: string = "stageNode";
 

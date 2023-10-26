@@ -1,36 +1,26 @@
-import { ApiAction } from "../interfaces/APIAction";
-import {
-  AppStore,
-  RunMetadataStore,
-  SparkExecutorsStatus,
-  StagesSummeryStore,
-  StatusStore,
-} from "../interfaces/AppStore";
-import { SparkConfiguration } from "../interfaces/SparkConfiguration";
-import { SparkStages } from "../interfaces/SparkStages";
-import { humanFileSize, timeStrToEpocTime } from "../utils/FormatUtils";
-import isEqual from "lodash/isEqual";
-import { calculateSqlStore, updateSqlNodeMetrics } from "./SqlReducer";
-import { SparkExecutor, SparkExecutors } from "../interfaces/SparkExecutors";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { AppStore, StatusStore } from "../interfaces/AppStore";
 import { Attempt } from "../interfaces/SparkApplications";
-import moment from "moment";
+import { SparkConfiguration } from "../interfaces/SparkConfiguration";
+import { SparkExecutors } from "../interfaces/SparkExecutors";
+import { SparkJobs } from "../interfaces/SparkJobs";
+import { SparkSQLs } from "../interfaces/SparkSQLs";
+import { SparkStages } from "../interfaces/SparkStages";
+import { NodesMetrics } from "../interfaces/SqlMetrics";
+import { SQLPlans } from "../interfaces/SQLPlan";
 import { extractConfig, extractRunMetadata } from "./ConfigReducer";
+import { calculateSparkExecutorsStore } from "./ExecutorsReducer";
+import {
+  calculateJobsStore,
+  calculateSqlQueryLevelMetricsReducer,
+  calculateStagesStore,
+} from "./MetricsReducer";
+import { calculateSqlStore, updateSqlNodeMetrics } from "./SqlReducer";
 import {
   calculateDuration,
   calculateSparkExecutorsStatus,
   calculateStageStatus,
 } from "./StatusReducer";
-import {
-  calculateJobsStore,
-  calculateStagesStore,
-  calculateSqlQueryLevelMetricsReducer,
-} from "./MetricsReducer";
-import { calculateSparkExecutorsStore } from "./ExecutorsReducer";
-import { PayloadAction, createSlice } from "@reduxjs/toolkit";
-import { SparkSQLs } from "../interfaces/SparkSQLs";
-import { SparkJobs } from "../interfaces/SparkJobs";
-import { SQLPlans } from "../interfaces/SQLPlan";
-import { NodesMetrics } from "../interfaces/SqlMetrics";
 
 export const initialState: AppStore = {
   isConnected: false,

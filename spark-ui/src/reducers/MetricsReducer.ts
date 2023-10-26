@@ -1,6 +1,8 @@
+import isEqual from "lodash/isEqual";
+import * as Moment from "moment";
+import { extendMoment } from "moment-range";
 import {
   EnrichedSparkSQL,
-  SparkExecutorStore,
   SparkExecutorsStore,
   SparkJobsStore,
   SparkMetricsStore,
@@ -11,10 +13,7 @@ import {
 } from "../interfaces/AppStore";
 import { SparkJobs } from "../interfaces/SparkJobs";
 import { SparkStages } from "../interfaces/SparkStages";
-import isEqual from "lodash/isEqual";
 import { msToHours } from "../utils/FormatUtils";
-import * as Moment from "moment";
-import { extendMoment } from "moment-range";
 
 const moment = extendMoment(Moment);
 

@@ -1,7 +1,7 @@
-import React from "react";
 import AdjustIcon from "@mui/icons-material/Adjust";
-import SettingsApplicationsIcon from "@mui/icons-material/SettingsApplications";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import SettingsApplicationsIcon from "@mui/icons-material/SettingsApplications";
+import React from "react";
 import { isHistoryServer } from "../utils/UrlUtils";
 
 export enum Tab {

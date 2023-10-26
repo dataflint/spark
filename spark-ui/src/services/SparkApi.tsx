@@ -1,4 +1,4 @@
-import { ApiAction } from "../interfaces/APIAction";
+import { MixpanelEvents } from "../interfaces/Mixpanel";
 import {
   SparkApplication,
   SparkApplications,
@@ -10,21 +10,20 @@ import { SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { SQLPlans } from "../interfaces/SQLPlan";
-import { MixpanelEvents } from "../interfaces/Mixpanel";
-import { MixpanelService } from "./MixpanelService";
-import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";
-import { AppDispatch } from "../Store";
 import {
   calculateSqlQueryLevelMetrics,
   setInitial,
-  setSQL,
-  setSQLMetrics,
   setSparkExecutors,
   setSparkJobs,
+  setSQL,
+  setSQLMetrics,
   setStages,
   updateConnection,
   updateDuration,
 } from "../reducers/SparkSlice";
+import { AppDispatch } from "../Store";
+import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";
+import { MixpanelService } from "./MixpanelService";
 
 const POLL_TIME = 1000;
 const SQL_QUERY_LENGTH = 300;

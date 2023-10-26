@@ -1,14 +1,12 @@
+import isEqual from "lodash/isEqual";
 import {
   RunMetadataStore,
   SparkExecutorsStatus,
   SparkExecutorsStore,
   StagesSummeryStore,
-  StatusStore,
 } from "../interfaces/AppStore";
 import { SparkStages } from "../interfaces/SparkStages";
 import { humanFileSize, msToHours } from "../utils/FormatUtils";
-import isEqual from "lodash/isEqual";
-import { SparkExecutors } from "../interfaces/SparkExecutors";
 
 export function calculateStageStatus(
   existingStore: StagesSummeryStore | undefined,

@@ -1,4 +1,7 @@
-import * as React from "react";
+import CheckIcon from "@mui/icons-material/Check";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import { Box, CircularProgress, TableSortLabel } from "@mui/material";
+import Paper from "@mui/material/Paper";
 import { styled } from "@mui/material/styles";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -6,19 +9,16 @@ import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import { EnrichedSparkSQL, SparkSQLStore } from "../../interfaces/AppStore";
-import Progress from "../Progress";
-import { duration } from "moment";
-import { humanFileSize, humanizeTimeDiff } from "../../utils/FormatUtils";
-import { Box, CircularProgress, TableSortLabel } from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import { SqlStatus } from "../../interfaces/SparkSQLs";
 import { visuallyHidden } from "@mui/utils";
 import _ from "lodash";
-import { getComparator, stableSort } from "./TableUtils";
+import { duration } from "moment";
+import * as React from "react";
+import { EnrichedSparkSQL, SparkSQLStore } from "../../interfaces/AppStore";
+import { SqlStatus } from "../../interfaces/SparkSQLs";
+import { humanFileSize, humanizeTimeDiff } from "../../utils/FormatUtils";
+import Progress from "../Progress";
 import { Data, EnhancedTableProps, HeadCell, Order } from "./TableTypes";
+import { getComparator, stableSort } from "./TableUtils";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {

@@ -2,10 +2,10 @@ import { Attempt } from "./SparkApplications";
 import { SparkConfiguration } from "./SparkConfiguration";
 import { SparkExecutors } from "./SparkExecutors";
 import { SparkJobs } from "./SparkJobs";
-import { SQLPlans } from "./SQLPlan";
 import { SparkSQLs } from "./SparkSQLs";
 import { SparkStages } from "./SparkStages";
 import { NodesMetrics } from "./SqlMetrics";
+import { SQLPlans } from "./SQLPlan";
 
 export type ApiAction =
   | {

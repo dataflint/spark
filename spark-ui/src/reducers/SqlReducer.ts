@@ -1,29 +1,26 @@
+import { Edge, Graph } from "graphlib";
+import { v4 as uuidv4 } from "uuid";
 import {
   EnrichedSparkSQL,
-  EnrichedSqlMetric,
-  NodeType,
-  SparkSQLStore,
   EnrichedSqlEdge,
   EnrichedSqlNode,
-  AppStore,
   ParsedNodePlan,
+  SparkSQLStore,
 } from "../interfaces/AppStore";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
-import { Edge, Graph } from "graphlib";
-import { parse, v4 as uuidv4 } from "uuid";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
+import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
+import { timeStrToEpocTime } from "../utils/FormatUtils";
+import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
+import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
+import { parseFileScan } from "./PlanParsers/ScanFileParser";
+import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
+import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
 import {
   calcNodeMetrics,
   calcNodeType,
   nodeEnrichedNameBuilder,
 } from "./SqlReducerUtils";
-import { timeStrToEpocTime } from "../utils/FormatUtils";
-import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
-import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
-import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
-import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
-import { parseFileScan } from "./PlanParsers/ScanFileParser";
-import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
 
 export function cleanUpDAG(
   edges: EnrichedSqlEdge[],

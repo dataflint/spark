@@ -1,6 +1,6 @@
-import * as React from "react";
-import Typography from "@mui/material/Typography";
 import { Grid, Paper } from "@mui/material";
+import Typography from "@mui/material/Typography";
+import * as React from "react";
 import styles from "./InfoBox.module.css"; // Import css modules stylesheet as styles
 
 type InfoBoxProps = {

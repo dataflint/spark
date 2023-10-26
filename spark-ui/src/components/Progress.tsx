@@ -1,6 +1,6 @@
+import { Box, CircularProgress } from "@mui/material";
 import React, { FC } from "react";
 import "reactflow/dist/style.css";
-import { Box, CircularProgress } from "@mui/material";
 
 const Progress: FC = ({}): JSX.Element => {
   return (

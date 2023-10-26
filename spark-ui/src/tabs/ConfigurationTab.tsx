@@ -1,8 +1,8 @@
-import * as React from "react";
 import Grid from "@mui/material/Grid";
+import * as React from "react";
 import ConfigTable from "../components/ConfigTable";
-import { MixpanelService } from "../services/MixpanelService";
 import { useAppSelector } from "../Hooks";
+import { MixpanelService } from "../services/MixpanelService";
 
 export default function ConfigurationTab() {
   const config = useAppSelector((state) => state.spark.config);

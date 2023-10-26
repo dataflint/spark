@@ -1,12 +1,11 @@
-import * as React from "react";
-import SummaryBar from "../components/SummaryBar";
-import SqlTable from "../components/SqlTable/SqlTable";
-import SqlFlow from "../components/SqlFlow/SqlFlow";
 import { Button, Fade } from "@mui/material";
-import mixpanel from "mixpanel-browser";
+import * as React from "react";
+import SqlFlow from "../components/SqlFlow/SqlFlow";
+import SqlTable from "../components/SqlTable/SqlTable";
+import SummaryBar from "../components/SummaryBar";
+import { useAppSelector } from "../Hooks";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 import { MixpanelService } from "../services/MixpanelService";
-import { useAppSelector } from "../Hooks";
 
 export default function SummaryTab() {
   const sql = useAppSelector((state) => state.spark.sql);

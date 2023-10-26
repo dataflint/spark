@@ -1,13 +1,8 @@
 import dagre from "dagre";
-import { Node, Edge, Position } from "reactflow";
+import { Edge, Node, Position } from "reactflow";
 import { v4 as uuidv4 } from "uuid";
-import { SqlEdge, SqlNode } from "../../interfaces/SparkSQLs";
+import { EnrichedSqlEdge, EnrichedSqlNode } from "../../interfaces/AppStore";
 import { StageNodeName } from "./StageNode";
-import {
-  EnrichedSparkSQL,
-  EnrichedSqlEdge,
-  EnrichedSqlNode,
-} from "../../interfaces/AppStore";
 
 const nodeWidth = 280;
 const nodeHeight = 180;

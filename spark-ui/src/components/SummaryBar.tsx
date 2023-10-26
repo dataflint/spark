@@ -1,17 +1,16 @@
-import React, { FC, useContext } from "react";
-import "reactflow/dist/style.css";
-import { Grid } from "@mui/material";
-import { StatusStore } from "../interfaces/AppStore";
-import Progress from "./Progress";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import InfoBox from "./InfoBox/InfoBox";
-import { duration } from "moment";
-import { humanizeTimeDiff } from "../utils/FormatUtils";
 import DirectionsRunIcon from "@mui/icons-material/DirectionsRun";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import MemoryIcon from "@mui/icons-material/Memory";
+import { Grid } from "@mui/material";
+import { duration } from "moment";
+import React, { FC } from "react";
+import "reactflow/dist/style.css";
 import { useAppSelector } from "../Hooks";
+import { humanizeTimeDiff } from "../utils/FormatUtils";
+import InfoBox from "./InfoBox/InfoBox";
+import Progress from "./Progress";
 
 const SummaryBar: FC = (): JSX.Element => {
   const status = useAppSelector((state) => state.spark.status);

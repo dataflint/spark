@@ -1,20 +1,15 @@
-import React, { FC, useContext } from "react";
-import "reactflow/dist/style.css";
-import { Grid } from "@mui/material";
-import {
-  EnrichedSparkSQL,
-  SparkExecutorsStatus,
-  StagesSummeryStore,
-} from "../interfaces/AppStore";
-import Progress from "./Progress";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ApiIcon from "@mui/icons-material/Api";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import QueueIcon from "@mui/icons-material/Queue";
 import WorkIcon from "@mui/icons-material/Work";
-import InfoBox from "./InfoBox/InfoBox";
-import { humanFileSize } from "../utils/FormatUtils";
+import { Grid } from "@mui/material";
+import React, { FC } from "react";
+import "reactflow/dist/style.css";
 import { useAppSelector } from "../Hooks";
+import { humanFileSize } from "../utils/FormatUtils";
+import InfoBox from "./InfoBox/InfoBox";
+import Progress from "./Progress";
 
 const StatusBar: FC = (): JSX.Element => {
   const { status, sql } = useAppSelector((state) => state.spark);

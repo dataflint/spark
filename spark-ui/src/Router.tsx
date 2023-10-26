@@ -1,8 +1,8 @@
 import React from "react";
 import { createHashRouter } from "react-router-dom";
 import App from "./App";
-import StatusTab from "./tabs/StatusTab";
 import ConfigurationTab from "./tabs/ConfigurationTab";
+import StatusTab from "./tabs/StatusTab";
 import SummaryTab from "./tabs/SummaryTab";
 import { isHistoryServer } from "./utils/UrlUtils";
 

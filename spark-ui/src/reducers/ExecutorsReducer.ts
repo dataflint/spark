@@ -1,4 +1,4 @@
-import { RunMetadataStore, SparkExecutorsStore } from "../interfaces/AppStore";
+import { SparkExecutorsStore } from "../interfaces/AppStore";
 import { SparkExecutors } from "../interfaces/SparkExecutors";
 import { timeStrToEpocTime } from "../utils/FormatUtils";
 
