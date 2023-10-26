@@ -46,13 +46,13 @@ export default function SummaryTab() {
 
   return (
     <div style={{ overflow: "hidden", height: "100%" }}>
-        <Fade timeout={500} in={selectedSqlId === undefined} style={{}}>
+        <Fade timeout={300} in={selectedSqlId === undefined} style={{}}>
           <div style={{ display: talbeDisplay, height: "100%", flexDirection: "column"}}>
             <SummaryBar />
             <SqlTable sqlStore={sql} selectedSqlId={selectedSqlId} setSelectedSqlId={onSelectingSql} />
           </div>
         </Fade>
-        <Fade timeout={500} in={selectedSqlId !== undefined} style={{}}>
+        <Fade timeout={300} in={selectedSqlId !== undefined} style={{}}>
           <div style={{ display: 'flex', height: '100%', width: '100%', flexDirection: "column" }}>
             <Button onClick={() => setSelectedSqlId(undefined)} style={{ width: "100px", margin: "10px" }} variant="outlined">Back</Button>
             {!!selectedSql && <SqlFlow sparkSQL={selectedSql} />}
