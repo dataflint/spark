@@ -20,6 +20,7 @@ export interface Data {
   activityRate: number;
   input: number;
   output: number;
+  failureReason: string;
 }
 
 export interface HeadCell {

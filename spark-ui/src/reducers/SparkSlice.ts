@@ -117,7 +117,7 @@ const sparkSlice = createSlice({
       if (state.status === undefined) {
         return;
       }
-      if (state.jobs && state.sql && state.executors) {
+      if (state.jobs && state.sql && state.executors && state.stages) {
         const sqlWithNodeMetrics = updateSqlNodeMetrics(
           state.sql,
           action.payload.sqlId,
@@ -127,6 +127,7 @@ const sparkSlice = createSlice({
           sqlWithNodeMetrics,
           state.status,
           state.jobs,
+          state.stages,
           state.executors,
         );
       }
@@ -176,11 +177,12 @@ const sparkSlice = createSlice({
         action.payload.sqls,
         action.payload.plans,
       );
-      if (state.jobs && state.executors) {
+      if (state.jobs && state.executors && state.stages) {
         state.sql = calculateSqlQueryLevelMetricsReducer(
           sqlStore,
           state.status,
           state.jobs,
+          state.stages,
           state.executors,
         );
       } else {
@@ -192,11 +194,12 @@ const sparkSlice = createSlice({
         return;
       }
 
-      if (state.jobs && state.sql && state.executors) {
+      if (state.jobs && state.sql && state.executors && state.stages) {
         state.sql = calculateSqlQueryLevelMetricsReducer(
           state.sql,
           state.status,
           state.jobs,
+          state.stages,
           state.executors,
         );
       }

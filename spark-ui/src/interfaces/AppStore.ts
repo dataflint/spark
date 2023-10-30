@@ -61,6 +61,7 @@ export interface EnrichedSparkSQL {
   failedJobIds: number[];
   nodes: EnrichedSqlNode[];
   edges: EnrichedSqlEdge[];
+  failureReason: string | undefined;
 }
 
 export type ParsedHashAggregatePlan = {
@@ -167,7 +168,7 @@ export interface SparkStageStore {
   stageId: number;
   numTasks: number;
   name: string;
-
+  failureReason: string | undefined;
   metrics: SparkMetricsStore;
 }
 

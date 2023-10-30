@@ -58,9 +58,10 @@ export interface SparkStage {
   peakExecutorMetrics?: PeakExecutorMetrics;
   isShufflePushEnabled: boolean;
   shuffleMergersCount: number;
+  failureReason: string | undefined;
 }
 
-export interface KilledTasksSummary {}
+export interface KilledTasksSummary { }
 
 export interface PeakExecutorMetrics {
   JVMHeapMemory: number;

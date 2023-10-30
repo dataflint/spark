@@ -14,6 +14,7 @@ import {
 import { SparkJobs } from "../interfaces/SparkJobs";
 import { SparkStages } from "../interfaces/SparkStages";
 import { msToHours } from "../utils/FormatUtils";
+import { SqlStatus } from "../interfaces/SparkSQLs";
 
 const moment = extendMoment(Moment);
 
@@ -30,6 +31,7 @@ export function calculateStagesStore(
         name: stage.name,
         status: stage.status,
         numTasks: stage.numTasks,
+        failureReason: stage.failureReason,
         metrics: {
           executorRunTime: stage.executorRunTime,
           diskBytesSpilled: stage.diskBytesSpilled,
@@ -132,6 +134,7 @@ export function calculateSqlQueryLevelMetricsReducer(
   existingStore: SparkSQLStore,
   statusStore: StatusStore,
   jobs: SparkJobsStore,
+  stages: SparkStagesStore,
   executors: SparkExecutorsStore,
 ): SparkSQLStore {
   const newSqls = existingStore.sqls
@@ -157,16 +160,16 @@ export function calculateSqlQueryLevelMetricsReducer(
         executors.length === 1
           ? queryResourceUsageWithDriverMs
           : calculateSqlQueryResourceUsage(
-              sql,
-              executors.filter((executor) => !executor.isDriver),
-            );
+            sql,
+            executors.filter((executor) => !executor.isDriver),
+          );
       const totalTasksTime = sql.stageMetrics?.executorRunTime as number;
       const activityRate =
         queryResourceUsageExecutorsOnlyMs !== 0
           ? Math.min(
-              100,
-              (totalTasksTime / queryResourceUsageExecutorsOnlyMs) * 100,
-            )
+            100,
+            (totalTasksTime / queryResourceUsageExecutorsOnlyMs) * 100,
+          )
           : 0;
       const coreHourUsage = msToHours(queryResourceUsageWithDriverMs);
       const resourceUsageStore: SparkSQLResourceUsageStore = {
@@ -176,15 +179,22 @@ export function calculateSqlQueryLevelMetricsReducer(
           statusStore.executors?.totalCoreHour === undefined
             ? 0
             : Math.min(
-                100,
-                (coreHourUsage / statusStore.executors.totalCoreHour) * 100,
-              ),
+              100,
+              (coreHourUsage / statusStore.executors.totalCoreHour) * 100,
+            ),
         durationPercentage:
           statusStore.duration === undefined
             ? 0
             : Math.min(100, (sql.duration / statusStore.duration) * 100),
       };
       return { ...sql, resourceMetrics: resourceUsageStore };
+    }).map((sql) => {
+      const failedSqlJobs = jobs.filter((job) => sql.failedJobIds.includes(job.jobId));
+      const jobsStagesIds = failedSqlJobs.flatMap(job => job.stageIds);
+      const jobsStages = stages.filter(stage => jobsStagesIds.includes(stage.stageId));
+      const failureReason = jobsStages.find(stage => stage.status === SqlStatus.Failed)?.failureReason;
+
+      return { ...sql, failureReason };
     });
   return { sqls: newSqls };
 }

@@ -1,6 +1,7 @@
 import CheckIcon from "@mui/icons-material/Check";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import { Box, CircularProgress, TableSortLabel } from "@mui/material";
+import { Box, CircularProgress, Fade, Snackbar, TableSortLabel } from "@mui/material";
+import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -40,14 +41,41 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
 }));
 
-function StatusIcon(status: string): JSX.Element {
+const CustomWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
+  <Tooltip {...props} classes={{ popper: className }} />
+))({
+  [`& .${tooltipClasses.tooltip}`]: {
+    maxWidth: 500,
+    maxHeight: 300,
+
+  },
+});
+
+
+const onTooltipClick = (event: React.MouseEvent<unknown>, failureReason: string, setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>) => {
+  event.stopPropagation();
+  setOpenSnackbar(true);
+  navigator.clipboard.writeText(failureReason);
+};
+
+function StatusIcon(status: string, failureReason: string, setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>): JSX.Element {
   switch (status) {
     case SqlStatus.Running.valueOf():
       return <CircularProgress color="info" style={{ width: "30px", height: "30px" }} />;
     case SqlStatus.Completed.valueOf():
       return <CheckIcon color="success" style={{ width: "30px", height: "30px" }} />;
     case SqlStatus.Failed.valueOf():
-      return <ErrorOutlineIcon color="error" style={{ width: "30px", height: "30px" }} />;
+      return (<CustomWidthTooltip arrow
+        placement="top"
+        title={
+          <div
+            style={{ height: "300px", wordBreak: "break-word", overflow: "hidden", textOverflow: "ellipsis" }} onClick={(event) => onTooltipClick(event, failureReason, setOpenSnackbar)}>{failureReason}</div>
+        }
+        TransitionComponent={Fade}
+        TransitionProps={{ timeout: 300 }}
+      >
+        <ErrorOutlineIcon color="error" style={{ width: "30px", height: "30px" }} />
+      </CustomWidthTooltip>);
     default:
       return <div></div>;
   }
@@ -119,9 +147,11 @@ const createSqlTableData = (sqls: EnrichedSparkSQL[]): Data[] => {
         activityRate: sql.resourceMetrics.activityRate,
         input: sql.stageMetrics.inputBytes,
         output: sql.stageMetrics.outputBytes,
+        failureReason: !sql.failureReason ? "" : sql.failureReason,
       };
   });
 };
+
 
 function EnhancedTableHead(props: EnhancedTableProps) {
   const { order, orderBy, onRequestSort } = props;
@@ -170,6 +200,7 @@ export default function SqlTable({
 }) {
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof Data>("id");
+  const [openSnackbar, setOpenSnackbar] = React.useState<boolean>(false);
   const [sqlsTableData, setSqlsTableData] = React.useState<Data[]>([]);
 
   React.useEffect(() => {
@@ -196,6 +227,14 @@ export default function SqlTable({
     () => stableSort(sqlsTableData, getComparator(order, orderBy)),
     [order, orderBy, sqlsTableData],
   );
+
+  const handleClose = (event: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setOpenSnackbar(false);
+  };
 
   if (sqlStore === undefined) {
     return <Progress />;
@@ -230,7 +269,7 @@ export default function SqlTable({
                   {sql.id}
                 </StyledTableCell>
                 <StyledTableCell component="th" scope="row">
-                  {StatusIcon(sql.status)}
+                  {StatusIcon(sql.status, sql.failureReason, setOpenSnackbar)}
                 </StyledTableCell>
                 <StyledTableCell component="th" scope="row">
                   {sql.description}
@@ -257,6 +296,12 @@ export default function SqlTable({
           </TableBody>
         </Table>
       </TableContainer>
+      <Snackbar
+        onClose={handleClose}
+        open={openSnackbar}
+        autoHideDuration={2000}
+        message="Copied to clip board"
+      />
     </div>
   );
 }
