@@ -3,11 +3,7 @@ import * as React from "react";
 import { BASE_CURRENT_PAGE } from "../../utils/UrlConsts";
 import { getBaseAppUrl } from "../../utils/UrlUtils";
 
-export default function DrawerFooter({
-  version,
-}: {
-  version?: string;
-}) {
+export default function DrawerFooter({ version }: { version?: string }) {
   const onSparkUiClick = (): void => {
     window.location.href = `${getBaseAppUrl(BASE_CURRENT_PAGE)}/jobs`;
   };

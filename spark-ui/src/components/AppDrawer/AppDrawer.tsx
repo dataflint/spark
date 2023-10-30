@@ -160,9 +160,7 @@ export const AppDrawer: FC<{
             </List>
           </Box>
         </div>
-        {open && (
-          <DrawerFooter version={process.env.REACT_APP_VERSION} />
-        )}
+        {open && <DrawerFooter version={process.env.REACT_APP_VERSION} />}
       </div>
     </Drawer>
   );

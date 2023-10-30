@@ -31,13 +31,30 @@ export function calculateStageStatus(
   const totalOutput = stagesDataClean
     .map((stage) => stage.outputBytes)
     .reduce((a, b) => a + b, 0);
+  const totalShuffleReadBytes = stagesDataClean
+    .map((stage) => stage.shuffleReadBytes)
+    .reduce((a, b) => a + b, 0);
+  const totalShuffleWriteBytes = stagesDataClean
+    .map((stage) => stage.shuffleWriteBytes)
+    .reduce((a, b) => a + b, 0);
   const totalDiskSpill = stagesDataClean
     .map((stage) => stage.diskBytesSpilled)
     .reduce((a, b) => a + b, 0);
   const totalTaskTimeMs = stagesDataClean
     .map((stage) => stage.executorRunTime)
     .reduce((a, b) => a + b, 0);
+  const totalTasks = stagesDataClean
+    .map((stage) =>
+      stage.numTasks
+    )
+    .reduce((a, b) => a + b, 0);
+  const totalFailedTasks = stagesDataClean
+    .map((stage) =>
+      stage.numFailedTasks
+    )
+    .reduce((a, b) => a + b, 0);
 
+  const taskErrorRate = totalTasks !== 0 ? (totalFailedTasks / totalTasks) * 100 : 0;
   const status = totalActiveTasks == 0 ? "idle" : "working";
 
   const state: StagesSummeryStore = {
@@ -45,8 +62,13 @@ export function calculateStageStatus(
     totalPendingTasks: totalPendingTasks,
     totalInput: humanFileSize(totalInput),
     totalOutput: humanFileSize(totalOutput),
+    totalShuffleRead: humanFileSize(totalShuffleReadBytes),
+    totalShuffleWrite: humanFileSize(totalShuffleWriteBytes),
     totalDiskSpill: humanFileSize(totalDiskSpill),
     totalTaskTimeMs: totalTaskTimeMs,
+    taskErrorRate: taskErrorRate,
+    totalTasks: totalTasks,
+    totalFailedTasks: totalFailedTasks,
     status: status,
   };
 
@@ -73,14 +95,14 @@ export function calculateSparkExecutorsStatus(
     numOfExecutors === 0
       ? driver.totalTaskDuration
       : executors
-          .map((executor) => executor.totalTaskDuration)
-          .reduce((a, b) => a + b, 0);
+        .map((executor) => executor.totalTaskDuration)
+        .reduce((a, b) => a + b, 0);
   const totalPotentialTaskTimeMs =
     numOfExecutors === 0
       ? driver.duration * driver.maxTasks
       : executors
-          .map((executor) => executor.duration * executor.maxTasks)
-          .reduce((a, b) => a + b, 0);
+        .map((executor) => executor.duration * executor.maxTasks)
+        .reduce((a, b) => a + b, 0);
   const totalCoreHour = sparkExecutors
     .map((executor) => executor.totalCores * msToHours(executor.duration))
     .reduce((a, b) => a + b, 0);
@@ -88,13 +110,22 @@ export function calculateSparkExecutorsStatus(
     totalPotentialTaskTimeMs !== 0 && totalTaskTimeMs !== undefined
       ? Math.min(100, (totalTaskTimeMs / totalPotentialTaskTimeMs) * 100)
       : 0;
-
-  const state = {
+  const maxExecutorMemoryPercentage =
+    executors.length > 0
+      ? Math.max(...executors.map((executor) => executor.memoryUsagePercentage))
+      : 0;
+  const maxExecutorMemoryBytes =
+    executors.length > 0
+      ? Math.max(...executors.map((executor) => executor.memoryUsageBytes))
+      : 0;
+  const maxExecutorMemoryBytesString = humanFileSize(maxExecutorMemoryBytes);
+  return {
     numOfExecutors,
     totalCoreHour,
     activityRate,
+    maxExecutorMemoryPercentage,
+    maxExecutorMemoryBytesString,
   };
-  return state;
 }
 
 export function calculateDuration(

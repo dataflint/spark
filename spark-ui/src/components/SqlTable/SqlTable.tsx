@@ -3,13 +3,13 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { Box, CircularProgress, Fade, Snackbar, TableSortLabel } from "@mui/material";
 import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
 import Paper from "@mui/material/Paper";
+import { styled } from "@mui/material/styles";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import { styled } from "@mui/material/styles";
 import { visuallyHidden } from "@mui/utils";
 import _ from "lodash";
 import { duration } from "moment";
@@ -61,9 +61,16 @@ const onTooltipClick = (event: React.MouseEvent<unknown>, failureReason: string,
 function StatusIcon(status: string, failureReason: string, setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>): JSX.Element {
   switch (status) {
     case SqlStatus.Running.valueOf():
-      return <CircularProgress color="info" style={{ width: "30px", height: "30px" }} />;
+      return (
+        <CircularProgress
+          color="info"
+          style={{ width: "30px", height: "30px" }}
+        />
+      );
     case SqlStatus.Completed.valueOf():
-      return <CheckIcon color="success" style={{ width: "30px", height: "30px" }} />;
+      return (
+        <CheckIcon color="success" style={{ width: "30px", height: "30px" }} />
+      );
     case SqlStatus.Failed.valueOf():
       return (<CustomWidthTooltip arrow
         placement="top"

@@ -1,11 +1,11 @@
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import BuildIcon from '@mui/icons-material/Build';
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import BuildIcon from "@mui/icons-material/Build";
 import { Box, Fade, IconButton, Tooltip } from "@mui/material";
 import * as React from "react";
-import { useAppSelector } from "../Hooks";
 import SqlFlow from "../components/SqlFlow/SqlFlow";
 import SqlTable from "../components/SqlTable/SqlTable";
 import SummaryBar from "../components/SummaryBar";
+import { useAppSelector } from "../Hooks";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 import { MixpanelService } from "../services/MixpanelService";
 import { BASE_CURRENT_PAGE } from "../utils/UrlConsts";
@@ -37,7 +37,10 @@ export default function SummaryTab() {
   }, []);
 
   const onSparkUiSQLClick = (): void => {
-    window.open(`${getBaseAppUrl(BASE_CURRENT_PAGE)}/SQL/execution/?id=${selectedSqlId}`, "_blank");
+    window.open(
+      `${getBaseAppUrl(BASE_CURRENT_PAGE)}/SQL/execution/?id=${selectedSqlId}`,
+      "_blank",
+    );
   };
 
   const onSelectingSql = (id: string) => {
@@ -92,10 +95,7 @@ export default function SummaryTab() {
               </IconButton>
             </Tooltip>
             <Tooltip title="Spark UI SQL View">
-              <IconButton
-                color="secondary"
-                onClick={() => onSparkUiSQLClick()}
-              >
+              <IconButton color="secondary" onClick={() => onSparkUiSQLClick()}>
                 <BuildIcon style={{ width: "30px", height: "30px" }} />
               </IconButton>
             </Tooltip>
