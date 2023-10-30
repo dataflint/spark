@@ -43,12 +43,18 @@ export function calculateStageStatus(
   const totalTaskTimeMs = stagesDataClean
     .map((stage) => stage.executorRunTime)
     .reduce((a, b) => a + b, 0);
-  const taskErrorRate = stagesDataClean
+  const totalTasks = stagesDataClean
     .map((stage) =>
-      stage.numTasks !== 0 ? (stage.numFailedTasks / stage.numTasks) * 100 : 0,
+      stage.numTasks
+    )
+    .reduce((a, b) => a + b, 0);
+  const totalFailedTasks = stagesDataClean
+    .map((stage) =>
+      stage.numFailedTasks
     )
     .reduce((a, b) => a + b, 0);
 
+  const taskErrorRate = totalTasks !== 0 ? (totalFailedTasks / totalTasks) * 100 : 0;
   const status = totalActiveTasks == 0 ? "idle" : "working";
 
   const state: StagesSummeryStore = {
@@ -61,6 +67,8 @@ export function calculateStageStatus(
     totalDiskSpill: humanFileSize(totalDiskSpill),
     totalTaskTimeMs: totalTaskTimeMs,
     taskErrorRate: taskErrorRate,
+    totalTasks: totalTasks,
+    totalFailedTasks: totalFailedTasks,
     status: status,
   };
 
@@ -87,14 +95,14 @@ export function calculateSparkExecutorsStatus(
     numOfExecutors === 0
       ? driver.totalTaskDuration
       : executors
-          .map((executor) => executor.totalTaskDuration)
-          .reduce((a, b) => a + b, 0);
+        .map((executor) => executor.totalTaskDuration)
+        .reduce((a, b) => a + b, 0);
   const totalPotentialTaskTimeMs =
     numOfExecutors === 0
       ? driver.duration * driver.maxTasks
       : executors
-          .map((executor) => executor.duration * executor.maxTasks)
-          .reduce((a, b) => a + b, 0);
+        .map((executor) => executor.duration * executor.maxTasks)
+        .reduce((a, b) => a + b, 0);
   const totalCoreHour = sparkExecutors
     .map((executor) => executor.totalCores * msToHours(executor.duration))
     .reduce((a, b) => a + b, 0);

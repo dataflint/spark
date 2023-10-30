@@ -42,6 +42,8 @@ export interface StagesSummeryStore {
   status: string;
   totalTaskTimeMs: number;
   taskErrorRate: number;
+  totalTasks: number;
+  totalFailedTasks: number;
 }
 
 export interface SparkSQLStore {

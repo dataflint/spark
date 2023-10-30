@@ -98,7 +98,10 @@ const SummaryBar: FC = (): JSX.Element => {
                 {status.executors.maxExecutorMemoryBytesString} / {executorMemoryBytesString}
               </Typography>
               <Typography variant="subtitle2">
-                The peak memory usage of the most memory-utilized executor.
+                Peak JVM memory usage / total executor JVM memory
+              </Typography>
+              <Typography variant="subtitle2">
+                "Memory Usage" is the peak memory usage of the most memory-utilized executor.
               </Typography>
               <Typography variant="subtitle2">
                 "Executor Memory" refers to the executor JVM memory (both on-heap and off-heap).
@@ -132,6 +135,13 @@ const SummaryBar: FC = (): JSX.Element => {
           text={status.stages.totalDiskSpill}
           color="#e91e63"
           icon={StorageIcon}
+          tooltipContent={
+            <React.Fragment>
+              <Typography variant="subtitle2">
+                "Spilling" in spark is when the data does not fit in the executor's memory and as a result it needs to be written to disk
+              </Typography>
+            </React.Fragment>
+          }
         ></InfoBox>
         <InfoBox
           title="Activity Rate"
@@ -163,6 +173,19 @@ const SummaryBar: FC = (): JSX.Element => {
           text={status.stages.taskErrorRate.toFixed(2) + "%"}
           color="#ff6e40"
           icon={SyncProblemIcon}
+          tooltipContent={
+            <React.Fragment>
+              <Typography variant="h6" color="inherit" textAlign={"center"}>
+                {status.stages.totalFailedTasks} / {status.stages.totalTasks}
+              </Typography>
+              <Typography variant="subtitle2">
+                Number of failed tasks / Total number of tasks
+              </Typography>
+              <Typography variant="subtitle2">
+                "Task Error Rate" is the percentage of tasks failed.
+              </Typography>
+            </React.Fragment>
+          }
         ></InfoBox>
       </Grid>
     </Grid>
