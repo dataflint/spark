@@ -4,7 +4,7 @@ export type AppStore = {
   isConnected: boolean;
   isInitialized: boolean;
   runMetadata: RunMetadataStore | undefined;
-  config: Record<string, string> | undefined;
+  config: ConfigStore | undefined;
   status: StatusStore | undefined;
   sql: SparkSQLStore | undefined;
   jobs: SparkJobsStore | undefined;
@@ -12,6 +12,11 @@ export type AppStore = {
   executors: SparkExecutorsStore | undefined;
 };
 
+export interface ConfigStore {
+  rawSparkConfig: Record<string, string> | undefined;
+  executorMemoryBytes: number;
+  executorMemoryBytesString: string;
+}
 export interface RunMetadataStore {
   appId: string;
   sparkVersion: string;
@@ -31,9 +36,12 @@ export interface StagesSummeryStore {
   totalPendingTasks: number;
   totalInput: string;
   totalOutput: string;
+  totalShuffleRead: string;
+  totalShuffleWrite: string;
   totalDiskSpill: string;
   status: string;
   totalTaskTimeMs: number;
+  taskErrorRate: number;
 }
 
 export interface SparkSQLStore {
@@ -129,6 +137,8 @@ export interface SparkExecutorsStatus {
   numOfExecutors: number;
   totalCoreHour: number;
   activityRate: number;
+  maxExecutorMemoryPercentage: number;
+  maxExecutorMemoryBytesString: string;
 }
 
 export interface SparkMetricsStore {
@@ -183,4 +193,6 @@ export interface SparkExecutorStore {
   endTimeEpoc: number;
   totalCores: number;
   maxTasks: number;
+  memoryUsageBytes: number;
+  memoryUsagePercentage: number;
 }

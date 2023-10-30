@@ -1,13 +1,17 @@
 import Box from "@mui/material/Box";
 import * as React from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "./Hooks";
 import { AppDrawer } from "./components/AppDrawer/AppDrawer";
 import DisconnectedModal from "./components/Modals/DisconnectedModal";
 import Progress from "./components/Progress";
+import { useAppDispatch, useAppSelector } from "./Hooks";
 import SparkAPI from "./services/SparkApi";
-import { Tab, TabToUrl, getTabByUrl } from "./services/TabsService";
-import { BASE_CURRENT_PAGE, BASE_PATH, IS_HISTORY_SERVER_MODE } from "./utils/UrlConsts";
+import { getTabByUrl, Tab, TabToUrl } from "./services/TabsService";
+import {
+  BASE_CURRENT_PAGE,
+  BASE_PATH,
+  IS_HISTORY_SERVER_MODE,
+} from "./utils/UrlConsts";
 
 export default function App() {
   const location = useLocation();

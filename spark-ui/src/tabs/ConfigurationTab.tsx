@@ -5,7 +5,7 @@ import { useAppSelector } from "../Hooks";
 import { MixpanelService } from "../services/MixpanelService";
 
 export default function ConfigurationTab() {
-  const config = useAppSelector((state) => state.spark.config);
+  const config = useAppSelector((state) => state.spark.config?.rawSparkConfig);
 
   React.useEffect(() => {
     MixpanelService.TrackPageView();

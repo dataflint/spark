@@ -31,11 +31,22 @@ export function calculateStageStatus(
   const totalOutput = stagesDataClean
     .map((stage) => stage.outputBytes)
     .reduce((a, b) => a + b, 0);
+  const totalShuffleReadBytes = stagesDataClean
+    .map((stage) => stage.shuffleReadBytes)
+    .reduce((a, b) => a + b, 0);
+  const totalShuffleWriteBytes = stagesDataClean
+    .map((stage) => stage.shuffleWriteBytes)
+    .reduce((a, b) => a + b, 0);
   const totalDiskSpill = stagesDataClean
     .map((stage) => stage.diskBytesSpilled)
     .reduce((a, b) => a + b, 0);
   const totalTaskTimeMs = stagesDataClean
     .map((stage) => stage.executorRunTime)
+    .reduce((a, b) => a + b, 0);
+  const taskErrorRate = stagesDataClean
+    .map((stage) =>
+      stage.numTasks !== 0 ? (stage.numFailedTasks / stage.numTasks) * 100 : 0,
+    )
     .reduce((a, b) => a + b, 0);
 
   const status = totalActiveTasks == 0 ? "idle" : "working";
@@ -45,8 +56,11 @@ export function calculateStageStatus(
     totalPendingTasks: totalPendingTasks,
     totalInput: humanFileSize(totalInput),
     totalOutput: humanFileSize(totalOutput),
+    totalShuffleRead: humanFileSize(totalShuffleReadBytes),
+    totalShuffleWrite: humanFileSize(totalShuffleWriteBytes),
     totalDiskSpill: humanFileSize(totalDiskSpill),
     totalTaskTimeMs: totalTaskTimeMs,
+    taskErrorRate: taskErrorRate,
     status: status,
   };
 
@@ -88,13 +102,22 @@ export function calculateSparkExecutorsStatus(
     totalPotentialTaskTimeMs !== 0 && totalTaskTimeMs !== undefined
       ? Math.min(100, (totalTaskTimeMs / totalPotentialTaskTimeMs) * 100)
       : 0;
-
-  const state = {
+  const maxExecutorMemoryPercentage =
+    executors.length > 0
+      ? Math.max(...executors.map((executor) => executor.memoryUsagePercentage))
+      : 0;
+  const maxExecutorMemoryBytes =
+    executors.length > 0
+      ? Math.max(...executors.map((executor) => executor.memoryUsageBytes))
+      : 0;
+  const maxExecutorMemoryBytesString = humanFileSize(maxExecutorMemoryBytes);
+  return {
     numOfExecutors,
     totalCoreHour,
     activityRate,
+    maxExecutorMemoryPercentage,
+    maxExecutorMemoryBytesString,
   };
-  return state;
 }
 
 export function calculateDuration(

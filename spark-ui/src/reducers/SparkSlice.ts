@@ -94,7 +94,11 @@ const sparkSlice = createSlice({
       state,
       action: PayloadAction<{ value: SparkExecutors }>,
     ) => {
-      if (state.runMetadata === undefined || state.status === undefined) {
+      if (
+        state.runMetadata === undefined ||
+        state.status === undefined ||
+        state.config === undefined
+      ) {
         return;
       }
 
@@ -104,6 +108,7 @@ const sparkSlice = createSlice({
         state.executors,
         action.payload.value,
         currentEndDate,
+        state.config.executorMemoryBytes,
       );
       const executorsStatus = calculateSparkExecutorsStatus(executorsStore);
 

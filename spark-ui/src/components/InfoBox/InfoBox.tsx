@@ -8,13 +8,26 @@ type InfoBoxProps = {
   text: string;
   color?: string;
   icon: React.ElementType;
-  tooltipContent?: JSX.Element
+  tooltipContent?: JSX.Element;
 };
 
-const ConditionalWrapper = ({ condition, wrapper, children }: { condition: boolean, wrapper: (children: JSX.Element) => JSX.Element, children: JSX.Element }) =>
-  condition ? wrapper(children) : children;
+const ConditionalWrapper = ({
+  condition,
+  wrapper,
+  children,
+}: {
+  condition: boolean;
+  wrapper: (children: JSX.Element) => JSX.Element;
+  children: JSX.Element;
+}) => (condition ? wrapper(children) : children);
 
-export default function InfoBox({ title, text, color, icon, tooltipContent }: InfoBoxProps) {
+export default function InfoBox({
+  title,
+  text,
+  color,
+  icon,
+  tooltipContent,
+}: InfoBoxProps) {
   const Icon = icon;
   const [blink, setBlink] = React.useState(false);
 
@@ -28,7 +41,12 @@ export default function InfoBox({ title, text, color, icon, tooltipContent }: In
 
   return (
     <Grid item lg={2}>
-      <ConditionalWrapper condition={tooltipContent !== undefined} wrapper={(childern) => (<Tooltip title={tooltipContent}>{childern}</Tooltip>)}>
+      <ConditionalWrapper
+        condition={tooltipContent !== undefined}
+        wrapper={(childern) => (
+          <Tooltip title={tooltipContent}>{childern}</Tooltip>
+        )}
+      >
         <Paper
           sx={{
             p: 2,

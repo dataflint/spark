@@ -2,13 +2,13 @@ import CheckIcon from "@mui/icons-material/Check";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { Box, CircularProgress, TableSortLabel } from "@mui/material";
 import Paper from "@mui/material/Paper";
+import { styled } from "@mui/material/styles";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import { styled } from "@mui/material/styles";
 import { visuallyHidden } from "@mui/utils";
 import _ from "lodash";
 import { duration } from "moment";
@@ -43,11 +43,23 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 function StatusIcon(status: string): JSX.Element {
   switch (status) {
     case SqlStatus.Running.valueOf():
-      return <CircularProgress color="info" style={{ width: "30px", height: "30px" }} />;
+      return (
+        <CircularProgress
+          color="info"
+          style={{ width: "30px", height: "30px" }}
+        />
+      );
     case SqlStatus.Completed.valueOf():
-      return <CheckIcon color="success" style={{ width: "30px", height: "30px" }} />;
+      return (
+        <CheckIcon color="success" style={{ width: "30px", height: "30px" }} />
+      );
     case SqlStatus.Failed.valueOf():
-      return <ErrorOutlineIcon color="error" style={{ width: "30px", height: "30px" }} />;
+      return (
+        <ErrorOutlineIcon
+          color="error"
+          style={{ width: "30px", height: "30px" }}
+        />
+      );
     default:
       return <div></div>;
   }
@@ -109,17 +121,17 @@ const createSqlTableData = (sqls: EnrichedSparkSQL[]): Data[] => {
     return !sql.stageMetrics || !sql.resourceMetrics
       ? []
       : {
-        id: sql.id,
-        status: sql.status,
-        description: sql.description,
-        duration: sql.duration,
-        durationPercentage: sql.resourceMetrics.durationPercentage,
-        coreHour: sql.resourceMetrics.coreHourUsage,
-        coreHourPercentage: sql.resourceMetrics?.coreHourPercentage,
-        activityRate: sql.resourceMetrics.activityRate,
-        input: sql.stageMetrics.inputBytes,
-        output: sql.stageMetrics.outputBytes,
-      };
+          id: sql.id,
+          status: sql.status,
+          description: sql.description,
+          duration: sql.duration,
+          durationPercentage: sql.resourceMetrics.durationPercentage,
+          coreHour: sql.resourceMetrics.coreHourUsage,
+          coreHourPercentage: sql.resourceMetrics?.coreHourPercentage,
+          activityRate: sql.resourceMetrics.activityRate,
+          input: sql.stageMetrics.inputBytes,
+          output: sql.stageMetrics.outputBytes,
+        };
   });
 };
 

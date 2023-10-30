@@ -43,7 +43,7 @@ const StatusBar: FC = (): JSX.Element => {
         icon={ApiIcon}
       ></InfoBox>
       {currentSql === undefined ||
-        currentSql.stageMetrics === undefined ? null : (
+      currentSql.stageMetrics === undefined ? null : (
         <InfoBox
           title="Query Input"
           text={humanFileSize(currentSql.stageMetrics.inputBytes)}
@@ -52,7 +52,7 @@ const StatusBar: FC = (): JSX.Element => {
         ></InfoBox>
       )}
       {currentSql === undefined ||
-        currentSql.stageMetrics === undefined ? null : (
+      currentSql.stageMetrics === undefined ? null : (
         <InfoBox
           title="Query Output"
           text={humanFileSize(currentSql.stageMetrics.outputBytes)}
@@ -70,15 +70,21 @@ const StatusBar: FC = (): JSX.Element => {
         title="Pending Tasks"
         text={stagesStatus.totalPendingTasks.toString()}
         icon={QueueIcon}
-        tooltipContent={<React.Fragment>
-          <Typography variant="h6" color="inherit">What is Pending Tasks?</Typography>
-          <Typography variant="subtitle2">
-            Pending Tasks are the total number of tasks react to be executed on your cluster
-          </Typography>
-          <Typography variant="subtitle2">
-            For example: if you have 3 active stages, each with 1000 non-completed tasks, you have 3000 pending tasks
-          </Typography>
-        </React.Fragment>}
+        tooltipContent={
+          <React.Fragment>
+            <Typography variant="h6" color="inherit">
+              What is Pending Tasks?
+            </Typography>
+            <Typography variant="subtitle2">
+              Pending Tasks are the total number of tasks react to be executed
+              on your cluster
+            </Typography>
+            <Typography variant="subtitle2">
+              For example: if you have 3 active stages, each with 1000
+              non-completed tasks, you have 3000 pending tasks
+            </Typography>
+          </React.Fragment>
+        }
       ></InfoBox>
     </Grid>
   );
