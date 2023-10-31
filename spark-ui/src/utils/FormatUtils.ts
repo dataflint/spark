@@ -14,7 +14,7 @@ export function humanFileSize(bytes: number, si = true): string {
   return bytes.toFixed(1) + " " + units[u];
 }
 
-export function humanizeTimeDiff(duration: Duration): string {
+export function humanizeTimeDiff(duration: Duration, roundSeconds: boolean = false): string {
   if (duration.asDays() >= 1) {
     return duration.asDays().toFixed(1) + "d";
   }
@@ -24,7 +24,7 @@ export function humanizeTimeDiff(duration: Duration): string {
   if (duration.asMinutes() >= 1) {
     return duration.asMinutes().toFixed(1) + "m";
   }
-  return duration.asSeconds().toFixed(1) + "s";
+  return roundSeconds ? duration.asSeconds().toFixed(0) + "s" : duration.asSeconds().toFixed(1) + "s";
 }
 
 export function msToHours(ms: number): number {
