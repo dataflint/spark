@@ -47,7 +47,8 @@ const CustomWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
   [`& .${tooltipClasses.tooltip}`]: {
     maxWidth: 500,
     maxHeight: 300,
-
+    overflow: "auto",
+    whiteSpace: "pre",
   },
 });
 
@@ -56,6 +57,19 @@ const onTooltipClick = (event: React.MouseEvent<unknown>, failureReason: string,
   event.stopPropagation();
   setOpenSnackbar(true);
   navigator.clipboard.writeText(failureReason);
+};
+
+const formatFailureReason = (failureReason: string) => {
+  const regex = /(Caused by:.*?)(?=\n)/s;
+  const match = regex.exec(failureReason);
+
+  if (match) {
+    const causedByText = match[1].trim();
+    return `${causedByText}\nFull stacktrace:\n${failureReason}`;
+  }
+
+  return failureReason;
+
 };
 
 function StatusIcon(status: string, failureReason: string, setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>): JSX.Element {
@@ -72,17 +86,18 @@ function StatusIcon(status: string, failureReason: string, setOpenSnackbar: Reac
         <CheckIcon color="success" style={{ width: "30px", height: "30px" }} />
       );
     case SqlStatus.Failed.valueOf():
-      return (<CustomWidthTooltip arrow
-        placement="top"
-        title={
-          <div
-            style={{ height: "300px", wordBreak: "break-word", overflow: "hidden", textOverflow: "ellipsis" }} onClick={(event) => onTooltipClick(event, failureReason, setOpenSnackbar)}>{failureReason}</div>
-        }
-        TransitionComponent={Fade}
-        TransitionProps={{ timeout: 300 }}
-      >
-        <ErrorOutlineIcon color="error" style={{ width: "30px", height: "30px" }} />
-      </CustomWidthTooltip>);
+      const formatedFailureReason = formatFailureReason(failureReason);
+      return (<div onClick={(event) => onTooltipClick(event, failureReason, setOpenSnackbar)}>
+        <CustomWidthTooltip arrow
+          placement="top"
+          style={{ overflow: "auto", }}
+          title={formatedFailureReason}
+          TransitionComponent={Fade}
+          TransitionProps={{ timeout: 300 }}
+        >
+          <ErrorOutlineIcon color="error" style={{ width: "30px", height: "30px" }} />
+        </CustomWidthTooltip>
+      </div>);
     default:
       return <div></div>;
   }
