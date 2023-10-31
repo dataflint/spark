@@ -3,7 +3,9 @@ import {
   RunMetadataStore,
   SparkExecutorsStatus,
   SparkExecutorsStore,
+  SparkSQLStore,
   StagesSummeryStore,
+  StatusStore,
 } from "../interfaces/AppStore";
 import { SparkStages } from "../interfaces/SparkStages";
 import { humanFileSize, msToHours } from "../utils/FormatUtils";
@@ -135,4 +137,13 @@ export function calculateDuration(
   return runMetadata.endTime === undefined
     ? currentEpocTime - runMetadata.startTime
     : runMetadata.endTime - runMetadata.startTime;
+}
+
+export function calculateSqlIdleTime(
+  sqlStore: SparkSQLStore,
+  status: StatusStore,
+  runMetadata: RunMetadataStore,
+) {
+  return (runMetadata.startTime + status.duration) -
+    Math.max(...sqlStore.sqls.map((sql) => sql.submissionTimeEpoc + sql.duration));
 }

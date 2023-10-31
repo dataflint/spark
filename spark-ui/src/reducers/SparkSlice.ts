@@ -19,6 +19,7 @@ import { calculateSqlStore, updateSqlNodeMetrics } from "./SqlReducer";
 import {
   calculateDuration,
   calculateSparkExecutorsStatus,
+  calculateSqlIdleTime,
   calculateStageStatus,
 } from "./StatusReducer";
 
@@ -59,6 +60,7 @@ const sparkSlice = createSlice({
       );
       const newStatus: StatusStore = {
         duration: duration,
+        sqlIdleTime: 0,
         stages: undefined,
         executors: undefined,
       };
@@ -193,6 +195,7 @@ const sparkSlice = createSlice({
       } else {
         state.sql = sqlStore;
       }
+      state.status.sqlIdleTime = calculateSqlIdleTime(state.sql!, state.status!, state.runMetadata!)
     },
     calculateSqlQueryLevelMetrics: (state) => {
       if (state.status === undefined) {

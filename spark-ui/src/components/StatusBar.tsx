@@ -4,10 +4,11 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import QueueIcon from "@mui/icons-material/Queue";
 import WorkIcon from "@mui/icons-material/Work";
 import { Grid, Typography } from "@mui/material";
+import { duration } from "moment";
 import React, { FC } from "react";
 import "reactflow/dist/style.css";
 import { useAppSelector } from "../Hooks";
-import { humanFileSize } from "../utils/FormatUtils";
+import { humanFileSize, humanizeTimeDiff } from "../utils/FormatUtils";
 import InfoBox from "./InfoBox/InfoBox";
 import Progress from "./Progress";
 
@@ -27,6 +28,9 @@ const StatusBar: FC = (): JSX.Element => {
       ? "1 (driver)"
       : executorStatus.numOfExecutors.toString();
 
+  const idleTimeText = humanizeTimeDiff(duration(status?.sqlIdleTime));
+  const queryRuntimeText = humanizeTimeDiff(duration(currentSql?.duration));
+
   return (
     <Grid
       container
@@ -37,13 +41,13 @@ const StatusBar: FC = (): JSX.Element => {
       alignItems="center"
     >
       <InfoBox
-        title="Status"
-        text={stagesStatus.status}
+        title={stagesStatus.status == "idle" ? "idle time" : "query time"}
+        text={stagesStatus.status == "idle" ? idleTimeText : queryRuntimeText}
         color="#7e57c2"
         icon={ApiIcon}
       ></InfoBox>
       {currentSql === undefined ||
-      currentSql.stageMetrics === undefined ? null : (
+        currentSql.stageMetrics === undefined ? null : (
         <InfoBox
           title="Query Input"
           text={humanFileSize(currentSql.stageMetrics.inputBytes)}
@@ -52,7 +56,7 @@ const StatusBar: FC = (): JSX.Element => {
         ></InfoBox>
       )}
       {currentSql === undefined ||
-      currentSql.stageMetrics === undefined ? null : (
+        currentSql.stageMetrics === undefined ? null : (
         <InfoBox
           title="Query Output"
           text={humanFileSize(currentSql.stageMetrics.outputBytes)}

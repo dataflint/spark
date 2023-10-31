@@ -28,6 +28,7 @@ export interface RunMetadataStore {
 export interface StatusStore {
   stages: StagesSummeryStore | undefined;
   executors: SparkExecutorsStatus | undefined;
+  sqlIdleTime: number;
   duration: number;
 }
 
