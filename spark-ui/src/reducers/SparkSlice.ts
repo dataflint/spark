@@ -8,7 +8,7 @@ import { SparkSQLs } from "../interfaces/SparkSQLs";
 import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { SQLPlans } from "../interfaces/SQLPlan";
-import { reduceAlers } from "./AlertsReducer";
+import { reduceAlers } from './AlertsReducer';
 import { extractConfig, extractRunMetadata } from "./ConfigReducer";
 import { calculateSparkExecutorsStore } from "./ExecutorsReducer";
 import {

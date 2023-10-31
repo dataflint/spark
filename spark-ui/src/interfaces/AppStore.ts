@@ -21,8 +21,8 @@ export type Alerts = Alert[];
 
 export interface SQLAlertSourceData {
   type: 'sql'
-  sqlId: number;
-  sqlNodeId: number
+  sqlId: string;
+  sqlNodeId: number;
 }
 
 export interface StatusAlertSourceData {

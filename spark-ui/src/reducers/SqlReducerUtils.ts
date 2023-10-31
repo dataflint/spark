@@ -40,7 +40,7 @@ const metricsRenamer: Record<string, string> = {
   "number of output rows": "rows",
   "number of written files": "files written",
   "written output": "bytes written",
-  "number of files read": "file read",
+  "number of files read": "files read",
   "size of files read": "bytes read",
   "number of partitions read": "partitions read",
 };
