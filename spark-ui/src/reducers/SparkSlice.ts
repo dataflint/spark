@@ -147,13 +147,10 @@ const sparkSlice = createSlice({
       if (state.status === undefined) {
         return;
       }
-      state.status = {
-        ...state.status,
-        duration: calculateDuration(
-          state.runMetadata!,
-          action.payload.epocCurrentTime,
-        ),
-      };
+      state.status.duration = calculateDuration(
+        state.runMetadata!,
+        action.payload.epocCurrentTime,
+      );
     },
     updateConnection: (
       state,
@@ -196,12 +193,13 @@ const sparkSlice = createSlice({
       } else {
         state.sql = sqlStore;
       }
-      state.status.sqlIdleTime = calculateSqlIdleTime(state.sql!, state.status!, state.runMetadata!)
     },
     calculateSqlQueryLevelMetrics: (state) => {
       if (state.status === undefined) {
         return;
       }
+
+      state.status.sqlIdleTime = Math.max(0, calculateSqlIdleTime(state.sql!, state.status!, state.runMetadata!));
 
       if (state.jobs && state.sql && state.executors && state.stages) {
         state.sql = calculateSqlQueryLevelMetricsReducer(
