@@ -10,13 +10,44 @@ export type AppStore = {
   jobs: SparkJobsStore | undefined;
   stages: SparkStagesStore | undefined;
   executors: SparkExecutorsStore | undefined;
+  alerts: AlertsStore | undefined;
 };
+
+export interface AlertsStore {
+  alerts: Alerts;
+}
+
+export type Alerts = Alert[];
+
+export interface SQLAlertSourceData {
+  sqlId: number;
+  sqlNodeId: number
+}
+
+export interface StatusAlertSourceData {
+  statusName: 'memory' | 'activityRate' | 'spill';
+}
+
+export interface Alert {
+  id: string;
+  name: string;
+  title: string;
+  message: string;
+  type: AlertType;
+  source: SourceType;
+  sourceData: StatusAlertSourceData | SQLAlertSourceData
+}
+
+export type AlertType = "error" | "warning";
+
+export type SourceType = "sql" | "status";
 
 export interface ConfigStore {
   rawSparkConfig: Record<string, string> | undefined;
   executorMemoryBytes: number;
   executorMemoryBytesString: string;
 }
+
 export interface RunMetadataStore {
   appId: string;
   sparkVersion: string;

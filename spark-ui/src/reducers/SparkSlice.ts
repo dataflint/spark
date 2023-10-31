@@ -33,6 +33,7 @@ export const initialState: AppStore = {
   jobs: undefined,
   stages: undefined,
   executors: undefined,
+  alerts: undefined,
 };
 
 const sparkSlice = createSlice({
