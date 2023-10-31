@@ -1,17 +1,10 @@
+import { format } from "bytes";
 import { Duration } from "moment";
 
-export function humanFileSize(bytes: number, si: boolean = false): string {
-  let thresh = si ? 1000 : 1024;
-  if (bytes < thresh) return bytes + " B";
-  let units = si
-    ? ["kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
-    : ["KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
-  let u = -1;
-  do {
-    bytes /= thresh;
-    ++u;
-  } while (bytes >= thresh);
-  return bytes.toFixed(1) + " " + units[u];
+export function humanFileSize(bytes: number): string {
+  if (Number.isNaN(bytes)) return "NaN";
+  const formatted = format(bytes, { unitSeparator: " " });
+  return formatted.replace("KB", "KiB").replace("MB", "MiB").replace("GB", "GiB").replace("TB", "TiB");
 }
 
 export function humanizeTimeDiff(duration: Duration, roundSeconds: boolean = false): string {
