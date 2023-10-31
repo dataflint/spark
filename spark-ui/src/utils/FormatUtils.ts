@@ -1,6 +1,6 @@
 import { Duration } from "moment";
 
-export function humanFileSize(bytes: number, si = true): string {
+export function humanFileSize(bytes: number, si: boolean = false): string {
   let thresh = si ? 1000 : 1024;
   if (bytes < thresh) return bytes + " B";
   let units = si
