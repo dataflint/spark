@@ -20,12 +20,14 @@ export interface AlertsStore {
 export type Alerts = Alert[];
 
 export interface SQLAlertSourceData {
+  type: 'sql'
   sqlId: number;
   sqlNodeId: number
 }
 
 export interface StatusAlertSourceData {
-  statusName: 'memory' | 'activityRate' | 'spill';
+  type: 'status'
+  metric: 'memory' | 'activityRate' | 'spill';
 }
 
 export interface Alert {
@@ -33,14 +35,12 @@ export interface Alert {
   name: string;
   title: string;
   message: string;
+  suggestion: string;
   type: AlertType;
-  source: SourceType;
-  sourceData: StatusAlertSourceData | SQLAlertSourceData
+  source: StatusAlertSourceData | SQLAlertSourceData;
 }
 
 export type AlertType = "error" | "warning";
-
-export type SourceType = "sql" | "status";
 
 export interface ConfigStore {
   rawSparkConfig: Record<string, string> | undefined;
@@ -174,6 +174,7 @@ export interface SparkExecutorsStatus {
   activityRate: number;
   maxExecutorMemoryPercentage: number;
   maxExecutorMemoryBytesString: string;
+  maxExecutorMemoryBytes: number;
 }
 
 export interface SparkMetricsStore {

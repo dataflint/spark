@@ -11,7 +11,7 @@ import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { SQLPlans } from "../interfaces/SQLPlan";
 import {
-  calculateSqlQueryLevelMetrics,
+  onCycleEnd,
   setInitial,
   setSparkExecutors,
   setSparkJobs,
@@ -19,7 +19,7 @@ import {
   setSQLMetrics,
   setStages,
   updateConnection,
-  updateDuration,
+  updateDuration
 } from "../reducers/SparkSlice";
 import { AppDispatch } from "../Store";
 import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";
@@ -208,7 +208,7 @@ class SparkAPI {
           this.dispatch(setSQLMetrics({ value: nodesMetrics, sqlId: sqlId }));
         }
       }
-      this.dispatch(calculateSqlQueryLevelMetrics());
+      this.dispatch(onCycleEnd());
     } catch (e) {
       console.log(e);
       this.isConnected = false;

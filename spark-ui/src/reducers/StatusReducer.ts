@@ -127,6 +127,7 @@ export function calculateSparkExecutorsStatus(
     activityRate,
     maxExecutorMemoryPercentage,
     maxExecutorMemoryBytesString,
+    maxExecutorMemoryBytes
   };
 }
 
