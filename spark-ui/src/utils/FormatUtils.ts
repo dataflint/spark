@@ -7,6 +7,12 @@ export function humanFileSize(bytes: number): string {
   return formatted.replace("KB", "KiB").replace("MB", "MiB").replace("GB", "GiB").replace("TB", "TiB");
 }
 
+export function humanFileSizeSparkConfigFormat(bytes: number): string {
+  if (Number.isNaN(bytes)) return "NaN";
+  const formatted = format(bytes);
+  return formatted.replace("KB", "k").replace("MB", "m").replace("GB", "g").replace("TB", "t");
+}
+
 export function humanizeTimeDiff(duration: Duration, roundSeconds: boolean = false): string {
   if (duration.asDays() >= 1) {
     return duration.asDays().toFixed(1) + "d";

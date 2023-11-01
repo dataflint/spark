@@ -141,7 +141,7 @@ const SummaryBar: FC = (): JSX.Element => {
           tooltipContent={
             <React.Fragment>
               <Typography variant="subtitle2">
-                "Spilling" in spark is when the data does not fit in the executor's memory and as a result it needs to be written to disk
+                "Spilling" in spark is when the data does not fit in the executor memory and as a result it needs to be written to disk
               </Typography>
             </React.Fragment>
           }
@@ -161,7 +161,7 @@ const SummaryBar: FC = (): JSX.Element => {
                 cores are not idle.
               </Typography>
               <Typography variant="subtitle2">
-                Core Idle Time is defined by an executor's core without a
+                Core Idle Time is defined by an executor core without a
                 scheduled task.
               </Typography>
               <Typography variant="subtitle2">

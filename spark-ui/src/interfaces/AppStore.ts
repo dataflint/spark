@@ -46,6 +46,7 @@ export interface ConfigStore {
   rawSparkConfig: Record<string, string> | undefined;
   executorMemoryBytes: number;
   executorMemoryBytesString: string;
+  executorMemoryBytesSparkFormatString: string;
 }
 
 export interface RunMetadataStore {

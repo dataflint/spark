@@ -77,6 +77,7 @@ export function extractConfig(
       rawSparkConfig: config,
       executorMemoryBytes: executorMemoryBytes,
       executorMemoryBytesString: executorMemoryBytesString,
+      executorMemoryBytesSparkFormatString: executorMemoryStr,
     },
   ];
 }
