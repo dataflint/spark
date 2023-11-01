@@ -1,4 +1,3 @@
-import isEqual from "lodash/isEqual";
 import {
   RunMetadataStore,
   SparkExecutorsStatus,
@@ -14,7 +13,7 @@ export function calculateStageStatus(
   existingStore: StagesSummeryStore | undefined,
   stages: SparkStages,
 ): StagesSummeryStore {
-  const stagesDataClean = stages.filter((stage) => stage.status != "SKIPPED");
+  const stagesDataClean = stages.filter((stage) => stage.status !== "SKIPPED");
   const totalActiveTasks = stagesDataClean
     .map((stage) => stage.numActiveTasks)
     .reduce((a, b) => a + b, 0);
@@ -74,13 +73,7 @@ export function calculateStageStatus(
     status: status,
   };
 
-  if (existingStore === undefined) {
-    return state;
-  } else if (isEqual(state, existingStore)) {
-    return existingStore;
-  } else {
-    return state;
-  }
+  return state;
 }
 
 export function calculateSparkExecutorsStatus(

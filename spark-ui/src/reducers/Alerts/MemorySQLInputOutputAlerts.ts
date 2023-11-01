@@ -44,9 +44,9 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
             if (node.type === 'output' &&
                 fileWrittenMetric &&
                 bytesWrittenMetric) {
-                const avgFileSize = filesReadMetric / bytesReadMetric;
+                const avgFileSize = fileWrittenMetric / bytesWrittenMetric;
                 const avgFileSizeString = humanFileSize(avgFileSize);
-                if (avgFileSize < BYTE_WRITTEN_TOO_SMALL_THREASHOLD && filesReadMetric > FILES_WRITTEN_TOO_HIGH_THREASHOLD) {
+                if (avgFileSize < BYTE_WRITTEN_TOO_SMALL_THREASHOLD && fileWrittenMetric > FILES_WRITTEN_TOO_HIGH_THREASHOLD) {
                     alerts.push({
                         id: `writeSmallFiles_${sql.id}_${node.nodeId}_${avgFileSizeString}`,
                         name: 'writeSmallFiles',
