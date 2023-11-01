@@ -17,9 +17,10 @@ export function reduceMemoryAlerts(statusStore: StatusStore, config: ConfigStore
                 id: `executorMemoryTooHigh${maxExecutorMemoryPercentage.toFixed(2)}`,
                 name: 'executorMemoryTooHigh',
                 title: 'Executor Memory Under-Provisioned',
+                location: 'In: Summery Page -> Memory Utilization',
                 message: `Max Executor Memory usage is ${maxExecutorMemoryPercentage.toFixed(2)}% which is too high, and can cause spills and OOMs`,
                 suggestion: `
-                1. Increase executor memory provisioning by changing "spark.executor.memory" from current value "${config.executorMemoryBytesSparkFormatString}" ` +
+    1. Increase executor memory provisioning by changing "spark.executor.memory" from current value "${config.executorMemoryBytesSparkFormatString}" ` +
                     `to 20% more - "${suggestedMemory}".`,
                 type: 'error',
                 source: {
@@ -34,6 +35,7 @@ export function reduceMemoryAlerts(statusStore: StatusStore, config: ConfigStore
                 name: 'executorMemoryTooLow',
                 title: 'Executor Memory Over-Provisioned',
                 message: `Max executor memory usage is only ${maxExecutorMemoryPercentage.toFixed(2)}%, which means you can provision less memory for each executor and save $$$`,
+                location: 'In: Summery Page -> Memory Utilization',
                 suggestion: `
     1. Decrease each executor memory provisioning by changing "spark.executor.memory" from current "${config.executorMemoryBytesSparkFormatString}" to the current memory utilization "${maxExecutorMemoryBytesString}"
     with additiona safety buffer of ${MEMORY_DECREASE_SAFETRY_BUFFER * 100}% - to "${suggestedMemory}".`,

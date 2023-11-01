@@ -35,6 +35,7 @@ export interface Alert {
   name: string;
   title: string;
   message: string;
+  location: string;
   suggestion: string;
   type: AlertType;
   source: StatusAlertSourceData | SQLAlertSourceData;
