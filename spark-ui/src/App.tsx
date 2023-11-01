@@ -13,6 +13,8 @@ import {
   IS_HISTORY_SERVER_MODE,
 } from "./utils/UrlConsts";
 
+const DOCUMENT_TITLE_PREFIX = 'DataFlint - '
+
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,6 +33,12 @@ export default function App() {
     const cleanerFunc = sparkAPI.start();
     return cleanerFunc;
   }, []);
+
+  React.useEffect(() => {
+    if (store.runMetadata?.appName) {
+      document.title = DOCUMENT_TITLE_PREFIX + store.runMetadata.appName
+    }
+  }, [store.runMetadata?.appName]);
 
   React.useEffect(() => {
     if (!location || !location.pathname) return;
