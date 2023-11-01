@@ -1,3 +1,4 @@
+import ErrorIcon from '@mui/icons-material/Error';
 import WarningIcon from '@mui/icons-material/Warning';
 import { Alert, AlertTitle, Box, Grid, Paper, styled } from "@mui/material";
 import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
@@ -98,13 +99,13 @@ export default function InfoBox({
         {alert !== undefined ?
           <TransperantTooltip title={
             <React.Fragment>
-              <Alert severity={"warning"} icon={<WarningIcon />}>
+              <Alert severity={alert.type} icon={alert.type === 'warning' ? <WarningIcon /> : <ErrorIcon />}>
                 <AlertTitle>{alert.title}</AlertTitle>
                 {alert.message}
               </Alert>
             </React.Fragment>
           }>
-            <WarningIcon
+            {alert.type === 'warning' ? <WarningIcon
               sx={{
                 color: '#ff9100',
                 position: 'absolute',
@@ -112,7 +113,16 @@ export default function InfoBox({
                 right: '0%',
                 transform: 'translate(50%, -50%)'
               }}>
-            </WarningIcon>
+            </WarningIcon> :
+              <ErrorIcon
+                sx={{
+                  color: '#bf360c',
+                  position: 'absolute',
+                  top: '0%',
+                  right: '0%',
+                  transform: 'translate(50%, -50%)'
+                }}>
+              </ErrorIcon>}
           </TransperantTooltip> : null}
       </Box>
 
