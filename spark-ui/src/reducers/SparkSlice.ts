@@ -201,8 +201,9 @@ const sparkSlice = createSlice({
         return;
       }
 
-      state.status.sqlIdleTime = Math.max(0, calculateSqlIdleTime(state.sql!, state.status!, state.runMetadata!));
-
+      if (state.sql !== undefined && state.status.stages !== undefined) {
+        state.status.sqlIdleTime = Math.max(0, calculateSqlIdleTime(state.sql!, state.status!, state.runMetadata!));
+      }
       if (state.jobs && state.sql && state.executors && state.stages) {
         state.sql = calculateSqlQueryLevelMetricsReducer(
           state.sql,
