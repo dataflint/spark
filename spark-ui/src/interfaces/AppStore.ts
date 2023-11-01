@@ -27,7 +27,7 @@ export interface SQLAlertSourceData {
 
 export interface StatusAlertSourceData {
   type: 'status'
-  metric: 'memory' | 'activityRate' | 'spill';
+  metric: 'memory';
 }
 
 export interface Alert {

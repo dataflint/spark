@@ -1,6 +1,9 @@
-import { Grid, Paper, Tooltip } from "@mui/material";
+import WarningIcon from '@mui/icons-material/Warning';
+import { Alert, AlertTitle, Box, Grid, Paper, styled } from "@mui/material";
+import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
 import Typography from "@mui/material/Typography";
 import * as React from "react";
+import { Alert as DataflintAlert } from "../../interfaces/AppStore";
 import styles from "./InfoBox.module.css"; // Import css modules stylesheet as styles
 
 type InfoBoxProps = {
@@ -9,7 +12,16 @@ type InfoBoxProps = {
   color?: string;
   icon: React.ElementType;
   tooltipContent?: JSX.Element;
+  alert?: DataflintAlert;
 };
+
+const TransperantTooltip = styled(({ className, ...props }: TooltipProps) => (
+  <Tooltip {...props} classes={{ popper: className }} />
+))(({ theme }) => ({
+  [`& .${tooltipClasses.tooltip}`]: {
+    backgroundColor: 'transparent',
+  },
+}));
 
 const ConditionalWrapper = ({
   condition,
@@ -27,6 +39,7 @@ export default function InfoBox({
   color,
   icon,
   tooltipContent,
+  alert
 }: InfoBoxProps) {
   const Icon = icon;
   const [blink, setBlink] = React.useState(false);
@@ -41,49 +54,68 @@ export default function InfoBox({
 
   return (
     <Grid item lg={2}>
-      <ConditionalWrapper
-        condition={tooltipContent !== undefined}
-        wrapper={(childern) => (
-          <Tooltip title={tooltipContent}>{childern}</Tooltip>
-        )}
-      >
-        <Paper
-          sx={{
-            p: 2,
-            display: "flex",
-            flexDirection: "column",
-            height: 110,
-          }}
-        >
-          <React.Fragment>
-            <Typography
-              component="h2"
-              variant="h6"
-              color={color ?? "primary"}
-              gutterBottom
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-            >
-              {title}
-              <Icon sx={{ ml: 1 }} />
-            </Typography>
-            <Typography
-              component="p"
-              variant="h4"
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-              className={blink ? styles.blink : ""}
-            >
-              {text}
-            </Typography>
-            {/* <Typography color="text.secondary" sx={{ flex: 1 }}>
-        {secondaryText}
-      </Typography> */}
-          </React.Fragment>
-        </Paper>
-      </ConditionalWrapper>
+      <Box position="relative">
+        <ConditionalWrapper
+          condition={tooltipContent !== undefined}
+          wrapper={(childern) => (
+            <Tooltip title={tooltipContent}>{childern}</Tooltip>
+          )} >
+          <Paper
+            sx={{
+              p: 2,
+              display: "flex",
+              flexDirection: "column",
+              height: 110,
+              position: 'relative',
+            }}
+          >
+            <React.Fragment>
+              <Typography
+                component="h2"
+                variant="h6"
+                color={color ?? "primary"}
+                gutterBottom
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+              >
+                {title}
+                <Icon sx={{ ml: 1 }} />
+              </Typography>
+              <Typography
+                component="p"
+                variant="h4"
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                className={blink ? styles.blink : ""}
+              >
+                {text}
+              </Typography>
+            </React.Fragment>
+          </Paper>
+        </ConditionalWrapper>
+        {alert !== undefined ?
+          <TransperantTooltip title={
+            <React.Fragment>
+              <Alert severity={"warning"} icon={<WarningIcon />}>
+                <AlertTitle>{alert.title}</AlertTitle>
+                {alert.message}
+              </Alert>
+            </React.Fragment>
+          }>
+            <WarningIcon
+              sx={{
+                color: '#ff9100',
+                position: 'absolute',
+                top: '0%',
+                right: '0%',
+                transform: 'translate(50%, -50%)'
+              }}>
+            </WarningIcon>
+          </TransperantTooltip> : null}
+      </Box>
+
     </Grid>
   );
 }

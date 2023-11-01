@@ -18,6 +18,8 @@ import Progress from "./Progress";
 
 const SummaryBar: FC = (): JSX.Element => {
   const status = useAppSelector((state) => state.spark.status);
+  const alerts = useAppSelector((state) => state.spark.alerts);
+  const memoryAlert = alerts?.alerts.find(alert => alert.source.type === "status" && alert.source.metric === "memory");
   const executorMemoryBytesString = useAppSelector(
     (state) => state.spark.config?.executorMemoryBytesString,
   );
@@ -92,6 +94,7 @@ const SummaryBar: FC = (): JSX.Element => {
           text={status.executors.maxExecutorMemoryPercentage.toFixed(2) + "%"}
           color="#8e24aa"
           icon={MemoryIcon}
+          alert={memoryAlert}
           tooltipContent={
             <React.Fragment>
               <Typography variant="h6" color="inherit" textAlign={"center"}>
