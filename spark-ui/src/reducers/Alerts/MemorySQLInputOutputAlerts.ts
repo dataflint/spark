@@ -23,10 +23,11 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
                         id: `readSmallFiles_${sql.id}_${node.nodeId}_${avgFileSizeString}`,
                         name: 'readSmallFiles',
                         title: 'Reading Small Files',
-                        message: `In SQL query ${sql.description} and node ${node.nodeName} the average file size is ${avgFileSizeString}, which is too small and can cause performance issues`,
+                        location: `In: SQL query "${sql.description}" (id: ${sql.id}) and node "${node.nodeName}"`,
+                        message: `The average file size is ${avgFileSizeString}, which is too small and can cause performance issues`,
                         suggestion: `
-                        1. Ask the data owner to increase the file size
-                        2. Decrease number of executors, so each executor will read more small files and reduce the resource overhead
+    1. Ask the data owner to increase the file size
+    2. Decrease number of executors, so each executor will read more small files and reduce the resource overhead
                         `,
                         type: 'warning',
                         source: {
@@ -51,12 +52,12 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
                         id: `writeSmallFiles_${sql.id}_${node.nodeId}_${avgFileSizeString}`,
                         name: 'writeSmallFiles',
                         title: 'Writing Small Files',
-                        message: `In SQL query: ${sql.description} and node: ${node.nodeName} the average file size is ${avgFileSizeString}, 
-                                  which is too small and can cause performance issues`,
+                        location: `In: SQL query "${sql.description}" (id: ${sql.id}) and node "${node.nodeName}"`,
+                        message: `The average file size is ${avgFileSizeString}, which is too small and can cause performance issues`,
                         suggestion: `
-                        1. Choose another partition key which has lower cardinality
-                        2. Do a repartition by your partition key before writing the data
-                        3. Manually decrease the number of partitions by calling '.repartition' on your dataframe`,
+    1. Choose another partition key which has lower cardinality
+    2. Do a repartition by your partition key before writing the data
+    3. Manually decrease the number of partitions by calling '.repartition' on your dataframe`,
                         type: 'warning',
                         source: {
                             type: 'sql',

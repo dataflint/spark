@@ -1,16 +1,21 @@
 import { Box, Typography } from "@mui/material";
 import React, { FC } from "react";
 import { Handle, Position } from "reactflow";
+import { useAppSelector } from "../../Hooks";
 import { EnrichedSqlNode } from "../../interfaces/AppStore";
 import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
+import AlertBadge from "../AlertBadge/AlertBadge";
 import styles from "./node-style.module.css";
 
 export const StageNodeName: string = "stageNode";
 
-export const StageNode: FC<{ data: { node: EnrichedSqlNode } }> = ({
-  data,
+export const StageNode: FC<{ data: { sqlId: string, node: EnrichedSqlNode } }> = ({
+  data
 }): JSX.Element => {
+  const alerts = useAppSelector((state) => state.spark.alerts);
+  const sqlNodeAlert = alerts?.alerts.find(alert => alert.source.type === "sql" && alert.source.sqlNodeId === data.node.nodeId && alert.source.sqlId === data.sqlId);
+
   const dataTable = data.node.metrics.filter(
     (metric: SqlMetric) => !!metric.value,
   );
@@ -67,36 +72,39 @@ export const StageNode: FC<{ data: { node: EnrichedSqlNode } }> = ({
   return (
     <>
       <Handle type="target" position={Position.Left} id="b" />
-      <div className={styles.node}>
-        <div className={styles.textWrapper}>
-          <Typography
-            style={{
-              marginBottom: "3px",
-              display: "flex",
-              justifyContent: "center",
-              fontSize: "16px",
-            }}
-            variant="h6"
-          >
-            {data.node.enrichedName}
-          </Typography>
-          {dataTable.map((metric: SqlMetric) => {
-            return (
-              <Box
-                key={metric.name}
-                sx={{ display: "flex", alignItems: "center" }}
-              >
-                <Typography sx={{ fontWeight: "bold" }} variant="body2">
-                  {metric.name}:
-                </Typography>
-                <Typography sx={{ ml: 0.3, mt: 0, mb: 0 }} variant="body2">
-                  {metric.value}
-                </Typography>
-              </Box>
-            );
-          })}
+      <Box position="relative">
+        <div className={styles.node}>
+          <div className={styles.textWrapper}>
+            <Typography
+              style={{
+                marginBottom: "3px",
+                display: "flex",
+                justifyContent: "center",
+                fontSize: "16px",
+              }}
+              variant="h6"
+            >
+              {data.node.enrichedName}
+            </Typography>
+            {dataTable.map((metric: SqlMetric) => {
+              return (
+                <Box
+                  key={metric.name}
+                  sx={{ display: "flex", alignItems: "center" }}
+                >
+                  <Typography sx={{ fontWeight: "bold" }} variant="body2">
+                    {metric.name}:
+                  </Typography>
+                  <Typography sx={{ ml: 0.3, mt: 0, mb: 0 }} variant="body2">
+                    {metric.value}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </div>
         </div>
-      </div>
+        <AlertBadge alert={sqlNodeAlert} margin="20px" placement="top" />
+      </Box>
       <Handle type="source" position={Position.Right} id="a" />
     </>
   );

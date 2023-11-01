@@ -45,6 +45,7 @@ const getLayoutedElements = (
 
 class SqlLayoutService {
   static SqlElementsToLayout(
+    sqlId: string,
     sqlNodes: EnrichedSqlNode[],
     sqlEdges: EnrichedSqlEdge[],
   ): { layoutNodes: Node[]; layoutEdges: Edge[] } {
@@ -53,7 +54,7 @@ class SqlLayoutService {
       .map((node: EnrichedSqlNode) => {
         return {
           id: node.nodeId.toString(),
-          data: { node: node },
+          data: { sqlId: sqlId, node: node },
           type: StageNodeName,
           position: { x: 0, y: 0 },
         };

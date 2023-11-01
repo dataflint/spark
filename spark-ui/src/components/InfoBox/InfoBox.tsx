@@ -1,10 +1,9 @@
-import ErrorIcon from '@mui/icons-material/Error';
-import WarningIcon from '@mui/icons-material/Warning';
-import { Alert, AlertTitle, Box, Grid, Paper, styled } from "@mui/material";
+import { Box, Grid, Paper, styled } from "@mui/material";
 import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
 import Typography from "@mui/material/Typography";
 import * as React from "react";
-import { Alert as DataflintAlert } from "../../interfaces/AppStore";
+import { Alert as DataflintAlert } from '../../interfaces/AppStore';
+import AlertBadge from '../AlertBadge/AlertBadge';
 import styles from "./InfoBox.module.css"; // Import css modules stylesheet as styles
 
 type InfoBoxProps = {
@@ -96,36 +95,8 @@ export default function InfoBox({
             </React.Fragment>
           </Paper>
         </ConditionalWrapper>
-        {alert !== undefined ?
-          <TransperantTooltip title={
-            <React.Fragment>
-              <Alert severity={alert.type} icon={alert.type === 'warning' ? <WarningIcon /> : <ErrorIcon />}>
-                <AlertTitle>{alert.title}</AlertTitle>
-                {alert.message}
-              </Alert>
-            </React.Fragment>
-          }>
-            {alert.type === 'warning' ? <WarningIcon
-              sx={{
-                color: '#ff9100',
-                position: 'absolute',
-                top: '0%',
-                right: '0%',
-                transform: 'translate(50%, -50%)'
-              }}>
-            </WarningIcon> :
-              <ErrorIcon
-                sx={{
-                  color: '#bf360c',
-                  position: 'absolute',
-                  top: '0%',
-                  right: '0%',
-                  transform: 'translate(50%, -50%)'
-                }}>
-              </ErrorIcon>}
-          </TransperantTooltip> : null}
       </Box>
-
+      <AlertBadge alert={alert} />
     </Grid>
   );
 }
