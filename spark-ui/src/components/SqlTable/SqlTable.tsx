@@ -267,7 +267,7 @@ export default function SqlTable({
     >
       <TableContainer
         component={Paper}
-        sx={{ maxHeight: "65vh", width: "70%" }}
+        sx={{ maxHeight: "65vh", width: "80%" }}
       >
         <Table
           size="small"
@@ -283,7 +283,6 @@ export default function SqlTable({
           <TableBody>
             {visibleRows.map((sql) => (
               <StyledTableRow
-                style={{ height: "10px" }}
                 sx={{ cursor: "pointer" }}
                 key={sql.id}
                 selected={sql.id === selectedSqlId}
