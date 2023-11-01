@@ -270,6 +270,7 @@ export default function SqlTable({
         sx={{ maxHeight: "65vh", width: "70%" }}
       >
         <Table
+          size="small"
           stickyHeader
           aria-label="customized table"
           sx={{ margin: "auto" }}
@@ -282,6 +283,7 @@ export default function SqlTable({
           <TableBody>
             {visibleRows.map((sql) => (
               <StyledTableRow
+                style={{ height: "10px" }}
                 sx={{ cursor: "pointer" }}
                 key={sql.id}
                 selected={sql.id === selectedSqlId}
