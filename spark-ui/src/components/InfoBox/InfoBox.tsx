@@ -1,9 +1,9 @@
 import { Box, Grid, Paper, styled } from "@mui/material";
-import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
+import Tooltip, { tooltipClasses, TooltipProps } from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import * as React from "react";
-import { Alert as DataflintAlert } from '../../interfaces/AppStore';
-import AlertBadge from '../AlertBadge/AlertBadge';
+import { Alert as DataflintAlert } from "../../interfaces/AppStore";
+import AlertBadge from "../AlertBadge/AlertBadge";
 import styles from "./InfoBox.module.css"; // Import css modules stylesheet as styles
 
 type InfoBoxProps = {
@@ -19,7 +19,7 @@ const TransperantTooltip = styled(({ className, ...props }: TooltipProps) => (
   <Tooltip {...props} classes={{ popper: className }} />
 ))(({ theme }) => ({
   [`& .${tooltipClasses.tooltip}`]: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
 }));
 
@@ -39,7 +39,7 @@ export default function InfoBox({
   color,
   icon,
   tooltipContent,
-  alert
+  alert,
 }: InfoBoxProps) {
   const Icon = icon;
   const [blink, setBlink] = React.useState(false);
@@ -59,14 +59,15 @@ export default function InfoBox({
           condition={tooltipContent !== undefined}
           wrapper={(childern) => (
             <Tooltip title={tooltipContent}>{childern}</Tooltip>
-          )} >
+          )}
+        >
           <Paper
             sx={{
               p: 2,
               display: "flex",
               flexDirection: "column",
               height: 110,
-              position: 'relative',
+              position: "relative",
             }}
           >
             <React.Fragment>

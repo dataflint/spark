@@ -1,7 +1,12 @@
 import CheckIcon from "@mui/icons-material/Check";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import { Box, CircularProgress, Fade, Snackbar, TableSortLabel } from "@mui/material";
-import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
+import {
+  Box,
+  CircularProgress,
+  Fade,
+  Snackbar,
+  TableSortLabel,
+} from "@mui/material";
 import Paper from "@mui/material/Paper";
 import { styled } from "@mui/material/styles";
 import Table from "@mui/material/Table";
@@ -10,6 +15,7 @@ import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import Tooltip, { tooltipClasses, TooltipProps } from "@mui/material/Tooltip";
 import { visuallyHidden } from "@mui/utils";
 import _ from "lodash";
 import { duration } from "moment";
@@ -52,8 +58,11 @@ const CustomWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
   },
 });
 
-
-const onTooltipClick = (event: React.MouseEvent<unknown>, failureReason: string, setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>) => {
+const onTooltipClick = (
+  event: React.MouseEvent<unknown>,
+  failureReason: string,
+  setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>,
+) => {
   event.stopPropagation();
   setOpenSnackbar(true);
   navigator.clipboard.writeText(failureReason);
@@ -69,10 +78,13 @@ const formatFailureReason = (failureReason: string) => {
   }
 
   return failureReason;
-
 };
 
-function StatusIcon(status: string, failureReason: string, setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>): JSX.Element {
+function StatusIcon(
+  status: string,
+  failureReason: string,
+  setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>,
+): JSX.Element {
   switch (status) {
     case SqlStatus.Running.valueOf():
       return (
@@ -87,17 +99,27 @@ function StatusIcon(status: string, failureReason: string, setOpenSnackbar: Reac
       );
     case SqlStatus.Failed.valueOf():
       const formatedFailureReason = formatFailureReason(failureReason);
-      return (<div onClick={(event) => onTooltipClick(event, failureReason, setOpenSnackbar)}>
-        <CustomWidthTooltip arrow
-          placement="top"
-          style={{ overflow: "auto", }}
-          title={formatedFailureReason}
-          TransitionComponent={Fade}
-          TransitionProps={{ timeout: 300 }}
+      return (
+        <div
+          onClick={(event) =>
+            onTooltipClick(event, failureReason, setOpenSnackbar)
+          }
         >
-          <ErrorOutlineIcon color="error" style={{ width: "30px", height: "30px" }} />
-        </CustomWidthTooltip>
-      </div>);
+          <CustomWidthTooltip
+            arrow
+            placement="top"
+            style={{ overflow: "auto" }}
+            title={formatedFailureReason}
+            TransitionComponent={Fade}
+            TransitionProps={{ timeout: 300 }}
+          >
+            <ErrorOutlineIcon
+              color="error"
+              style={{ width: "30px", height: "30px" }}
+            />
+          </CustomWidthTooltip>
+        </div>
+      );
     default:
       return <div></div>;
   }
@@ -159,21 +181,20 @@ const createSqlTableData = (sqls: EnrichedSparkSQL[]): Data[] => {
     return !sql.stageMetrics || !sql.resourceMetrics
       ? []
       : {
-        id: sql.id,
-        status: sql.status,
-        description: sql.description,
-        duration: sql.duration,
-        durationPercentage: sql.resourceMetrics.durationPercentage,
-        coreHour: sql.resourceMetrics.coreHourUsage,
-        coreHourPercentage: sql.resourceMetrics?.coreHourPercentage,
-        activityRate: sql.resourceMetrics.activityRate,
-        input: sql.stageMetrics.inputBytes,
-        output: sql.stageMetrics.outputBytes,
-        failureReason: !sql.failureReason ? "" : sql.failureReason,
-      };
+          id: sql.id,
+          status: sql.status,
+          description: sql.description,
+          duration: sql.duration,
+          durationPercentage: sql.resourceMetrics.durationPercentage,
+          coreHour: sql.resourceMetrics.coreHourUsage,
+          coreHourPercentage: sql.resourceMetrics?.coreHourPercentage,
+          activityRate: sql.resourceMetrics.activityRate,
+          input: sql.stageMetrics.inputBytes,
+          output: sql.stageMetrics.outputBytes,
+          failureReason: !sql.failureReason ? "" : sql.failureReason,
+        };
   });
 };
-
 
 function EnhancedTableHead(props: EnhancedTableProps) {
   const { order, orderBy, onRequestSort } = props;
@@ -250,8 +271,11 @@ export default function SqlTable({
     [order, orderBy, sqlsTableData],
   );
 
-  const handleClose = (event: React.SyntheticEvent | Event, reason?: string) => {
-    if (reason === 'clickaway') {
+  const handleClose = (
+    event: React.SyntheticEvent | Event,
+    reason?: string,
+  ) => {
+    if (reason === "clickaway") {
       return;
     }
 

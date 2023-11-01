@@ -1,7 +1,7 @@
 import AdjustIcon from "@mui/icons-material/Adjust";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import ReportIcon from "@mui/icons-material/Report";
 import SettingsApplicationsIcon from "@mui/icons-material/SettingsApplications";
-import ReportIcon from '@mui/icons-material/Report';
 import React from "react";
 import { isHistoryServer } from "../utils/UrlUtils";
 

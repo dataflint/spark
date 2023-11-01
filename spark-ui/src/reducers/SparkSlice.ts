@@ -8,7 +8,7 @@ import { SparkSQLs } from "../interfaces/SparkSQLs";
 import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { SQLPlans } from "../interfaces/SQLPlan";
-import { reduceAlers as reduceAlerts } from './AlertsReducer';
+import { reduceAlers as reduceAlerts } from "./AlertsReducer";
 import { extractConfig, extractRunMetadata } from "./ConfigReducer";
 import { calculateSparkExecutorsStore } from "./ExecutorsReducer";
 import {
@@ -72,7 +72,7 @@ const sparkSlice = createSlice({
       state.runMetadata = runMetadata;
       state.config = config;
       state.status = newStatus;
-      state.alerts = { alerts: [] }
+      state.alerts = { alerts: [] };
       state.sql = undefined;
       state.stages = undefined;
       state.jobs = undefined;
@@ -202,7 +202,10 @@ const sparkSlice = createSlice({
       }
 
       if (state.sql !== undefined && state.status.stages !== undefined) {
-        state.status.sqlIdleTime = Math.max(0, calculateSqlIdleTime(state.sql!, state.status!, state.runMetadata!));
+        state.status.sqlIdleTime = Math.max(
+          0,
+          calculateSqlIdleTime(state.sql!, state.status!, state.runMetadata!),
+        );
       }
       if (state.jobs && state.sql && state.executors && state.stages) {
         state.sql = calculateSqlQueryLevelMetricsReducer(

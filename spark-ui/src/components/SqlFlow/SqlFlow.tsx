@@ -1,9 +1,9 @@
 import React, { FC, useCallback, useEffect, useState } from "react";
 import ReactFlow, {
+  addEdge,
   ConnectionLineType,
   Controls,
   ReactFlowInstance,
-  addEdge,
   useEdgesState,
   useNodesState,
 } from "reactflow";
@@ -52,7 +52,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     }
   }, [instance, edges]);
 
-  useEffect(() => { }, [nodes]);
+  useEffect(() => {}, [nodes]);
 
   const onConnect = useCallback(
     (params: any) =>

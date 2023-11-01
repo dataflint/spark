@@ -10,11 +10,16 @@ import styles from "./node-style.module.css";
 
 export const StageNodeName: string = "stageNode";
 
-export const StageNode: FC<{ data: { sqlId: string, node: EnrichedSqlNode } }> = ({
-  data
-}): JSX.Element => {
+export const StageNode: FC<{
+  data: { sqlId: string; node: EnrichedSqlNode };
+}> = ({ data }): JSX.Element => {
   const alerts = useAppSelector((state) => state.spark.alerts);
-  const sqlNodeAlert = alerts?.alerts.find(alert => alert.source.type === "sql" && alert.source.sqlNodeId === data.node.nodeId && alert.source.sqlId === data.sqlId);
+  const sqlNodeAlert = alerts?.alerts.find(
+    (alert) =>
+      alert.source.type === "sql" &&
+      alert.source.sqlNodeId === data.node.nodeId &&
+      alert.source.sqlId === data.sqlId,
+  );
 
   const dataTable = data.node.metrics.filter(
     (metric: SqlMetric) => !!metric.value,

@@ -61,7 +61,7 @@ export interface SparkStage {
   failureReason: string | undefined;
 }
 
-export interface KilledTasksSummary { }
+export interface KilledTasksSummary {}
 
 export interface PeakExecutorMetrics {
   JVMHeapMemory: number;

@@ -7,15 +7,15 @@ import {
   ParsedNodePlan,
   SparkSQLStore,
 } from "../interfaces/AppStore";
-import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
+import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { timeStrToEpocTime } from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
+import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
-import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import {
   calcNodeMetrics,
   calcNodeType,

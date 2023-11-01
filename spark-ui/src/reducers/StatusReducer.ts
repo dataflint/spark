@@ -45,17 +45,14 @@ export function calculateStageStatus(
     .map((stage) => stage.executorRunTime)
     .reduce((a, b) => a + b, 0);
   const totalTasks = stagesDataClean
-    .map((stage) =>
-      stage.numTasks
-    )
+    .map((stage) => stage.numTasks)
     .reduce((a, b) => a + b, 0);
   const totalFailedTasks = stagesDataClean
-    .map((stage) =>
-      stage.numFailedTasks
-    )
+    .map((stage) => stage.numFailedTasks)
     .reduce((a, b) => a + b, 0);
 
-  const taskErrorRate = totalTasks !== 0 ? (totalFailedTasks / totalTasks) * 100 : 0;
+  const taskErrorRate =
+    totalTasks !== 0 ? (totalFailedTasks / totalTasks) * 100 : 0;
   const status = totalActiveTasks == 0 ? "idle" : "working";
 
   const state: StagesSummeryStore = {
@@ -90,14 +87,14 @@ export function calculateSparkExecutorsStatus(
     numOfExecutors === 0
       ? driver.totalTaskDuration
       : executors
-        .map((executor) => executor.totalTaskDuration)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.totalTaskDuration)
+          .reduce((a, b) => a + b, 0);
   const totalPotentialTaskTimeMs =
     numOfExecutors === 0
       ? driver.duration * driver.maxTasks
       : executors
-        .map((executor) => executor.duration * executor.maxTasks)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.duration * executor.maxTasks)
+          .reduce((a, b) => a + b, 0);
   const totalCoreHour = sparkExecutors
     .map((executor) => executor.totalCores * msToHours(executor.duration))
     .reduce((a, b) => a + b, 0);
@@ -120,7 +117,7 @@ export function calculateSparkExecutorsStatus(
     activityRate,
     maxExecutorMemoryPercentage,
     maxExecutorMemoryBytesString,
-    maxExecutorMemoryBytes
+    maxExecutorMemoryBytes,
   };
 }
 
@@ -138,6 +135,11 @@ export function calculateSqlIdleTime(
   status: StatusStore,
   runMetadata: RunMetadataStore,
 ) {
-  return (runMetadata.startTime + status.duration) -
-    Math.max(...sqlStore.sqls.map((sql) => sql.submissionTimeEpoc + sql.duration));
+  return (
+    runMetadata.startTime +
+    status.duration -
+    Math.max(
+      ...sqlStore.sqls.map((sql) => sql.submissionTimeEpoc + sql.duration),
+    )
+  );
 }

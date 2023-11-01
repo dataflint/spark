@@ -19,7 +19,7 @@ import {
   setSQLMetrics,
   setStages,
   updateConnection,
-  updateDuration
+  updateDuration,
 } from "../reducers/SparkSlice";
 import { AppDispatch } from "../Store";
 import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";

@@ -20,14 +20,14 @@ export interface AlertsStore {
 export type Alerts = Alert[];
 
 export interface SQLAlertSourceData {
-  type: 'sql'
+  type: "sql";
   sqlId: string;
   sqlNodeId: number;
 }
 
 export interface StatusAlertSourceData {
-  type: 'status'
-  metric: 'memory';
+  type: "status";
+  metric: "memory";
 }
 
 export interface Alert {

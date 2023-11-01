@@ -19,7 +19,10 @@ import Progress from "./Progress";
 const SummaryBar: FC = (): JSX.Element => {
   const status = useAppSelector((state) => state.spark.status);
   const alerts = useAppSelector((state) => state.spark.alerts);
-  const memoryAlert = alerts?.alerts.find(alert => alert.source.type === "status" && alert.source.metric === "memory");
+  const memoryAlert = alerts?.alerts.find(
+    (alert) =>
+      alert.source.type === "status" && alert.source.metric === "memory",
+  );
   const executorMemoryBytesString = useAppSelector(
     (state) => state.spark.config?.executorMemoryBytesString,
   );
@@ -98,16 +101,19 @@ const SummaryBar: FC = (): JSX.Element => {
           tooltipContent={
             <React.Fragment>
               <Typography variant="h6" color="inherit" textAlign={"center"}>
-                {status.executors.maxExecutorMemoryBytesString} / {executorMemoryBytesString}
+                {status.executors.maxExecutorMemoryBytesString} /{" "}
+                {executorMemoryBytesString}
               </Typography>
               <Typography variant="subtitle2">
                 Peak JVM memory usage / total executor JVM memory
               </Typography>
               <Typography variant="subtitle2">
-                "Memory Usage" is the peak memory usage of the most memory-utilized executor.
+                "Memory Usage" is the peak memory usage of the most
+                memory-utilized executor.
               </Typography>
               <Typography variant="subtitle2">
-                "Executor Memory" refers to the executor JVM memory (both on-heap and off-heap).
+                "Executor Memory" refers to the executor JVM memory (both
+                on-heap and off-heap).
               </Typography>
             </React.Fragment>
           }
@@ -141,7 +147,8 @@ const SummaryBar: FC = (): JSX.Element => {
           tooltipContent={
             <React.Fragment>
               <Typography variant="subtitle2">
-                "Spilling" in spark is when the data does not fit in the executor memory and as a result it needs to be written to disk
+                "Spilling" in spark is when the data does not fit in the
+                executor memory and as a result it needs to be written to disk
               </Typography>
             </React.Fragment>
           }
