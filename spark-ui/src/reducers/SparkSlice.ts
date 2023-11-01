@@ -8,7 +8,7 @@ import { SparkSQLs } from "../interfaces/SparkSQLs";
 import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { SQLPlans } from "../interfaces/SQLPlan";
-import { reduceAlers } from './AlertsReducer';
+import { reduceAlers as reduceAlerts } from './AlertsReducer';
 import { extractConfig, extractRunMetadata } from "./ConfigReducer";
 import { calculateSparkExecutorsStore } from "./ExecutorsReducer";
 import {
@@ -212,8 +212,8 @@ const sparkSlice = createSlice({
           state.stages,
           state.executors,
         );
+        state.alerts = reduceAlerts(state.sql, state.status, state.config!);
       }
-      state.alerts = reduceAlers(state.sql!, state.status!, state.config!);
     },
   },
 });
