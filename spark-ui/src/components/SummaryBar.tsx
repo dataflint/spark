@@ -82,7 +82,7 @@ const SummaryBar: FC = (): JSX.Element => {
         ></InfoBox>
         <InfoBox
           title="Input"
-          text={status.stages.totalInput}
+          text={status.executors.totalInputBytes}
           color="#26a69a"
           icon={ArrowDownwardIcon}
         ></InfoBox>
@@ -129,13 +129,13 @@ const SummaryBar: FC = (): JSX.Element => {
       >
         <InfoBox
           title="Shuffle Read"
-          text={status.stages.totalShuffleRead}
+          text={status.executors.totalShuffleRead}
           color="#827717"
           icon={ShuffleIcon}
         ></InfoBox>
         <InfoBox
           title="Shuffle Write"
-          text={status.stages.totalShuffleWrite}
+          text={status.executors.totalShuffleWrite}
           color="#9e9d24"
           icon={ShuffleIcon}
         ></InfoBox>

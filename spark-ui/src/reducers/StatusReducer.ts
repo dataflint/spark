@@ -7,7 +7,7 @@ import {
   StatusStore,
 } from "../interfaces/AppStore";
 import { SparkStages } from "../interfaces/SparkStages";
-import { humanFileSize, msToHours } from "../utils/FormatUtils";
+import { humanFileSize, msToHours } from '../utils/FormatUtils';
 
 export function calculateStageStatus(
   existingStore: StagesSummeryStore | undefined,
@@ -87,14 +87,14 @@ export function calculateSparkExecutorsStatus(
     numOfExecutors === 0
       ? driver.totalTaskDuration
       : executors
-          .map((executor) => executor.totalTaskDuration)
-          .reduce((a, b) => a + b, 0);
+        .map((executor) => executor.totalTaskDuration)
+        .reduce((a, b) => a + b, 0);
   const totalPotentialTaskTimeMs =
     numOfExecutors === 0
       ? driver.duration * driver.maxTasks
       : executors
-          .map((executor) => executor.duration * executor.maxTasks)
-          .reduce((a, b) => a + b, 0);
+        .map((executor) => executor.duration * executor.maxTasks)
+        .reduce((a, b) => a + b, 0);
   const totalCoreHour = sparkExecutors
     .map((executor) => executor.totalCores * msToHours(executor.duration))
     .reduce((a, b) => a + b, 0);
@@ -111,6 +111,28 @@ export function calculateSparkExecutorsStatus(
       ? Math.max(...executors.map((executor) => executor.memoryUsageBytes))
       : 0;
   const maxExecutorMemoryBytesString = humanFileSize(maxExecutorMemoryBytes);
+
+  const totalInputBytes =
+    numOfExecutors === 0
+      ? driver.totalInputBytes
+      : executors
+        .map((executor) => executor.totalInputBytes)
+        .reduce((a, b) => a + b, 0);
+
+  const totalShuffleRead =
+    numOfExecutors === 0
+      ? driver.totalShuffleRead
+      : executors
+        .map((executor) => executor.totalShuffleRead)
+        .reduce((a, b) => a + b, 0);
+
+  const totalShuffleWrite =
+    numOfExecutors === 0
+      ? driver.totalShuffleWrite
+      : executors
+        .map((executor) => executor.totalShuffleWrite)
+        .reduce((a, b) => a + b, 0);
+
   return {
     numOfExecutors,
     totalCoreHour,
@@ -118,6 +140,9 @@ export function calculateSparkExecutorsStatus(
     maxExecutorMemoryPercentage,
     maxExecutorMemoryBytesString,
     maxExecutorMemoryBytes,
+    totalInputBytes: humanFileSize(totalInputBytes),
+    totalShuffleRead: humanFileSize(totalShuffleRead),
+    totalShuffleWrite: humanFileSize(totalShuffleWrite)
   };
 }
 

@@ -34,6 +34,9 @@ export function calculateSparkExecutorsStore(
       maxTasks: executor.maxTasks,
       memoryUsageBytes: memoryUsageBytes,
       memoryUsagePercentage: memoryUsagePercentage,
+      totalInputBytes: executor.totalInputBytes,
+      totalShuffleRead: executor.totalShuffleRead,
+      totalShuffleWrite: executor.totalShuffleWrite,
     };
   });
 }

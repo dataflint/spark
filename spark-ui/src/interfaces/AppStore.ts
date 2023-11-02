@@ -177,6 +177,9 @@ export interface SparkExecutorsStatus {
   maxExecutorMemoryPercentage: number;
   maxExecutorMemoryBytesString: string;
   maxExecutorMemoryBytes: number;
+  totalInputBytes: string;
+  totalShuffleRead: string;
+  totalShuffleWrite: string;
 }
 
 export interface SparkMetricsStore {
@@ -233,4 +236,7 @@ export interface SparkExecutorStore {
   maxTasks: number;
   memoryUsageBytes: number;
   memoryUsagePercentage: number;
+  totalInputBytes: number;
+  totalShuffleRead: number;
+  totalShuffleWrite: number;
 }
