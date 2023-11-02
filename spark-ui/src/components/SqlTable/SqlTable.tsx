@@ -181,18 +181,18 @@ const createSqlTableData = (sqls: EnrichedSparkSQL[]): Data[] => {
     return !sql.stageMetrics || !sql.resourceMetrics
       ? []
       : {
-          id: sql.id,
-          status: sql.status,
-          description: sql.description,
-          duration: sql.duration,
-          durationPercentage: sql.resourceMetrics.durationPercentage,
-          coreHour: sql.resourceMetrics.coreHourUsage,
-          coreHourPercentage: sql.resourceMetrics?.coreHourPercentage,
-          activityRate: sql.resourceMetrics.activityRate,
-          input: sql.stageMetrics.inputBytes,
-          output: sql.stageMetrics.outputBytes,
-          failureReason: !sql.failureReason ? "" : sql.failureReason,
-        };
+        id: sql.id,
+        status: sql.status,
+        description: sql.description,
+        duration: sql.duration,
+        durationPercentage: sql.resourceMetrics.durationPercentage,
+        coreHour: sql.resourceMetrics.coreHourUsage,
+        coreHourPercentage: sql.resourceMetrics?.coreHourPercentage,
+        activityRate: sql.resourceMetrics.activityRate,
+        input: sql.stageMetrics.inputBytes,
+        output: sql.stageMetrics.outputBytes,
+        failureReason: !sql.failureReason ? "" : sql.failureReason,
+      };
   });
 };
 
@@ -283,15 +283,25 @@ export default function SqlTable({
   };
 
   if (sqlStore === undefined) {
-    return <Progress />;
+    return (<div
+      style={{
+        overflow: "hidden",
+        height: "100%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}>
+      <Progress />
+    </div>);
   }
+
   return (
     <div
-      style={{ width: "100%", display: "flex", justifyContent: "space-around" }}
+      style={{ width: "100%", height: "100%", display: "flex", justifyContent: "space-around", marginBottom: "15px", overflow: "hidden" }}
     >
       <TableContainer
         component={Paper}
-        sx={{ maxHeight: "65vh", width: "80%" }}
+        sx={{ width: "80%" }}
       >
         <Table
           size="small"
