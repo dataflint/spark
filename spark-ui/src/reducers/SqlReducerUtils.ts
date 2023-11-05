@@ -74,6 +74,7 @@ const nodeRenamerDict: Record<string, string> = {
   LocalTableScan: "Read in-memory table",
   "Execute RepairTableCommand": "Repair table",
   "Execute CreateDataSourceTableCommand": "Create table",
+  "Execute CreateDataSourceTableAsSelectCommand": "Create table with Select",
   "Execute DropTableCommand": "Drop table",
   SetCatalogAndNamespace: "Set database",
   TakeOrderedAndProject: "Take Ordered",
@@ -81,6 +82,7 @@ const nodeRenamerDict: Record<string, string> = {
   BroadcastHashJoin: "Join (Broadcast Hash)",
   SortMergeJoin: "Join (Sort Merge)",
   BroadcastNestedLoopJoin: "Join (Broadcast Nested Loop)",
+  CreateNamespace: "Create Catalog Namespace",
 };
 
 export function nodeEnrichedNameBuilder(
