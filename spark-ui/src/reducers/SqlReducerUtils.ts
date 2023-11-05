@@ -15,13 +15,14 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "number of written files",
     "number of output rows",
     "written output",
+    "number of dynamic part"
   ],
   join: ["number of output rows"],
   transformation: ["number of output rows"],
   other: [],
 };
 
-const metricsValueTransformer: Record<string, (value: string) => string> = {
+const metricsValueTransformer: Record<string, (value: string) => string | undefined> = {
   "size of files read": (value: string) => {
     const newlineSplit = value.split("\n");
     if (newlineSplit.length < 2) {
@@ -34,6 +35,14 @@ const metricsValueTransformer: Record<string, (value: string) => string> = {
 
     return bracetSplit[0].trim();
   },
+  "number of dynamic part": (value: string) => {
+    // if dynamic part is 0 we want to remove it from metrics
+    if (value === "0") {
+      return undefined;
+    } else {
+      return value;
+    }
+  }
 };
 
 const metricsRenamer: Record<string, string> = {
@@ -43,6 +52,7 @@ const metricsRenamer: Record<string, string> = {
   "number of files read": "files read",
   "size of files read": "bytes read",
   "number of partitions read": "partitions read",
+  "number of dynamic part": "partitions written"
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -104,14 +114,17 @@ export function calcNodeMetrics(
   metrics: EnrichedSqlMetric[],
 ): EnrichedSqlMetric[] {
   const allowList = metricAllowlist[type];
-  return metrics
+  return (metrics
     .filter((metric) => allowList.includes(metric.name))
     .map((metric) => {
       const valueTransformer = metricsValueTransformer[metric.name];
-      return valueTransformer === undefined
-        ? metric
-        : { ...metric, value: valueTransformer(metric.value) };
+      if (valueTransformer === undefined) {
+        return metric;
+      }
+      const valueTransformed = valueTransformer(metric.value);
+      return valueTransformed === undefined ? undefined : { ...metric, value: valueTransformed };
     })
+    .filter((metric) => metric !== undefined) as EnrichedSqlMetric[])
     .map((metric) => {
       const metricNameRenamed = metricsRenamer[metric.name];
       return metricNameRenamed === undefined
