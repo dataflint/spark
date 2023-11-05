@@ -2,10 +2,10 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BuildIcon from "@mui/icons-material/Build";
 import { Box, Fade, IconButton, Tooltip } from "@mui/material";
 import * as React from "react";
+import { useAppSelector } from "../Hooks";
 import SqlFlow from "../components/SqlFlow/SqlFlow";
 import SqlTable from "../components/SqlTable/SqlTable";
 import SummaryBar from "../components/SummaryBar";
-import { useAppSelector } from "../Hooks";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 import { MixpanelService } from "../services/MixpanelService";
 import { BASE_CURRENT_PAGE } from "../utils/UrlConsts";
@@ -56,7 +56,7 @@ export default function SummaryTab() {
     });
   };
 
-  const talbeDisplay = !selectedSqlId ? "flex" : "none";
+  const talbeDisplay = selectedSqlId === undefined ? "flex" : "none";
 
   return (
     <div style={{ overflow: "hidden", height: "100%" }}>
@@ -100,7 +100,7 @@ export default function SummaryTab() {
               </IconButton>
             </Tooltip>
           </Box>
-          {!!selectedSql && <SqlFlow sparkSQL={selectedSql} />}
+          {selectedSql !== undefined ? <SqlFlow sparkSQL={selectedSql} /> : null}
         </div>
       </Fade>
     </div>

@@ -157,6 +157,7 @@ export interface EnrichedSqlNode {
   type: NodeType;
   isVisible: boolean;
   wholeStageCodegenId?: number;
+  isCodegenNode: boolean;
   parsedPlan: ParsedNodePlan | undefined;
 }
 

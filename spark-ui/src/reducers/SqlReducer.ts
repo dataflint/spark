@@ -7,15 +7,15 @@ import {
   ParsedNodePlan,
   SparkSQLStore,
 } from "../interfaces/AppStore";
+import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
-import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { timeStrToEpocTime } from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
-import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
+import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import {
   calcNodeMetrics,
   calcNodeType,
@@ -53,7 +53,11 @@ export function cleanUpDAG(
     return { fromId: parseInt(edge.v), toId: parseInt(edge.w) };
   });
 
-  return [filteredEdges, nodes.filter((node) => node.isVisible)];
+  const visibleNodes = nodes.filter((node) => node.isVisible);
+  const visibleNodesIds = visibleNodes.map((node) => node.nodeId);
+  const removeRedundentEdges = filteredEdges.filter(edge => visibleNodesIds.includes(edge.toId) && visibleNodesIds.includes(edge.fromId))
+
+  return [removeRedundentEdges, visibleNodes];
 }
 
 export function parseNodePlan(
@@ -108,30 +112,37 @@ function calculateSql(
     );
     const parsedPlan =
       nodePlan !== undefined ? parseNodePlan(node, nodePlan) : undefined;
+    const isCodegenNode = node.nodeName.includes("WholeStageCodegen");
     return {
       ...node,
       type: type,
       isVisible: type !== "other",
       parsedPlan: parsedPlan,
       enrichedName: nodeEnrichedNameBuilder(node.nodeName, parsedPlan),
+      isCodegenNode: isCodegenNode,
+      wholeStageCodegenId: isCodegenNode ? extractCodegenId() : node.wholeStageCodegenId,
     };
+
+    function extractCodegenId(): number | undefined {
+      return parseInt(node.nodeName.replace("WholeStageCodegen (", "").replace(")", ""));
+    }
   });
 
-  if (typeEnrichedNodes.filter((node) => node.type === "output").length === 0) {
-    // if there is no output, update the last node which is not "AdaptiveSparkPlan" or WholeStageCodegen to be the output
-    const filtered = typeEnrichedNodes.filter(
-      (node) =>
-        node.nodeName !== "AdaptiveSparkPlan" &&
-        !node.nodeName.includes("WholeStageCodegen"),
-    );
-    const lastNode = filtered[filtered.length - 1];
+  const onlyGraphNodes = typeEnrichedNodes.filter(
+    (node) =>
+      !node.isCodegenNode,
+  );
+
+  if (onlyGraphNodes.filter((node) => node.type === "output").length === 0) {
+    const aqeFilteredNodes = onlyGraphNodes.filter(node => node.nodeName !== "AdaptiveSparkPlan");
+    const lastNode = aqeFilteredNodes[aqeFilteredNodes.length - 1];
     lastNode.type = "output";
     lastNode.isVisible = true;
   }
 
   const [filteredEdges, filteredNodes] = cleanUpDAG(
     enrichedSql.edges,
-    typeEnrichedNodes,
+    onlyGraphNodes,
   );
 
   const metricEnrichedNodes = filteredNodes.map((node) => {
