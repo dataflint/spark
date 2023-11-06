@@ -19,7 +19,7 @@ import {
   setSQLMetrics,
   setStages,
   updateConnection,
-  updateDuration,
+  updateDuration
 } from "../reducers/SparkSlice";
 import { AppDispatch } from "../Store";
 import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";
@@ -197,11 +197,8 @@ class SparkAPI {
           );
         }
 
-        const runningSqlIds = sparkSQLs
-          .filter((sql) => sql.status === SqlStatus.Running)
-          .map((sql) => sql.id);
-        if (runningSqlIds.length !== 0) {
-          const sqlId = runningSqlIds[0];
+        for (const sql of sparkSQLs) {
+          const sqlId = sql.id;
           const nodesMetrics: NodesMetrics = await this.queryData(
             this.getSqlMetricsPath(sqlId),
           );
