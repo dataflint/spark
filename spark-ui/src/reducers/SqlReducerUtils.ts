@@ -64,7 +64,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   BroadcastHashJoin: "join",
   SortMergeJoin: "join",
   BroadcastNestedLoopJoin: "join",
-  filter: "transformation",
+  Filter: "transformation",
   Union: "join",
 };
 
