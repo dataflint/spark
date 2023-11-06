@@ -5,7 +5,7 @@ import org.apache.spark.sql.functions._
 
 import java.nio.file.Paths
 
-object Shakespeare {
+object Shakespeare341 {
     def fsPath(resource: String): String =
     Paths.get(this.getClass.getResource(resource).toURI).toString
 
