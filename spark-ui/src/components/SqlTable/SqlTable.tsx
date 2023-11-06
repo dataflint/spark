@@ -20,9 +20,11 @@ import { visuallyHidden } from "@mui/utils";
 import _ from "lodash";
 import { duration } from "moment";
 import * as React from "react";
+import { useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, SparkSQLStore } from "../../interfaces/AppStore";
 import { SqlStatus } from "../../interfaces/SparkSQLs";
 import { humanFileSize, humanizeTimeDiff } from "../../utils/FormatUtils";
+import { default as MultiAlertBadge } from "../AlertBadge/MultiAlertsBadge";
 import Progress from "../Progress";
 import { Data, EnhancedTableProps, HeadCell, Order } from "./TableTypes";
 import { getComparator, stableSort } from "./TableUtils";
@@ -157,12 +159,6 @@ const headCells: readonly HeadCell[] = [
     label: "Core/Hour",
   },
   {
-    id: "activityRate",
-    numeric: false,
-    disablePadding: false,
-    label: "Activity Rate",
-  },
-  {
     id: "input",
     numeric: false,
     disablePadding: false,
@@ -245,6 +241,7 @@ export default function SqlTable({
   const [orderBy, setOrderBy] = React.useState<keyof Data>("id");
   const [openSnackbar, setOpenSnackbar] = React.useState<boolean>(false);
   const [sqlsTableData, setSqlsTableData] = React.useState<Data[]>([]);
+  const sqlAlerts = useAppSelector((state) => state.spark.alerts)?.alerts.filter(alert => alert.source.type === "sql");
 
   React.useEffect(() => {
     if (!sqlStore) return;
@@ -329,7 +326,11 @@ export default function SqlTable({
                   {StatusIcon(sql.status, sql.failureReason, setOpenSnackbar)}
                 </StyledTableCell>
                 <StyledTableCell component="th" scope="row">
-                  {sql.description}
+                  <Box display="flex" alignItems="center" flexWrap="wrap">
+                    {sql.description}
+                    {sqlAlerts !== undefined && sqlAlerts.find(alert => alert.source.type === "sql" && alert.source.sqlId === sql.id) !== undefined ?
+                      <MultiAlertBadge alerts={sqlAlerts.filter(alert => alert.source.type === "sql" && alert.source.sqlId === sql.id)} ></MultiAlertBadge> : null}
+                  </Box>
                 </StyledTableCell>
                 <StyledTableCell align="left">
                   {humanizeTimeDiff(duration(sql.duration))} (
@@ -338,9 +339,6 @@ export default function SqlTable({
                 <StyledTableCell align="left">
                   {sql.coreHour.toFixed(4)} ({sql.coreHourPercentage.toFixed(1)}
                   %)
-                </StyledTableCell>
-                <StyledTableCell align="left">
-                  {sql.activityRate.toFixed(2)}%
                 </StyledTableCell>
                 <StyledTableCell align="left">
                   {humanFileSize(sql.input)}
