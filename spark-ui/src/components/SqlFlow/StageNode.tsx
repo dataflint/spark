@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Tooltip, Typography } from "@mui/material";
 import React, { FC } from "react";
 import { Handle, Position } from "reactflow";
 import { useAppSelector } from "../../Hooks";
@@ -6,9 +6,16 @@ import { EnrichedSqlNode } from "../../interfaces/AppStore";
 import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
 import AlertBadge from "../AlertBadge/AlertBadge";
+import { ConditionalWrapper } from "../InfoBox/InfoBox";
 import styles from "./node-style.module.css";
 
 export const StageNodeName: string = "stageNode";
+
+interface MetricWithTooltip {
+  name: string
+  value: string
+  tooltip?: string
+}
 
 export const StageNode: FC<{
   data: { sqlId: string; node: EnrichedSqlNode };
@@ -23,7 +30,7 @@ export const StageNode: FC<{
 
   const dataTable = data.node.metrics.filter(
     (metric: SqlMetric) => !!metric.value,
-  );
+  ) as MetricWithTooltip[];
   if (data.node.parsedPlan !== undefined) {
     const parsedPlan = data.node.parsedPlan;
     switch (parsedPlan.type) {
@@ -44,11 +51,14 @@ export const StageNode: FC<{
           dataTable.push({
             name: "Table name",
             value: truncateMiddle(parsedPlan.plan.tableName, 25),
+            tooltip: parsedPlan.plan.tableName.length > 25 ? parsedPlan.plan.tableName : undefined
           });
         }
         dataTable.push({
           name: "File Path",
           value: truncateMiddle(parsedPlan.plan.location, 25),
+          tooltip: parsedPlan.plan.location.length > 25 ? parsedPlan.plan.location : undefined
+
         });
         dataTable.push({ name: "Format", value: parsedPlan.plan.format });
         dataTable.push({ name: "Mode", value: parsedPlan.plan.mode });
@@ -56,6 +66,7 @@ export const StageNode: FC<{
           dataTable.push({
             name: "Partition Keys",
             value: truncateMiddle(parsedPlan.plan.partitionKeys.join(","), 25),
+            tooltip: parsedPlan.plan.partitionKeys.length > 25 ? parsedPlan.plan.partitionKeys.join(",") : undefined
           });
         }
         break;
@@ -64,12 +75,14 @@ export const StageNode: FC<{
           dataTable.unshift({
             name: "File Path",
             value: truncateMiddle(parsedPlan.plan.Location, 25),
+            tooltip: parsedPlan.plan.Location
           });
         }
         if (parsedPlan.plan.tableName !== undefined) {
           dataTable.unshift({
             name: "Table",
             value: truncateMiddle(parsedPlan.plan.tableName, 25),
+            tooltip: parsedPlan.plan.tableName
           });
         }
     }
@@ -91,8 +104,14 @@ export const StageNode: FC<{
             >
               {data.node.enrichedName}
             </Typography>
-            {dataTable.map((metric: SqlMetric) => {
-              return (
+            {dataTable.map((metric) => (
+              <ConditionalWrapper
+                key={metric.name}
+                condition={metric.tooltip !== undefined}
+                wrapper={(childern) => (
+                  <Tooltip title={metric.tooltip}>{childern}</Tooltip>
+                )}
+              >
                 <Box
                   key={metric.name}
                   sx={{ display: "flex", alignItems: "center" }}
@@ -104,8 +123,8 @@ export const StageNode: FC<{
                     {metric.value}
                   </Typography>
                 </Box>
-              );
-            })}
+              </ConditionalWrapper>
+            ))}
           </div>
         </div>
         <AlertBadge alert={sqlNodeAlert} margin="20px" placement="top" />

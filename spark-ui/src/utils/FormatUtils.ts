@@ -1,4 +1,4 @@
-import { format } from "bytes";
+import { format, parse } from "bytes";
 import { Duration } from "moment";
 
 export function humanFileSize(bytes: number): string {
@@ -9,6 +9,14 @@ export function humanFileSize(bytes: number): string {
     .replace("MB", "MiB")
     .replace("GB", "GiB")
     .replace("TB", "TiB");
+}
+
+export function parseBytesString(str: string): number {
+  return parse(str
+    .replace("KiB", "KB")
+    .replace("MiB", "MB")
+    .replace("GiB", "GB")
+    .replace("TiB", "TB"));
 }
 
 export function humanFileSizeSparkConfigFormat(bytes: number): string {

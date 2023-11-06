@@ -5,7 +5,7 @@ import { EnrichedSqlEdge, EnrichedSqlNode } from "../../interfaces/AppStore";
 import { StageNodeName } from "./StageNode";
 
 const nodeWidth = 280;
-const nodeHeight = 180;
+const nodeHeight = 200;
 
 const getLayoutedElements = (
   nodes: Node[],

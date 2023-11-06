@@ -23,7 +23,7 @@ const TransperantTooltip = styled(({ className, ...props }: TooltipProps) => (
   },
 }));
 
-const ConditionalWrapper = ({
+export const ConditionalWrapper = ({
   condition,
   wrapper,
   children,
