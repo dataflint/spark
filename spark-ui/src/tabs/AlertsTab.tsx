@@ -29,10 +29,11 @@ export const AlertsTab: FC<{}> = (): JSX.Element => {
           style={{
             display: "flex",
             alignItems: "center",
+            height: "100%",
             flexDirection: "column",
           }}
         >
-          <div style={{ display: "flex", marginTop: "15px" }}>
+          <div style={{ display: "flex", margin: "15px 0" }}>
             <Alert
               style={{ margin: "0 10px 0 10px" }}
               severity="error"
@@ -46,7 +47,7 @@ export const AlertsTab: FC<{}> = (): JSX.Element => {
             style={{
               overflow: "auto",
               height: "100%",
-              padding: "15px",
+              padding: "0 15px 15px 15px",
               width: "100%",
             }}
           >
