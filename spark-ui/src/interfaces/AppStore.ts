@@ -130,6 +130,10 @@ export type ParseFileScanPlan = {
   ReadSchema?: { [key: string]: string };
 };
 
+export type ParseFilterPlan = {
+  condition: string
+};
+
 export type ParsedWriteToHDFSPlan = {
   location: string;
   format: string;
@@ -147,7 +151,8 @@ export type ParsedNodePlan =
   | { type: "TakeOrderedAndProject"; plan: ParsedTakeOrderedAndProjectPlan }
   | { type: "CollectLimit"; plan: ParsedCollectLimitPlan }
   | { type: "FileScan"; plan: ParseFileScanPlan }
-  | { type: "WriteToHDFS"; plan: ParsedWriteToHDFSPlan };
+  | { type: "WriteToHDFS"; plan: ParsedWriteToHDFSPlan }
+  | { type: "Filter"; plan: ParseFilterPlan };
 
 export interface EnrichedSqlNode {
   nodeId: number;

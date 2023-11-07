@@ -15,6 +15,7 @@ interface MetricWithTooltip {
   name: string
   value: string
   tooltip?: string
+  showBlock?: boolean
 }
 
 export const StageNode: FC<{
@@ -38,6 +39,13 @@ export const StageNode: FC<{
         dataTable.push({
           name: "Limit",
           value: parsedPlan.plan.limit.toString(),
+        });
+        break;
+      case "Filter":
+        dataTable.push({
+          name: "Condition",
+          value: parsedPlan.plan.condition,
+          showBlock: true
         });
         break;
       case "TakeOrderedAndProject":
@@ -114,7 +122,7 @@ export const StageNode: FC<{
               >
                 <Box
                   key={metric.name}
-                  sx={{ display: "flex", alignItems: "center" }}
+                  sx={metric.showBlock ? { justifyContent: "center", alignItems: "center" } : { display: "flex", alignItems: "center" }}
                 >
                   <Typography sx={{ fontWeight: "bold" }} variant="body2">
                     {metric.name}:

@@ -12,6 +12,7 @@ import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { timeStrToEpocTime } from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
+import { parseFilter } from "./PlanParsers/FilterParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
@@ -86,6 +87,11 @@ export function parseNodePlan(
           type: "WriteToHDFS",
           plan: parseWriteToHDFS(plan.planDescription),
         };
+      case "Filter":
+        return {
+          type: "Filter",
+          plan: parseFilter(plan.planDescription)
+        }
     }
     if (node.nodeName.includes("Scan")) {
       return {
