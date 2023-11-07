@@ -27,13 +27,14 @@ object ShakespeareUnpartitionedWriter {
       .repartition(200)
 
     shakespeareDF
-      .repartition(200).mapPartitions(itr => {
+      .mapPartitions(itr => {
       // simulate slow write like in S3
       Thread.sleep(200)
       itr
     })(shakespeareDF.encoder)
       .write.mode(SaveMode.Overwrite).parquet("/tmp/shakespear")
 
+    scala.io.StdIn.readLine()
     spark.stop()
   }
 }
