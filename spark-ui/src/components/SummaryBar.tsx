@@ -7,7 +7,7 @@ import MemoryIcon from "@mui/icons-material/Memory";
 import ShuffleIcon from "@mui/icons-material/Shuffle";
 import StorageIcon from "@mui/icons-material/Storage";
 import SyncProblemIcon from "@mui/icons-material/SyncProblem";
-import { Grid, Typography } from "@mui/material";
+import { Grid, Link, Typography } from "@mui/material";
 import { duration } from "moment";
 import React, { FC } from "react";
 import "reactflow/dist/style.css";
@@ -37,6 +37,7 @@ const SummaryBar: FC = (): JSX.Element => {
 
   const durationText = humanizeTimeDiff(duration(status.duration));
 
+  const totalDFUFormated = status.executors.totalDFU > 1 ? status.executors.totalDFU.toFixed(2) : status.executors.totalDFU.toFixed(4)
   return (
     <Grid
       container
@@ -60,22 +61,29 @@ const SummaryBar: FC = (): JSX.Element => {
           icon={AccessTimeIcon}
         ></InfoBox>
         <InfoBox
-          title="Core Hour"
-          text={status.executors.totalCoreHour.toFixed(2)}
+          title="DFU"
+          text={totalDFUFormated}
           color="#795548"
           icon={HubIcon}
           tooltipContent={
             <React.Fragment>
               <Typography variant="h6" color="inherit">
-                What is Core Hour?
+                DataFlint Units (DFU)
               </Typography>
               <Typography variant="subtitle2">
-                Core Hour is the time where cores were allocated for your app in
-                hours unit
+                Is measurement unit for spark usage, which is a simular concept to DBU (DataBricks Unit)
               </Typography>
               <Typography variant="subtitle2">
-                For example: if you app allocated 6 cores for 30 minutes you
-                used 3 Core Hour
+                It's calculated by: {totalDFUFormated} (DFU) =
+              </Typography>
+              <Typography variant="subtitle2">
+                <b>{status.executors.totalCoreHour.toFixed(2)}</b> (core/hour usage) * 0.052624 (core/hour ratio) +
+              </Typography>
+              <Typography variant="subtitle2">
+                <b>{status.executors.totalMemoryGibHour.toFixed(2)}</b> (GiB memory/hour usage) * 0.0057785 (GiB memory/hour ratio)
+              </Typography>
+              <Typography variant="subtitle2">
+                For more information see <Link color="inherit" href="https://dataflint.gitbook.io/dataflint-for-spark/advanced/dfu-calculation">documentation</Link>
               </Typography>
             </React.Fragment>
           }

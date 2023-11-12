@@ -1,4 +1,5 @@
 import {
+  ConfigStore,
   RunMetadataStore,
   SparkExecutorsStatus,
   SparkExecutorsStore,
@@ -75,6 +76,7 @@ export function calculateStageStatus(
 
 export function calculateSparkExecutorsStatus(
   sparkExecutors: SparkExecutorsStore,
+  config: ConfigStore
 ): SparkExecutorsStatus {
   const driver = sparkExecutors.filter((executor) => executor.isDriver)[0];
   const executors = sparkExecutors.filter((executor) => !executor.isDriver);
@@ -98,6 +100,15 @@ export function calculateSparkExecutorsStatus(
   const totalCoreHour = sparkExecutors
     .map((executor) => executor.totalCores * msToHours(executor.duration))
     .reduce((a, b) => a + b, 0);
+
+  // divide executorMemoryBytes by 1024 * 1024 * 1024 to get amount in GiBs
+  const totalExecutorMemoryGibHour = executors
+    .map((executor) => config.executorMemoryBytes / (1024 * 1024 * 1024) * msToHours(executor.duration))
+    .reduce((a, b) => a + b, 0);
+
+  const totalDriverMemoryGibHour = config.driverMemoryBytes / (1024 * 1024 * 1024) * msToHours(driver.duration)
+  const totalMemoryGibHour = totalExecutorMemoryGibHour + totalDriverMemoryGibHour
+
   const activityRate =
     totalPotentialTaskTimeMs !== 0 && totalTaskTimeMs !== undefined
       ? Math.min(100, (totalTaskTimeMs / totalPotentialTaskTimeMs) * 100)
@@ -133,9 +144,16 @@ export function calculateSparkExecutorsStatus(
         .map((executor) => executor.totalShuffleWrite)
         .reduce((a, b) => a + b, 0);
 
+  // see documentation about DFU calculation
+  const totalDFU = (totalCoreHour * 0.052624) + (totalMemoryGibHour + 0.0057785)
+
   return {
     numOfExecutors,
     totalCoreHour,
+    totalDriverMemoryGibHour,
+    totalExecutorMemoryGibHour,
+    totalMemoryGibHour,
+    totalDFU,
     activityRate,
     maxExecutorMemoryPercentage,
     maxExecutorMemoryBytesString,

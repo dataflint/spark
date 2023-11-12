@@ -59,6 +59,14 @@ export function extractConfig(
   );
   const runtimeObj = sparkConfiguration.runtime;
 
+  const executorMemoryStr = sparkPropertiesObj["spark.executor.memory"] ?? "1g";
+  const executorMemoryBytes = parseSize(executorMemoryStr);
+  const executorMemoryBytesString = humanFileSize(executorMemoryBytes);
+
+  const driverMemoryStr = sparkPropertiesObj["spark.driver.memory"] ?? "1g";
+  const driverMemoryBytes = parseSize(driverMemoryStr);
+  const driverMemoryBytesString = humanFileSize(driverMemoryBytes);
+
   const appName = sparkPropertiesObj["spark.app.name"];
   const config = {
     "spark.app.name": sparkPropertiesObj["spark.app.name"],
@@ -67,10 +75,10 @@ export function extractConfig(
     "spark.master": sparkPropertiesObj["spark.master"],
     javaVersion: runtimeObj["javaVersion"],
     scalaVersion: runtimeObj["scalaVersion"],
+    "spark.executor.memory": executorMemoryStr,
+    "spark.driver.memory": driverMemoryStr,
   };
-  const executorMemoryStr = sparkPropertiesObj["spark.executor.memory"] ?? "1g";
-  const executorMemoryBytes = parseSize(executorMemoryStr);
-  const executorMemoryBytesString = humanFileSize(executorMemoryBytes);
+
   return [
     appName,
     {
@@ -78,6 +86,9 @@ export function extractConfig(
       executorMemoryBytes: executorMemoryBytes,
       executorMemoryBytesString: executorMemoryBytesString,
       executorMemoryBytesSparkFormatString: executorMemoryStr,
+      driverMemoryBytesSparkFormatString: driverMemoryStr,
+      driverMemoryBytes,
+      driverMemoryBytesString
     },
   ];
 }

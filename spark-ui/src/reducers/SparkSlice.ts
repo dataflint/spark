@@ -115,7 +115,7 @@ const sparkSlice = createSlice({
         currentEndDate,
         state.config.executorMemoryBytes,
       );
-      const executorsStatus = calculateSparkExecutorsStatus(executorsStore);
+      const executorsStatus = calculateSparkExecutorsStatus(executorsStore, state.config);
 
       state.status = { ...state.status, executors: executorsStatus };
       state.executors = executorsStore;

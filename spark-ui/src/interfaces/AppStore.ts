@@ -48,6 +48,9 @@ export interface ConfigStore {
   executorMemoryBytes: number;
   executorMemoryBytesString: string;
   executorMemoryBytesSparkFormatString: string;
+  driverMemoryBytes: number;
+  driverMemoryBytesString: string;
+  driverMemoryBytesSparkFormatString: string;
 }
 
 export interface RunMetadataStore {
@@ -179,6 +182,10 @@ export interface EnrichedSqlEdge {
 export interface SparkExecutorsStatus {
   numOfExecutors: number;
   totalCoreHour: number;
+  totalDriverMemoryGibHour: number,
+  totalExecutorMemoryGibHour: number,
+  totalMemoryGibHour: number;
+  totalDFU: number;
   activityRate: number;
   maxExecutorMemoryPercentage: number;
   maxExecutorMemoryBytesString: string;
