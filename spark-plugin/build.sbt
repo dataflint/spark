@@ -11,6 +11,7 @@ lazy val dataflint = project
     example_3_2_4,
     example_3_3_3,
     example_3_4_1,
+    example_3_5_0,
     example_3_4_1_remote
   ).settings(
     publish / skip := true
@@ -64,6 +65,16 @@ lazy val example_3_4_1 = (project in file("example_3_4_1"))
     scalaVersion := "2.12.18",
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.4.1",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.4.1",
+    publish / skip := true
+  ).dependsOn(plugin)
+
+lazy val example_3_5_0 = (project in file("example_3_5_0"))
+  .settings(
+    name := "DataflintSparkExample350",
+    organization := "io.dataflint",
+    scalaVersion := "2.12.18",
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.5.0",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.0",
     publish / skip := true
   ).dependsOn(plugin)
 
