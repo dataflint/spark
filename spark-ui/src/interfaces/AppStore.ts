@@ -108,6 +108,10 @@ export interface EnrichedSparkSQL {
   failedJobIds: number[];
   nodes: EnrichedSqlNode[];
   edges: EnrichedSqlEdge[];
+  basicNodesIds: number[];
+  advancedNodesIds: number[];
+  basicEdges: EnrichedSqlEdge[];
+  advancedEdges: EnrichedSqlEdge[];
   failureReason: string | undefined;
 }
 
@@ -163,7 +167,6 @@ export interface EnrichedSqlNode {
   enrichedName: string;
   metrics: EnrichedSqlMetric[];
   type: NodeType;
-  isVisible: boolean;
   wholeStageCodegenId?: number;
   isCodegenNode: boolean;
   parsedPlan: ParsedNodePlan | undefined;

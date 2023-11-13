@@ -1,7 +1,7 @@
 import dagre from "dagre";
 import { Edge, Node, Position } from "reactflow";
 import { v4 as uuidv4 } from "uuid";
-import { EnrichedSqlEdge, EnrichedSqlNode } from "../../interfaces/AppStore";
+import { EnrichedSparkSQL, EnrichedSqlEdge, EnrichedSqlNode } from "../../interfaces/AppStore";
 import { StageNodeName } from "./StageNode";
 
 const nodeWidth = 280;
@@ -10,7 +10,7 @@ const nodeHeight = 200;
 const getLayoutedElements = (
   nodes: Node[],
   edges: Edge[],
-): { nodes: Node[]; edges: Edge[] } => {
+): { layoutNodes: Node[]; layoutEdges: Edge[] } => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({ rankdir: "LR" });
@@ -40,26 +40,28 @@ const getLayoutedElements = (
     return node;
   });
 
-  return { nodes, edges };
+  return { layoutNodes: nodes, layoutEdges: edges };
 };
 
 class SqlLayoutService {
   static SqlElementsToLayout(
-    sqlId: string,
-    sqlNodes: EnrichedSqlNode[],
-    sqlEdges: EnrichedSqlEdge[],
+    sql: EnrichedSparkSQL,
+    isAdvancedMode: boolean
   ): { layoutNodes: Node[]; layoutEdges: Edge[] } {
-    const flowNodes: Node[] = sqlNodes
-      .filter((node) => node.isVisible)
+    const nodeIds = isAdvancedMode ? sql.advancedNodesIds : sql.basicNodesIds;
+    const edges = isAdvancedMode ? sql.advancedEdges : sql.basicEdges;
+
+    const flowNodes: Node[] = sql.nodes
+      .filter((node) => nodeIds.includes(node.nodeId))
       .map((node: EnrichedSqlNode) => {
         return {
           id: node.nodeId.toString(),
-          data: { sqlId: sqlId, node: node },
+          data: { sqlId: sql.id, node: node },
           type: StageNodeName,
           position: { x: 0, y: 0 },
         };
       });
-    const flowEdges: Edge[] = sqlEdges.map((edge: EnrichedSqlEdge) => {
+    const flowEdges: Edge[] = edges.map((edge: EnrichedSqlEdge) => {
       return {
         id: uuidv4(),
         source: edge.fromId.toString(),
@@ -68,8 +70,8 @@ class SqlLayoutService {
       };
     });
 
-    const { nodes, edges } = getLayoutedElements(flowNodes, flowEdges);
-    return { layoutNodes: nodes, layoutEdges: edges };
+    const { layoutNodes, layoutEdges } = getLayoutedElements(flowNodes, flowEdges);
+    return { layoutNodes: layoutNodes, layoutEdges: layoutEdges };
   }
 }
 

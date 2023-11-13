@@ -56,14 +56,14 @@ export default function SummaryTab() {
     });
   };
 
-  const talbeDisplay = selectedSqlId === undefined ? "flex" : "none";
+  const tableDisplay = selectedSqlId === undefined ? "flex" : "none";
 
   return (
     <div style={{ overflow: "hidden", height: "100%" }}>
       <Fade timeout={300} in={selectedSqlId === undefined} style={{}}>
         <div
           style={{
-            display: talbeDisplay,
+            display: tableDisplay,
             height: "100%",
             flexDirection: "column",
           }}

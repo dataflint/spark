@@ -25,15 +25,17 @@ import {
 
 export function cleanUpDAG(
   edges: EnrichedSqlEdge[],
-  nodes: EnrichedSqlNode[],
-): [EnrichedSqlEdge[], EnrichedSqlNode[]] {
+  allNodes: EnrichedSqlNode[],
+  visibleNodes: EnrichedSqlNode[]
+): EnrichedSqlEdge[] {
   var g = new Graph();
-  nodes.forEach((node) => g.setNode(node.nodeId.toString()));
+  allNodes.forEach((node) => g.setNode(node.nodeId.toString()));
   edges.forEach((edge) =>
     g.setEdge(edge.fromId.toString(), edge.toId.toString()),
   );
 
-  const notVisibleNodes = nodes.filter((node) => !node.isVisible);
+  const visibleNodesIds = visibleNodes.map((node) => node.nodeId);
+  const notVisibleNodes = allNodes.filter((node) => !visibleNodesIds.includes(node.nodeId));
 
   notVisibleNodes.forEach((node) => {
     const nodeId = node.nodeId.toString();
@@ -54,11 +56,9 @@ export function cleanUpDAG(
     return { fromId: parseInt(edge.v), toId: parseInt(edge.w) };
   });
 
-  const visibleNodes = nodes.filter((node) => node.isVisible);
-  const visibleNodesIds = visibleNodes.map((node) => node.nodeId);
   const removeRedundentEdges = filteredEdges.filter(edge => visibleNodesIds.includes(edge.toId) && visibleNodesIds.includes(edge.fromId))
 
-  return [removeRedundentEdges, visibleNodes];
+  return removeRedundentEdges;
 }
 
 export function parseNodePlan(
@@ -122,7 +122,6 @@ function calculateSql(
     return {
       ...node,
       type: type,
-      isVisible: type !== "other",
       parsedPlan: parsedPlan,
       enrichedName: nodeEnrichedNameBuilder(node.nodeName, parsedPlan),
       isCodegenNode: isCodegenNode,
@@ -143,17 +142,28 @@ function calculateSql(
     const aqeFilteredNodes = onlyGraphNodes.filter(node => node.nodeName !== "AdaptiveSparkPlan");
     const lastNode = aqeFilteredNodes[aqeFilteredNodes.length - 1];
     lastNode.type = "output";
-    lastNode.isVisible = true;
   }
 
-  const [filteredEdges, filteredNodes] = cleanUpDAG(
-    enrichedSql.edges,
-    onlyGraphNodes,
-  );
-
-  const metricEnrichedNodes = filteredNodes.map((node) => {
+  const metricEnrichedNodes = onlyGraphNodes.map((node) => {
     return { ...node, metrics: calcNodeMetrics(node.type, node.metrics) };
   });
+
+  const basicNodes = onlyGraphNodes.filter(node => node.type === "input" || node.type === "output" || node.type === "join");
+  const advancedNodes = onlyGraphNodes.filter(node => node.type !== "other");
+  const basicNodesIds = basicNodes.map(node => node.nodeId);
+  const advancedNodesIds = advancedNodes.map(node => node.nodeId);
+
+  const basicFilteredEdges = cleanUpDAG(
+    enrichedSql.edges,
+    onlyGraphNodes,
+    basicNodes
+  );
+
+  const advancedFilteredEdges = cleanUpDAG(
+    enrichedSql.edges,
+    onlyGraphNodes,
+    advancedNodes
+  );
 
   const isSqlCommand =
     sql.runningJobIds.length === 0 &&
@@ -163,7 +173,10 @@ function calculateSql(
   return {
     ...enrichedSql,
     nodes: metricEnrichedNodes,
-    edges: filteredEdges,
+    basicEdges: basicFilteredEdges,
+    advancedEdges: advancedFilteredEdges,
+    basicNodesIds: basicNodesIds,
+    advancedNodesIds: advancedNodesIds,
     uniqueId: uuidv4(),
     metricUpdateId: uuidv4(),
     isSqlCommand: isSqlCommand,
