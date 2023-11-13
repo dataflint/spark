@@ -3,13 +3,17 @@ import { hashNumbersRemover } from "./PlanParserUtils";
 
 export function parseExchange(input: string): ParsedExchangePlan {
     const typeRegex = /Exchange (\w+)/;
-    const fieldsRegex = /\(([^,]+?)(?:, \d+)?\)/;
 
     const typeMatch = input.match(typeRegex);
-    const fieldsMatch = input.match(fieldsRegex);
+
+    const parenthesisContent = input.match(/\(([^)]+)\)/)?.[1] ?? '';
+    const allFields = parenthesisContent.split(',').map(field => hashNumbersRemover(field.trim()));
+    // Remove the last element if it is a number (partition number)
+    if (allFields.length > 0 && !isNaN(Number(allFields[allFields.length - 1]))) {
+        allFields.pop();
+    }
 
     const type = typeMatch ? typeMatch[1] : "";
-    const fields = fieldsMatch ? fieldsMatch[1].split(',').map(field => hashNumbersRemover(field.trim())) : [];
 
-    return { type, fields };
+    return { type, fields: allFields };
 }

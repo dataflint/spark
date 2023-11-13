@@ -100,8 +100,8 @@ export const StageNode: FC<{
             name: parsedPlan.plan.type === "hashpartitioning" ?
               (parsedPlan.plan.fields.length === 1 ? "hashed field" : "hashed fields") :
               (parsedPlan.plan.fields.length === 1 ? "ranged field" : "ranged fields"),
-            value: truncateMiddle(parsedPlan.plan.fields.join(","), 25),
-            tooltip: parsedPlan.plan.fields.length > 25 ? parsedPlan.plan.fields.join(",") : undefined
+            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 25),
+            tooltip: parsedPlan.plan.fields.length > 25 ? parsedPlan.plan.fields.join(", ") : undefined,
           });
         }
         break;
