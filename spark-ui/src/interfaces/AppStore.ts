@@ -1,4 +1,4 @@
-export type NodeType = "input" | "output" | "transformation" | "other" | "join";
+export type NodeType = "input" | "output" | "transformation" | "join" | "shuffle" | "other";
 
 export type AppStore = {
   isConnected: boolean;
@@ -141,6 +141,11 @@ export type ParseFilterPlan = {
   condition: string
 };
 
+export type ParsedExchangePlan = {
+  type: string;
+  fields: string[] | undefined;
+};
+
 export type ParsedWriteToHDFSPlan = {
   location: string;
   format: string;
@@ -159,7 +164,8 @@ export type ParsedNodePlan =
   | { type: "CollectLimit"; plan: ParsedCollectLimitPlan }
   | { type: "FileScan"; plan: ParseFileScanPlan }
   | { type: "WriteToHDFS"; plan: ParsedWriteToHDFSPlan }
-  | { type: "Filter"; plan: ParseFilterPlan };
+  | { type: "Filter"; plan: ParseFilterPlan }
+  | { type: "Exchange"; plan: ParsedExchangePlan };
 
 export interface EnrichedSqlNode {
   nodeId: number;

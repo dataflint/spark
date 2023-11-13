@@ -19,22 +19,13 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
   ],
   join: ["number of output rows"],
   transformation: ["number of output rows"],
+  shuffle: ["number of partitions", "shuffle bytes written"],
   other: [],
 };
 
 const metricsValueTransformer: Record<string, (value: string) => string | undefined> = {
-  "size of files read": (value: string) => {
-    const newlineSplit = value.split("\n");
-    if (newlineSplit.length < 2) {
-      return value;
-    }
-    const bracetSplit = newlineSplit[1].split("(");
-    if (bracetSplit.length === 0) {
-      return value;
-    }
-
-    return bracetSplit[0].trim();
-  },
+  "size of files read": extractTotalFromStatisticsMetric,
+  "shuffle bytes written": extractTotalFromStatisticsMetric,
   "number of dynamic part": (value: string) => {
     // if dynamic part is 0 we want to remove it from metrics
     if (value === "0") {
@@ -52,7 +43,9 @@ const metricsRenamer: Record<string, string> = {
   "number of files read": "files read",
   "size of files read": "bytes read",
   "number of partitions read": "partitions read",
-  "number of dynamic part": "partitions written"
+  "number of dynamic part": "partitions written",
+  "number of partitions": "partitions",
+  "shuffle bytes written": "shuffle write"
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -66,6 +59,9 @@ const nodeTypeDict: Record<string, NodeType> = {
   BroadcastNestedLoopJoin: "join",
   Filter: "transformation",
   Union: "join",
+  Exchange: "shuffle",
+  AQEShuffleRead: "shuffle",
+  HashAggregate: "transformation"
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -83,7 +79,22 @@ const nodeRenamerDict: Record<string, string> = {
   SortMergeJoin: "Join (Sort Merge)",
   BroadcastNestedLoopJoin: "Join (Broadcast Nested Loop)",
   CreateNamespace: "Create Catalog Namespace",
+  Exchange: "Shuffle",
+  AQEShuffleRead: "Optimizer Shuffle"
 };
+
+function extractTotalFromStatisticsMetric(value: string): string | undefined {
+  const newlineSplit = value.split("\n");
+  if (newlineSplit.length < 2) {
+    return value;
+  }
+  const bracetSplit = newlineSplit[1].split("(");
+  if (bracetSplit.length === 0) {
+    return value;
+  }
+
+  return bracetSplit[0].trim();
+}
 
 export function nodeEnrichedNameBuilder(
   name: string,
@@ -93,6 +104,14 @@ export function nodeEnrichedNameBuilder(
     switch (plan.type) {
       case "HashAggregate":
         return `Aggregate (${plan.plan.operations.join(", ")})`;
+      case "Exchange":
+        if (plan.plan.type === "hashpartitioning") {
+          return `Shuffle By Hash`;
+        } else if (plan.plan.type === "rangepartitioning") {
+          return `Shuffle By Range`;
+        } else if (plan.plan.type === "SinglePartition") {
+          return "Shuffle To Single Partition";
+        }
     }
   }
 

@@ -12,6 +12,7 @@ import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { timeStrToEpocTime } from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
+import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
@@ -92,6 +93,11 @@ export function parseNodePlan(
           type: "Filter",
           plan: parseFilter(plan.planDescription)
         }
+      case "Exchange":
+        return {
+          type: "Exchange",
+          plan: parseExchange(plan.planDescription)
+        }
     }
     if (node.nodeName.includes("Scan")) {
       return {
@@ -148,7 +154,7 @@ function calculateSql(
     return { ...node, metrics: calcNodeMetrics(node.type, node.metrics) };
   });
 
-  const basicNodes = onlyGraphNodes.filter(node => node.type === "input" || node.type === "output" || node.type === "join");
+  const basicNodes = onlyGraphNodes.filter(node => node.type === "input" || node.type === "output" || node.type === "join" || node.type === "transformation");
   const advancedNodes = onlyGraphNodes.filter(node => node.type !== "other");
   const basicNodesIds = basicNodes.map(node => node.nodeId);
   const advancedNodesIds = advancedNodes.map(node => node.nodeId);
