@@ -1,7 +1,7 @@
 import dagre from "dagre";
 import { Edge, Node, Position } from "reactflow";
 import { v4 as uuidv4 } from "uuid";
-import { EnrichedSparkSQL, EnrichedSqlEdge, EnrichedSqlNode } from "../../interfaces/AppStore";
+import { EnrichedSparkSQL, EnrichedSqlEdge, EnrichedSqlNode, GraphFilter } from "../../interfaces/AppStore";
 import { StageNodeName } from "./StageNode";
 
 const nodeWidth = 280;
@@ -46,13 +46,12 @@ const getLayoutedElements = (
 class SqlLayoutService {
   static SqlElementsToLayout(
     sql: EnrichedSparkSQL,
-    isAdvancedMode: boolean
+    graphFilter: GraphFilter
   ): { layoutNodes: Node[]; layoutEdges: Edge[] } {
-    const nodeIds = isAdvancedMode ? sql.advancedNodesIds : sql.basicNodesIds;
-    const edges = isAdvancedMode ? sql.advancedEdges : sql.basicEdges;
+    const { nodesIds, edges } = sql.filters[graphFilter]
 
     const flowNodes: Node[] = sql.nodes
-      .filter((node) => nodeIds.includes(node.nodeId))
+      .filter((node) => nodesIds.includes(node.nodeId))
       .map((node: EnrichedSqlNode) => {
         return {
           id: node.nodeId.toString(),

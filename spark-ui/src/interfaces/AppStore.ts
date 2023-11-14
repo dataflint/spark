@@ -1,4 +1,4 @@
-export type NodeType = "input" | "output" | "transformation" | "join" | "shuffle" | "other";
+export type NodeType = "input" | "output" | "transformation" | "join" | "shuffle" | "broadcast" | "sort" | "other";
 
 export type AppStore = {
   isConnected: boolean;
@@ -87,6 +87,13 @@ export interface SparkSQLStore {
   sqls: EnrichedSparkSQL[];
 }
 
+export type GraphFilter = "io" | "basic" | "advanced";
+
+export interface FilteredGraph {
+  nodesIds: number[]
+  edges: EnrichedSqlEdge[]
+}
+
 export interface EnrichedSparkSQL {
   id: string;
   uniqueId: string;
@@ -108,10 +115,7 @@ export interface EnrichedSparkSQL {
   failedJobIds: number[];
   nodes: EnrichedSqlNode[];
   edges: EnrichedSqlEdge[];
-  basicNodesIds: number[];
-  advancedNodesIds: number[];
-  basicEdges: EnrichedSqlEdge[];
-  advancedEdges: EnrichedSqlEdge[];
+  filters: Record<GraphFilter, FilteredGraph>
   failureReason: string | undefined;
 }
 

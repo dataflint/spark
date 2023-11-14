@@ -154,8 +154,10 @@ function calculateSql(
     return { ...node, metrics: calcNodeMetrics(node.type, node.metrics) };
   });
 
+  const ioNodes = onlyGraphNodes.filter(node => node.type === "input" || node.type === "output" || node.type === "join");
   const basicNodes = onlyGraphNodes.filter(node => node.type === "input" || node.type === "output" || node.type === "join" || node.type === "transformation");
   const advancedNodes = onlyGraphNodes.filter(node => node.type !== "other");
+  const ioNodesIds = ioNodes.map(node => node.nodeId);
   const basicNodesIds = basicNodes.map(node => node.nodeId);
   const advancedNodesIds = advancedNodes.map(node => node.nodeId);
 
@@ -171,6 +173,12 @@ function calculateSql(
     advancedNodes
   );
 
+  const ioFilteredEdges = cleanUpDAG(
+    enrichedSql.edges,
+    onlyGraphNodes,
+    ioNodes
+  );
+
   const isSqlCommand =
     sql.runningJobIds.length === 0 &&
     sql.failedJobIds.length === 0 &&
@@ -179,10 +187,20 @@ function calculateSql(
   return {
     ...enrichedSql,
     nodes: metricEnrichedNodes,
-    basicEdges: basicFilteredEdges,
-    advancedEdges: advancedFilteredEdges,
-    basicNodesIds: basicNodesIds,
-    advancedNodesIds: advancedNodesIds,
+    filters: {
+      "io": {
+        nodesIds: ioNodesIds,
+        edges: ioFilteredEdges
+      },
+      "basic": {
+        nodesIds: basicNodesIds,
+        edges: basicFilteredEdges
+      },
+      "advanced": {
+        nodesIds: advancedNodesIds,
+        edges: advancedFilteredEdges
+      },
+    },
     uniqueId: uuidv4(),
     metricUpdateId: uuidv4(),
     isSqlCommand: isSqlCommand,

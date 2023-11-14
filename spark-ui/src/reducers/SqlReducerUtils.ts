@@ -19,13 +19,16 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
   ],
   join: ["number of output rows"],
   transformation: ["number of output rows"],
-  shuffle: ["number of partitions", "shuffle bytes written"],
+  shuffle: ["number of partitions", "shuffle bytes written", "shuffle records written"],
+  broadcast: ["number of output rows", "data size"],
+  sort: ["spill size"],
   other: [],
 };
 
 const metricsValueTransformer: Record<string, (value: string) => string | undefined> = {
   "size of files read": extractTotalFromStatisticsMetric,
   "shuffle bytes written": extractTotalFromStatisticsMetric,
+  "spill size": extractTotalFromStatisticsMetric,
   "number of dynamic part": (value: string) => {
     // if dynamic part is 0 we want to remove it from metrics
     if (value === "0") {
@@ -61,7 +64,11 @@ const nodeTypeDict: Record<string, NodeType> = {
   Union: "join",
   Exchange: "shuffle",
   AQEShuffleRead: "shuffle",
-  HashAggregate: "transformation"
+  HashAggregate: "transformation",
+  BroadcastExchange: "broadcast",
+  Sort: "sort",
+  Project: "transformation",
+  Window: "transformation"
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -79,8 +86,10 @@ const nodeRenamerDict: Record<string, string> = {
   SortMergeJoin: "Join (Sort Merge)",
   BroadcastNestedLoopJoin: "Join (Broadcast Nested Loop)",
   CreateNamespace: "Create Catalog Namespace",
-  Exchange: "Shuffle",
-  AQEShuffleRead: "Optimizer Shuffle"
+  Exchange: "Repartition",
+  AQEShuffleRead: "Optimizer Repartition",
+  BroadcastExchange: "Broadcast",
+  Project: "Select"
 };
 
 function extractTotalFromStatisticsMetric(value: string): string | undefined {

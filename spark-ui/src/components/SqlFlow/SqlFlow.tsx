@@ -8,9 +8,9 @@ import ReactFlow, {
   useNodesState,
 } from "reactflow";
 
-import { Box, FormControlLabel, FormGroup, Switch } from "@mui/material";
+import { Box, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
 import "reactflow/dist/style.css";
-import { EnrichedSparkSQL } from "../../interfaces/AppStore";
+import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
 import SqlLayoutService from "./SqlLayoutService";
 import { StageNode, StageNodeName } from "./StageNode";
 
@@ -23,15 +23,15 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const [instance, setInstace] = useState<ReactFlowInstance | undefined>();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [isAdvancedMode, setIsAdvancedMode] = React.useState<boolean>(
-    false,
+  const [graphFilter, setGraphFilter] = React.useState<GraphFilter>(
+    "basic",
   );
 
   React.useEffect(() => {
     if (!sparkSQL) return;
     const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
       sparkSQL,
-      isAdvancedMode
+      graphFilter
     );
 
     setNodes(layoutNodes);
@@ -41,12 +41,12 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     if (!sparkSQL) return;
     const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
       sparkSQL,
-      isAdvancedMode
+      graphFilter
     );
 
     setNodes(layoutNodes);
     setEdges(layoutEdges);
-  }, [sparkSQL.uniqueId, isAdvancedMode]);
+  }, [sparkSQL.uniqueId, graphFilter]);
 
   useEffect(() => {
     if (instance) {
@@ -88,13 +88,18 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
       >
         <Controls />
         <Box display={"flex"}>
-          <FormGroup>
-            <FormControlLabel
-              sx={{ zIndex: 6, position: "absolute", bottom: "10px", right: "10px" }}
-              labelPlacement="bottom"
-              label={isAdvancedMode ? "Advanced" : "Basic"}
-              control={<Switch checked={isAdvancedMode} onChange={(event) => setIsAdvancedMode(event.target.checked)} />} />
-          </FormGroup>
+          <FormControl sx={{ zIndex: 6, position: "absolute", bottom: "10px", right: "10px", width: "120px" }}>
+            <InputLabel>Mode</InputLabel>
+            <Select
+              value={graphFilter}
+              label="Mode"
+              onChange={(event) => setGraphFilter(event.target.value as GraphFilter)}
+            >
+              <MenuItem value={"io"}>Only IO</MenuItem>
+              <MenuItem value={"basic"}>Basic</MenuItem>
+              <MenuItem value={"advanced"}>Advanced</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
       </ReactFlow>
     </div>
