@@ -154,6 +154,14 @@ export type ParsedExchangePlan = {
   fields: string[] | undefined;
 };
 
+export interface ParsedJoinPlan {
+  joinType: string;
+  joinSideType: string
+  leftKeys?: string[];
+  rightKeys?: string[];
+  joinCondition?: string;
+}
+
 export type ParsedWriteToHDFSPlan = {
   location: string;
   format: string;
@@ -174,7 +182,8 @@ export type ParsedNodePlan =
   | { type: "WriteToHDFS"; plan: ParsedWriteToHDFSPlan }
   | { type: "Filter"; plan: ParseFilterPlan }
   | { type: "Project"; plan: ParsedProjectPlan }
-  | { type: "Exchange"; plan: ParsedExchangePlan };
+  | { type: "Exchange"; plan: ParsedExchangePlan }
+  | { type: "Join"; plan: ParsedJoinPlan };
 
 export interface EnrichedSqlNode {
   nodeId: number;

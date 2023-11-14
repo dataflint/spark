@@ -44,7 +44,7 @@ export const StageNode: FC<{
       case "Filter":
         dataTable.push({
           name: "Condition",
-          value: truncateMiddle(parsedPlan.plan.condition, 200),
+          value: truncateMiddle(parsedPlan.plan.condition, 150),
           showBlock: true
         });
         break;
@@ -100,7 +100,7 @@ export const StageNode: FC<{
             name: parsedPlan.plan.type === "hashpartitioning" ?
               (parsedPlan.plan.fields.length === 1 ? "hashed field" : "hashed fields") :
               (parsedPlan.plan.fields.length === 1 ? "ranged field" : "ranged fields"),
-            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 200),
+            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 150),
             showBlock: true
           });
         }
@@ -109,7 +109,7 @@ export const StageNode: FC<{
         if (parsedPlan.plan.fields !== undefined) {
           dataTable.push({
             name: "Selected Fields",
-            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 200),
+            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 150),
             showBlock: true
           });
         }
@@ -118,18 +118,45 @@ export const StageNode: FC<{
         if (parsedPlan.plan.keys !== undefined && parsedPlan.plan.keys.length > 0) {
           dataTable.push({
             name: "Aggregate By",
-            value: truncateMiddle(parsedPlan.plan.keys.join(", "), 200),
+            value: truncateMiddle(parsedPlan.plan.keys.join(", "), 150),
             showBlock: true
           });
         }
         if (parsedPlan.plan.functions !== undefined && parsedPlan.plan.functions.length > 0) {
           dataTable.push({
             name: "Expression",
-            value: truncateMiddle(parsedPlan.plan.functions.join(", "), 200),
+            value: truncateMiddle(parsedPlan.plan.functions.join(", "), 150),
             showBlock: true
           });
         }
         break;
+      case "Join":
+        dataTable.push({
+          name: "Join Type",
+          value: parsedPlan.plan.joinSideType
+        });
+
+        if (parsedPlan.plan.leftKeys !== undefined && parsedPlan.plan.leftKeys.length > 0) {
+          dataTable.push({
+            name: parsedPlan.plan.leftKeys.length > 1 ? "Left Side Keys" : "Left Side Key",
+            value: truncateMiddle(parsedPlan.plan.leftKeys.join(", "), 25),
+            tooltip: parsedPlan.plan.leftKeys.length > 25 ? parsedPlan.plan.leftKeys.join(", ") : undefined
+          });
+        }
+        if (parsedPlan.plan.rightKeys !== undefined && parsedPlan.plan.rightKeys.length > 0) {
+          dataTable.push({
+            name: parsedPlan.plan.rightKeys.length > 1 ? "Right Side Keys" : "Right Side Key",
+            value: truncateMiddle(parsedPlan.plan.rightKeys.join(", "), 25),
+            tooltip: parsedPlan.plan.rightKeys.length > 25 ? parsedPlan.plan.rightKeys.join(", ") : undefined
+          });
+        }
+        if (parsedPlan.plan.joinCondition !== undefined && parsedPlan.plan.joinCondition !== "") {
+          dataTable.push({
+            name: "Join Condition",
+            value: truncateMiddle(parsedPlan.plan.joinCondition, 150),
+            showBlock: true
+          });
+        }
     }
   }
   return (

@@ -3,7 +3,7 @@ export function onlyUnique(value: string, index: number, array: string[]) {
 }
 
 export function hashNumbersRemover(input: string): string {
-  return input.replace(/#\d+/g, "");
+  return input.replace(/#\d+L/g, "").replace(/#\d+/g, "");
 }
 
 export function truncateMiddle(str: string, maxLength: number): string {

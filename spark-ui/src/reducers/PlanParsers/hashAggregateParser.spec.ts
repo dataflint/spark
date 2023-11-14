@@ -76,7 +76,7 @@ describe("parseHashAggregate", () => {
         functions: [
           "sum(UnscaledValue(ws_ext_ship_cost))",
           "sum(UnscaledValue(ws_net_profit))",
-          "count(distinct ws_order_numberL)",
+          "count(distinct ws_order_number)",
         ],
         operations: ["sum", "count_distinct"],
       },
@@ -84,13 +84,12 @@ describe("parseHashAggregate", () => {
   ];
 
   testCases.forEach((testCase, index) => {
-    it(`should extract keys, functions, and operations correctly for test case ${
-      index + 1
-    }`, () => {
-      const result = parseHashAggregate(testCase.input);
-      expect(result.keys).toEqual(testCase.expected.keys);
-      expect(result.functions).toEqual(testCase.expected.functions);
-      expect(result.operations).toEqual(testCase.expected.operations);
-    });
+    it(`should extract keys, functions, and operations correctly for test case ${index + 1
+      }`, () => {
+        const result = parseHashAggregate(testCase.input);
+        expect(result.keys).toEqual(testCase.expected.keys);
+        expect(result.functions).toEqual(testCase.expected.functions);
+        expect(result.operations).toEqual(testCase.expected.operations);
+      });
   });
 });
