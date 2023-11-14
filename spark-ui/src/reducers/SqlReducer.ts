@@ -14,6 +14,7 @@ import { timeStrToEpocTime } from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
 import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
+import { parseProject } from "./PlanParsers/ProjectParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
@@ -97,6 +98,11 @@ export function parseNodePlan(
         return {
           type: "Exchange",
           plan: parseExchange(plan.planDescription)
+        }
+      case "Project":
+        return {
+          type: "Project",
+          plan: parseProject(plan.planDescription)
         }
     }
     if (node.nodeName.includes("Scan")) {

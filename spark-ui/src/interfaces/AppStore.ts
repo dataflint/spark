@@ -141,6 +141,10 @@ export type ParseFileScanPlan = {
   ReadSchema?: { [key: string]: string };
 };
 
+export type ParsedProjectPlan = {
+  fields: string[]
+};
+
 export type ParseFilterPlan = {
   condition: string
 };
@@ -169,6 +173,7 @@ export type ParsedNodePlan =
   | { type: "FileScan"; plan: ParseFileScanPlan }
   | { type: "WriteToHDFS"; plan: ParsedWriteToHDFSPlan }
   | { type: "Filter"; plan: ParseFilterPlan }
+  | { type: "Project"; plan: ParsedProjectPlan }
   | { type: "Exchange"; plan: ParsedExchangePlan };
 
 export interface EnrichedSqlNode {

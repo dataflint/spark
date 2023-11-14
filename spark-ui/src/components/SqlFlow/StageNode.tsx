@@ -44,7 +44,7 @@ export const StageNode: FC<{
       case "Filter":
         dataTable.push({
           name: "Condition",
-          value: parsedPlan.plan.condition,
+          value: truncateMiddle(parsedPlan.plan.condition, 200),
           showBlock: true
         });
         break;
@@ -95,13 +95,38 @@ export const StageNode: FC<{
         }
         break;
       case "Exchange":
-        if (parsedPlan.plan.fields !== undefined) {
+        if (parsedPlan.plan.fields !== undefined && parsedPlan.plan.fields.length > 0) {
           dataTable.push({
             name: parsedPlan.plan.type === "hashpartitioning" ?
               (parsedPlan.plan.fields.length === 1 ? "hashed field" : "hashed fields") :
               (parsedPlan.plan.fields.length === 1 ? "ranged field" : "ranged fields"),
-            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 25),
-            tooltip: parsedPlan.plan.fields.length > 25 ? parsedPlan.plan.fields.join(", ") : undefined,
+            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 200),
+            showBlock: true
+          });
+        }
+        break;
+      case "Project":
+        if (parsedPlan.plan.fields !== undefined) {
+          dataTable.push({
+            name: "Selected Fields",
+            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 200),
+            showBlock: true
+          });
+        }
+        break;
+      case "HashAggregate":
+        if (parsedPlan.plan.keys !== undefined && parsedPlan.plan.keys.length > 0) {
+          dataTable.push({
+            name: "Aggregate By",
+            value: truncateMiddle(parsedPlan.plan.keys.join(", "), 200),
+            showBlock: true
+          });
+        }
+        if (parsedPlan.plan.functions !== undefined && parsedPlan.plan.functions.length > 0) {
+          dataTable.push({
+            name: "Expression",
+            value: truncateMiddle(parsedPlan.plan.functions.join(", "), 200),
+            showBlock: true
           });
         }
         break;

@@ -112,14 +112,17 @@ export function nodeEnrichedNameBuilder(
   if (plan !== undefined) {
     switch (plan.type) {
       case "HashAggregate":
-        return `Aggregate (${plan.plan.operations.join(", ")})`;
+        return "Aggregate" + (plan.plan.operations.length > 0 && plan.plan.operations.length < 3 ?
+          ` (${plan.plan.operations.join(", ")})` : "");
       case "Exchange":
         if (plan.plan.type === "hashpartitioning") {
-          return `Shuffle By Hash`;
+          return `Repartition By Hash`;
         } else if (plan.plan.type === "rangepartitioning") {
-          return `Shuffle By Range`;
+          return `Repartition By Range`;
         } else if (plan.plan.type === "SinglePartition") {
-          return "Shuffle To Single Partition";
+          return "Repartition To Single Partition";
+        } else if (plan.plan.type === "RoundRobinPartitioning") {
+          return "Repartition By Round Robin";
         }
     }
   }
