@@ -182,7 +182,7 @@ export function calculateSqlIdleTime(
     runMetadata.startTime +
     status.duration -
     Math.max(
-      ...sqlStore.sqls.map((sql) => sql.submissionTimeEpoc + sql.duration),
+      ...sqlStore.sqls.map((sql) => sql.submissionTimeEpoc + sql.duration), runMetadata.startTime
     )
   );
 }

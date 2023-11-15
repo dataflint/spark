@@ -93,6 +93,9 @@ const nodeRenamerDict: Record<string, string> = {
 };
 
 function extractTotalFromStatisticsMetric(value: string): string | undefined {
+  if (value === undefined) {
+    return undefined
+  }
   const newlineSplit = value.split("\n");
   if (newlineSplit.length < 2) {
     return value;
