@@ -1,9 +1,13 @@
 import { ParseFilterPlan } from "../../interfaces/AppStore";
-import { hashNumbersRemover } from "./PlanParserUtils";
+import { hashNumbersRemover, removeFromEnd, removeFromStart } from "./PlanParserUtils";
 
 export function parseFilter(
   input: string
 ): ParseFilterPlan {
-  const condition = hashNumbersRemover(input.replace("Filter (", "").slice(0, -1))
+  let filterStr = input;
+  filterStr = removeFromStart(filterStr, "Filter ");
+  filterStr = removeFromStart(filterStr, "(");
+  filterStr = removeFromEnd(filterStr, ")");
+  const condition = hashNumbersRemover(filterStr)
   return { condition: condition };
 }

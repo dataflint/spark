@@ -19,3 +19,17 @@ export function truncateMiddle(str: string, maxLength: number): string {
 
   return `${prefix}...${suffix}`;
 }
+
+export function removeFromStart(str: string, strToRemove: string): string {
+  if (str.startsWith(strToRemove)) {
+    return str.slice(strToRemove.length);
+  }
+  return str;
+}
+
+export function removeFromEnd(str: string, strToRemove: string) {
+  if (str.endsWith(strToRemove)) {
+    return str.slice(0, -strToRemove.length);
+  }
+  return str;
+}

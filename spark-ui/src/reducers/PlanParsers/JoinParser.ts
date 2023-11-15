@@ -1,5 +1,5 @@
 import { ParsedJoinPlan } from "../../interfaces/AppStore";
-import { hashNumbersRemover } from './PlanParserUtils';
+import { hashNumbersRemover, removeFromEnd, removeFromStart } from './PlanParserUtils';
 
 
 export function specialSplit(input: string): string[] {
@@ -53,14 +53,9 @@ export function parseJoin(input: string): ParsedJoinPlan {
 
     if (conditionStr) {
         joinCondition = conditionStr;
-        if (conditionStr.endsWith(", false")) {
-            joinCondition = joinCondition.slice(0, -(", false".length))
-        }
-        if (conditionStr.startsWith("BuildRight, ")) {
-            joinCondition = joinCondition.slice("BuildRight, ".length)
-        } else if (conditionStr.startsWith("BuildLeft, ")) {
-            joinCondition = joinCondition.slice("BuildLeft, ".length)
-        }
+        joinCondition = removeFromEnd(joinCondition, ", false");
+        joinCondition = removeFromStart(joinCondition, "BuildRight, ");
+        joinCondition = removeFromStart(joinCondition, "BuildLeft, ");
     }
 
     return {
