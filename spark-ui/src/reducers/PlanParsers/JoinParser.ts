@@ -58,6 +58,13 @@ export function parseJoin(input: string): ParsedJoinPlan {
         joinCondition = removeFromStart(joinCondition, "BuildLeft, ");
     }
 
+    if (joinCondition === "BuildRight") {
+        joinCondition = undefined;
+    }
+    if (joinCondition === "BuildLeft") {
+        joinCondition = undefined;
+    }
+
     return {
         joinType,
         leftKeys,

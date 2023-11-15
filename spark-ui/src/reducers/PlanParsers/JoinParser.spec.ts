@@ -71,4 +71,18 @@ describe('parseJoin', () => {
         expect(parseJoin(input)).toEqual(expected);
     });
 
+    it('should parse BroadcastHashJoin with Inner and condition without condtition', () => {
+        const input = 'BroadcastHashJoin [cr_returning_addr_sk#2871], [ca_address_sk#780], Inner, BuildRight, false';
+        const expected: ParsedJoinPlan = {
+            joinType: 'BroadcastHashJoin',
+            leftKeys: ['cr_returning_addr_sk'],
+            rightKeys: ['ca_address_sk'],
+            joinSideType: "Inner",
+            joinCondition: undefined,
+        };
+        expect(parseJoin(input)).toEqual(expected);
+    });
+
+
+
 });
