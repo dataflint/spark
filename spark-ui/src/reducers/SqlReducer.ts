@@ -17,6 +17,7 @@ import { parseFilter } from "./PlanParsers/FilterParser";
 import { parseJoin } from "./PlanParsers/JoinParser";
 import { parseProject } from "./PlanParsers/ProjectParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
+import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
 import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
@@ -104,6 +105,11 @@ export function parseNodePlan(
         return {
           type: "Project",
           plan: parseProject(plan.planDescription)
+        }
+      case "Sort":
+        return {
+          type: "Sort",
+          plan: parseSort(plan.planDescription)
         }
     }
     if (node.nodeName.includes("Scan")) {

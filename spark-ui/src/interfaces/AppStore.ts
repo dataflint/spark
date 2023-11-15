@@ -174,6 +174,10 @@ export type ParsedCollectLimitPlan = {
   limit: number;
 };
 
+export type ParsedSortPlan = {
+  fields: string[];
+};
+
 export type ParsedNodePlan =
   | { type: "HashAggregate"; plan: ParsedHashAggregatePlan }
   | { type: "TakeOrderedAndProject"; plan: ParsedTakeOrderedAndProjectPlan }
@@ -183,7 +187,8 @@ export type ParsedNodePlan =
   | { type: "Filter"; plan: ParseFilterPlan }
   | { type: "Project"; plan: ParsedProjectPlan }
   | { type: "Exchange"; plan: ParsedExchangePlan }
-  | { type: "Join"; plan: ParsedJoinPlan };
+  | { type: "Join"; plan: ParsedJoinPlan }
+  | { type: "Sort"; plan: ParsedSortPlan };
 
 export interface EnrichedSqlNode {
   nodeId: number;

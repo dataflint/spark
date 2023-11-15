@@ -130,6 +130,15 @@ export const StageNode: FC<{
           });
         }
         break;
+      case "Sort":
+        if (parsedPlan.plan.fields !== undefined && parsedPlan.plan.fields.length > 0) {
+          dataTable.push({
+            name: "Sort By",
+            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 150),
+            showBlock: true
+          });
+        }
+        break;
       case "Join":
         dataTable.push({
           name: "Join Type",
@@ -157,6 +166,7 @@ export const StageNode: FC<{
             showBlock: true
           });
         }
+        break;
     }
   }
   return (
