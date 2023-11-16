@@ -54,7 +54,7 @@ class SparkAPI {
   }
 
   private getSqlMetricsPath(sqlId: string): string {
-    return `${this.baseCurrentPage}/sqlmetrics/json?executionId=${sqlId}`;
+    return `${this.baseCurrentPage}/sqlmetrics/json/?executionId=${sqlId}`;
   }
 
   private buildSqlPath(offset: number): string {
@@ -62,7 +62,7 @@ class SparkAPI {
   }
 
   private buildSqlPlanPath(offset: number): string {
-    return `${this.baseCurrentPage}/sqlplan/json?offset=${offset}&length=${SQL_QUERY_LENGTH}`;
+    return `${this.baseCurrentPage}/sqlplan/json/?offset=${offset}&length=${SQL_QUERY_LENGTH}`;
   }
 
   private get executorsPath(): string {
