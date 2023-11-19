@@ -192,9 +192,12 @@ class SparkAPI {
         );
 
         if (finishedSqls.length > 0) {
-          this.lastCompletedSqlId = Math.max(
-            ...finishedSqls.map((sql) => parseInt(sql.id)),
-          );
+          // in cases of SQLs out of order, like id 2 is running and 3 is completed, we will try to ask from id 2 again
+          finishedSqls.forEach(sql => {
+            if (parseInt(sql.id) === this.lastCompletedSqlId + 1) {
+              this.lastCompletedSqlId += this.lastCompletedSqlId;
+            }
+          });
         }
 
         const runningSqlIds = sparkSQLs

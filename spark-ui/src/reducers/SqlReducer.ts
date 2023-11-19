@@ -248,7 +248,7 @@ export function calculateSqlStore(
   const minId = Math.min(...sqlIds);
 
   // add existing completed IDs
-  let updatedSqls: EnrichedSparkSQL[] = currentStore.sqls.slice(0, minId);
+  let updatedSqls: EnrichedSparkSQL[] = currentStore.sqls.filter(sql => parseInt(sql.id) < minId)
 
   for (const id of sqlIds) {
     const newSql = sqls.find(
