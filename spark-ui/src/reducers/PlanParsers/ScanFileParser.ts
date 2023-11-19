@@ -53,7 +53,9 @@ export function parseFileScan(
       const schema: { [key: string]: string } = {};
       fields.forEach((field) => {
         const [name, type] = field.split(":");
-        schema[name.trim()] = type.trim();
+        if (name !== undefined && type !== undefined) {
+          schema[name.trim()] = type.trim();
+        }
       });
       result.ReadSchema = schema;
     }

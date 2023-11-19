@@ -76,6 +76,7 @@ lazy val example_3_5_0 = (project in file("example_3_5_0"))
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.5.0",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.0",
     libraryDependencies += "org.apache.spark" %% "spark-streaming" % "3.5.0",
+    libraryDependencies += "org.apache.spark" %% "spark-sql-kafka-0-10" % "3.5.0",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.0.0",
     publish / skip := true
   ).dependsOn(plugin)

@@ -10,6 +10,8 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "number of files read",
     "size of files read",
     "number of partitions read",
+    "estimated number of fetched offsets out of range",
+    "number of data loss error",
   ],
   output: [
     "number of written files",
@@ -48,7 +50,9 @@ const metricsRenamer: Record<string, string> = {
   "number of partitions read": "partitions read",
   "number of dynamic part": "partitions written",
   "number of partitions": "partitions",
-  "shuffle bytes written": "shuffle write"
+  "shuffle bytes written": "shuffle write",
+  "estimated number of fetched offsets out of range": "fetched offsets out of range",
+  "number of data loss error": "data loss error",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -89,7 +93,8 @@ const nodeRenamerDict: Record<string, string> = {
   Exchange: "Repartition",
   AQEShuffleRead: "Optimizer Repartition",
   BroadcastExchange: "Broadcast",
-  Project: "Select"
+  Project: "Select",
+  MicroBatchScan: "Read Micro batch"
 };
 
 function extractTotalFromStatisticsMetric(value: string): string | undefined {
