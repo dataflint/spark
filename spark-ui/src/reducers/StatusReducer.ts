@@ -103,7 +103,7 @@ export function calculateSparkExecutorsStatus(
 
   // divide executorMemoryBytes by 1024 * 1024 * 1024 to get amount in GiBs
   const totalExecutorMemoryGibHour = executors
-    .map((executor) => config.executorMemoryBytes / (1024 * 1024 * 1024) * msToHours(executor.duration))
+    .map((executor) => config.executorContainerMemoryBytes / (1024 * 1024 * 1024) * msToHours(executor.duration))
     .reduce((a, b) => a + b, 0);
 
   const totalDriverMemoryGibHour = config.driverMemoryBytes / (1024 * 1024 * 1024) * msToHours(driver.duration)
@@ -145,7 +145,7 @@ export function calculateSparkExecutorsStatus(
         .reduce((a, b) => a + b, 0);
 
   // see documentation about DFU calculation
-  const totalDFU = (totalCoreHour * 0.052624) + (totalMemoryGibHour + 0.0057785)
+  const totalDFU = (totalCoreHour * 0.052624) + (totalMemoryGibHour * 0.0057785)
 
   return {
     numOfExecutors,

@@ -48,6 +48,13 @@ export interface ConfigStore {
   executorMemoryBytes: number;
   executorMemoryBytesString: string;
   executorMemoryBytesSparkFormatString: string;
+  executorMemoryOverheadBytes: number;
+  executorContainerMemoryBytes: number;
+  executorMemoryOverheadFactor: number;
+  executorMemoryOverheadViaConfigString: number;
+  executorMemoryOverheadString: string;
+  executorContainerMemoryString: string;
+  executorMemoryOverheadViaConfig: number;
   driverMemoryBytes: number;
   driverMemoryBytesString: string;
   driverMemoryBytesSparkFormatString: string;

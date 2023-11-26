@@ -67,8 +67,19 @@ export function extractConfig(
   const driverMemoryBytes = parseSize(driverMemoryStr);
   const driverMemoryBytesString = humanFileSize(driverMemoryBytes);
 
+  const memoryOverheadFactorString = sparkPropertiesObj["spark.kubernetes.memoryOverheadFactor"] ?? sparkPropertiesObj["spark.executor.memoryOverheadFactor"] ?? "0.1";
+  const executorMemoryOverheadFactor = parseFloat(memoryOverheadFactorString);
+  const memoryOverheadViaConfigString = sparkPropertiesObj["spark.executor.memoryOverhead"] ?? "384m";
+  const executorMemoryOverheadViaConfig = parseSize(memoryOverheadViaConfigString);
+  const totalExectorMemoryViaFactor = executorMemoryBytes * executorMemoryOverheadFactor;
+  const totalExectorMemoryViaFactorString = humanFileSize(totalExectorMemoryViaFactor);
+  const executorMemoryOverheadBytes = Math.max(totalExectorMemoryViaFactor, executorMemoryOverheadViaConfig);
+  const executorContainerMemoryBytes = executorMemoryBytes + executorMemoryOverheadBytes
+  const executorMemoryOverheadString = humanFileSize(executorMemoryOverheadBytes)
+  const executorContainerMemoryString = humanFileSize(executorContainerMemoryBytes)
+
   const appName = sparkPropertiesObj["spark.app.name"];
-  const config = {
+  const config: Record<string, string> = {
     "spark.app.name": sparkPropertiesObj["spark.app.name"],
     "spark.app.id": sparkPropertiesObj["spark.app.id"],
     "sun.java.command": systemPropertiesObj["sun.java.command"],
@@ -77,12 +88,24 @@ export function extractConfig(
     scalaVersion: runtimeObj["scalaVersion"],
     "spark.executor.memory": executorMemoryStr,
     "spark.driver.memory": driverMemoryStr,
+    "executor memory overhead via config": memoryOverheadViaConfigString,
+    "executor memory overhead via factor": totalExectorMemoryViaFactorString,
+    "executor memory overhead factor": memoryOverheadFactorString,
+    "executor memory overhead": executorMemoryOverheadString,
+    "executor container memory": executorContainerMemoryString
   };
 
   return [
     appName,
     {
       rawSparkConfig: config,
+      executorMemoryOverheadViaConfigString: memoryOverheadViaConfigString,
+      executorMemoryOverheadFactor: executorMemoryOverheadFactor,
+      executorMemoryOverheadViaConfig: executorMemoryOverheadViaConfig,
+      executorMemoryOverheadBytes: executorMemoryOverheadBytes,
+      executorContainerMemoryBytes: executorContainerMemoryBytes,
+      executorMemoryOverheadString: executorMemoryOverheadString,
+      executorContainerMemoryString: executorContainerMemoryString,
       executorMemoryBytes: executorMemoryBytes,
       executorMemoryBytesString: executorMemoryBytesString,
       executorMemoryBytesSparkFormatString: executorMemoryStr,
