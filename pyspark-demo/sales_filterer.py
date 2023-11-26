@@ -5,7 +5,7 @@ import os
 spark = SparkSession \
     .builder \
     .appName("Sales Filterer") \
-    .config("spark.jars.packages", "io.dataflint:spark_2.12:0.0.4-SNAPSHOT") \
+    .config("spark.jars.packages", "io.dataflint:spark_2.12:0.0.5-SNAPSHOT") \
     .config("spark.jars.repositories", "https://s01.oss.sonatype.org/content/repositories/snapshots") \
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin") \
     .config("spark.ui.port", "11000") \
