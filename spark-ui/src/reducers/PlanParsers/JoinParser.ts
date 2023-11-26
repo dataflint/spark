@@ -1,30 +1,6 @@
 import { ParsedJoinPlan } from "../../interfaces/AppStore";
-import { hashNumbersRemover, removeFromEnd, removeFromStart } from './PlanParserUtils';
+import { bracedSplit, hashNumbersRemover, removeFromEnd, removeFromStart } from './PlanParserUtils';
 
-
-export function specialSplit(input: string): string[] {
-    const result: string[] = [];
-    let buffer = "";
-    let bracketCount = 0;
-    let inQuotes = false;
-
-    for (let i = 0; i < input.length; i++) {
-        const char = input[i];
-
-        if (char === "(") bracketCount++;
-        if (char === ")") bracketCount--;
-        if (char === '"') inQuotes = !inQuotes;
-
-        if (char === "," && bracketCount === 0 && !inQuotes) {
-            result.push(buffer.trim());
-            buffer = "";
-        } else {
-            buffer += char;
-        }
-    }
-    if (buffer) result.push(buffer.trim());
-    return result;
-}
 
 export function parseJoin(input: string): ParsedJoinPlan {
     if (input.startsWith("BroadcastNestedLoopJoin")) {
@@ -44,11 +20,11 @@ export function parseJoin(input: string): ParsedJoinPlan {
     let joinCondition: string | undefined;
 
     if (leftKeysStr) {
-        leftKeys = specialSplit(leftKeysStr)
+        leftKeys = bracedSplit(leftKeysStr)
     }
 
     if (rightKeysStr) {
-        rightKeys = specialSplit(rightKeysStr);
+        rightKeys = bracedSplit(rightKeysStr);
     }
 
     if (conditionStr) {

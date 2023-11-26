@@ -1,5 +1,5 @@
 import { ParsedHashAggregatePlan } from "../../interfaces/AppStore";
-import { hashNumbersRemover, onlyUnique } from "./PlanParserUtils";
+import { bracedSplit, hashNumbersRemover, onlyUnique } from "./PlanParserUtils";
 
 export function parseHashAggregate(input: string): ParsedHashAggregatePlan {
   const cleanInput = hashNumbersRemover(input);
@@ -11,11 +11,11 @@ export function parseHashAggregate(input: string): ParsedHashAggregatePlan {
   let operations: string[] = [];
 
   if (keysMatch && keysMatch[1]) {
-    keys = keysMatch[1].split(",").map((key) => key.trim());
+    keys = bracedSplit(keysMatch[1]).map((key) => key.trim());
   }
 
   if (functionsMatch && functionsMatch[1]) {
-    functions = functionsMatch[1].split(",").map((func) => func.trim());
+    functions = bracedSplit(functionsMatch[1]).map((func) => func.trim());
 
     // Extracting only the outermost operation
     operations = functions

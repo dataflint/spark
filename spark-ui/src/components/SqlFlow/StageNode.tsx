@@ -1,11 +1,13 @@
 import { Box, Tooltip, Typography } from "@mui/material";
 import React, { FC } from "react";
+import SyntaxHighlighter from 'react-syntax-highlighter';
+import { a11yDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { Handle, Position } from "reactflow";
 import { useAppSelector } from "../../Hooks";
 import { EnrichedSqlNode } from "../../interfaces/AppStore";
 import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
-import AlertBadge from "../AlertBadge/AlertBadge";
+import AlertBadge, { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import { ConditionalWrapper } from "../InfoBox/InfoBox";
 import styles from "./node-style.module.css";
 
@@ -14,8 +16,9 @@ export const StageNodeName: string = "stageNode";
 interface MetricWithTooltip {
   name: string
   value: string
-  tooltip?: string
+  tooltip?: string | JSX.Element
   showBlock?: boolean
+  showSyntax?: boolean
 }
 
 export const StageNode: FC<{
@@ -42,11 +45,7 @@ export const StageNode: FC<{
         });
         break;
       case "Filter":
-        dataTable.push({
-          name: "Condition",
-          value: truncateMiddle(parsedPlan.plan.condition, 150),
-          showBlock: true
-        });
+        addTruncatedCodeTooltip(dataTable, "Condition", parsedPlan.plan.condition);
         break;
       case "TakeOrderedAndProject":
         dataTable.push({
@@ -56,87 +55,46 @@ export const StageNode: FC<{
         break;
       case "WriteToHDFS":
         if (parsedPlan.plan.tableName !== undefined) {
-          dataTable.push({
-            name: "Table name",
-            value: truncateMiddle(parsedPlan.plan.tableName, 25),
-            tooltip: parsedPlan.plan.tableName.length > 25 ? parsedPlan.plan.tableName : undefined
-          });
+          addTruncatedSmallTooltip(dataTable, "Table Name", parsedPlan.plan.tableName);
         }
-        dataTable.push({
-          name: "File Path",
-          value: truncateMiddle(parsedPlan.plan.location, 25),
-          tooltip: parsedPlan.plan.location.length > 25 ? parsedPlan.plan.location : undefined
-
-        });
+        addTruncatedSmallTooltip(dataTable, "File Path", parsedPlan.plan.location);
         dataTable.push({ name: "Format", value: parsedPlan.plan.format });
         dataTable.push({ name: "Mode", value: parsedPlan.plan.mode });
         if (parsedPlan.plan.partitionKeys !== undefined) {
-          dataTable.push({
-            name: "Partition Keys",
-            value: truncateMiddle(parsedPlan.plan.partitionKeys.join(","), 25),
-            tooltip: parsedPlan.plan.partitionKeys.length > 25 ? parsedPlan.plan.partitionKeys.join(",") : undefined
-          });
+          addTruncatedSmallTooltipMultiLine(dataTable, "Partition By", parsedPlan.plan.partitionKeys);
         }
         break;
       case "FileScan":
         if (parsedPlan.plan.Location !== undefined) {
-          dataTable.unshift({
-            name: "File Path",
-            value: truncateMiddle(parsedPlan.plan.Location, 25),
-            tooltip: parsedPlan.plan.Location
-          });
+          addTruncatedSmallTooltip(dataTable, "File Path", parsedPlan.plan.Location);
         }
         if (parsedPlan.plan.tableName !== undefined) {
-          dataTable.unshift({
-            name: "Table",
-            value: truncateMiddle(parsedPlan.plan.tableName, 25),
-            tooltip: parsedPlan.plan.tableName
-          });
+          addTruncatedSmallTooltip(dataTable, "Table", parsedPlan.plan.tableName);
         }
         break;
       case "Exchange":
         if (parsedPlan.plan.fields !== undefined && parsedPlan.plan.fields.length > 0) {
-          dataTable.push({
-            name: parsedPlan.plan.type === "hashpartitioning" ?
-              (parsedPlan.plan.fields.length === 1 ? "hashed field" : "hashed fields") :
-              (parsedPlan.plan.fields.length === 1 ? "ranged field" : "ranged fields"),
-            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 150),
-            showBlock: true
-          });
+          addTruncatedSmallTooltipMultiLine(dataTable, parsedPlan.plan.type === "hashpartitioning" ?
+            (parsedPlan.plan.fields.length === 1 ? "hashed field" : "hashed fields") :
+            (parsedPlan.plan.fields.length === 1 ? "ranged field" : "ranged fields"), parsedPlan.plan.fields)
         }
         break;
       case "Project":
         if (parsedPlan.plan.fields !== undefined) {
-          dataTable.push({
-            name: "Selected Fields",
-            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 150),
-            showBlock: true
-          });
+          addTruncatedCodeTooltipMultiline(dataTable, "Selected Fields", parsedPlan.plan.fields)
         }
         break;
       case "HashAggregate":
         if (parsedPlan.plan.keys !== undefined && parsedPlan.plan.keys.length > 0) {
-          dataTable.push({
-            name: "Aggregate By",
-            value: truncateMiddle(parsedPlan.plan.keys.join(", "), 150),
-            showBlock: true
-          });
+          addTruncatedCodeTooltipMultiline(dataTable, "Aggregate By", parsedPlan.plan.keys)
         }
         if (parsedPlan.plan.functions !== undefined && parsedPlan.plan.functions.length > 0) {
-          dataTable.push({
-            name: "Expression",
-            value: truncateMiddle(parsedPlan.plan.functions.join(", "), 150),
-            showBlock: true
-          });
+          addTruncatedCodeTooltipMultiline(dataTable, "Expression", parsedPlan.plan.functions)
         }
         break;
       case "Sort":
         if (parsedPlan.plan.fields !== undefined && parsedPlan.plan.fields.length > 0) {
-          dataTable.push({
-            name: "Sort By",
-            value: truncateMiddle(parsedPlan.plan.fields.join(", "), 150),
-            showBlock: true
-          });
+          addTruncatedSmallTooltipMultiLine(dataTable, "Sort by", parsedPlan.plan.fields)
         }
         break;
       case "Join":
@@ -160,19 +118,16 @@ export const StageNode: FC<{
           });
         }
         if (parsedPlan.plan.joinCondition !== undefined && parsedPlan.plan.joinCondition !== "") {
-          dataTable.push({
-            name: "Join Condition",
-            value: truncateMiddle(parsedPlan.plan.joinCondition, 150),
-            showBlock: true
-          });
+          addTruncatedCodeTooltip(dataTable, "Join Condition", parsedPlan.plan.joinCondition);
         }
         break;
     }
   }
+
   return (
     <>
       <Handle type="target" position={Position.Left} id="b" />
-      <Box position="relative">
+      <Box position="relative" maxWidth={280} maxHeight={200}>
         <div className={styles.node}>
           <div className={styles.textWrapper}>
             <Typography
@@ -191,7 +146,11 @@ export const StageNode: FC<{
                 key={metric.name}
                 condition={metric.tooltip !== undefined}
                 wrapper={(childern) => (
-                  <Tooltip title={metric.tooltip}>{childern}</Tooltip>
+                  typeof metric.tooltip === "string" ?
+                    <Tooltip title={metric.tooltip}>{childern}</Tooltip> :
+                    <TransperantTooltip title={metric.tooltip}>
+                      {childern}
+                    </TransperantTooltip>
                 )}
               >
                 <Box
@@ -210,8 +169,54 @@ export const StageNode: FC<{
           </div>
         </div>
         <AlertBadge alert={sqlNodeAlert} margin="20px" placement="top" />
-      </Box>
+      </Box >
       <Handle type="source" position={Position.Right} id="a" />
     </>
   );
 };
+function addTruncatedSmallTooltipMultiLine(dataTable: MetricWithTooltip[], name: string, value: string[], limit: number = 25, pushEnd: boolean = false) {
+  addTruncatedSmallTooltip(dataTable, name, value.join(", "), limit, pushEnd, true);
+}
+
+function addTruncatedCodeTooltipMultiline(dataTable: MetricWithTooltip[], name: string, value: string[]) {
+  addTruncatedCodeTooltip(dataTable, name, value.join(",\n"));
+}
+
+function addTruncatedCodeTooltip(dataTable: MetricWithTooltip[], name: string, value: string, limit: number = 120, pushEnd: boolean = true, showBlock: boolean = true) {
+  const element = {
+    name: name,
+    value: truncateMiddle(value, limit),
+    tooltip: (
+      <React.Fragment>
+        <SyntaxHighlighter language="sql" style={a11yDark} customStyle={{
+          fontSize: "1em"
+        }} wrapLongLines>
+          {value}
+        </SyntaxHighlighter>
+      </React.Fragment>
+    ),
+    showBlock: showBlock,
+    showSyntax: true,
+  };
+  pushEnd ? dataTable.push(element) : dataTable.unshift(element);
+}
+
+function addTruncatedSmallTooltip(dataTable: MetricWithTooltip[], name: string, value: string, limit: number = 25, pushEnd: boolean = false, showBlock: boolean = false, showSyntax: boolean = false) {
+  const element = {
+    name: name,
+    value: truncateMiddle(value, limit),
+    tooltip: value.length > limit ? value : undefined,
+    showBlock: showBlock,
+    showSyntax: showSyntax,
+  };
+  pushEnd ? dataTable.push(element) : dataTable.unshift(element);
+}
+
+function addTruncated(dataTable: MetricWithTooltip[], name: string, value: string) {
+  dataTable.push({
+    name: name,
+    value: truncateMiddle(value, 120),
+    showBlock: true
+  });
+}
+
