@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
+import ChatSlice from "./reducers/ChatSlice";
 import SparkSlice from "./reducers/SparkSlice";
 
 const store = configureStore({
   reducer: {
     spark: SparkSlice,
+    chat: ChatSlice
   },
 });
 

@@ -2,6 +2,7 @@ import React from "react";
 import { createHashRouter } from "react-router-dom";
 import App from "./App";
 import { AlertsTab } from "./tabs/AlertsTab";
+import ChatTab from "./tabs/ChatTab";
 import ConfigurationTab from "./tabs/ConfigurationTab";
 import StatusTab from "./tabs/StatusTab";
 import SummaryTab from "./tabs/SummaryTab";
@@ -33,6 +34,10 @@ export const reactRouter = createHashRouter([
       {
         path: "/summary",
         element: <SummaryTab />,
+      },
+      {
+        path: "/sparkassistant",
+        element: <ChatTab />,
       },
     ],
   },
