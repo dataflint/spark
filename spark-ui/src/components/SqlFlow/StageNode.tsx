@@ -127,7 +127,7 @@ export const StageNode: FC<{
   return (
     <>
       <Handle type="target" position={Position.Left} id="b" />
-      <Box position="relative" maxWidth={280} maxHeight={200}>
+      <Box position="relative" maxWidth={280} maxHeight={220}>
         <div className={styles.node}>
           <div className={styles.textWrapper}>
             <Typography

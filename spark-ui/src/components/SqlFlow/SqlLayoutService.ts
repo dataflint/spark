@@ -5,7 +5,7 @@ import { EnrichedSparkSQL, EnrichedSqlEdge, EnrichedSqlNode, GraphFilter } from 
 import { StageNodeName } from "./StageNode";
 
 const nodeWidth = 280;
-const nodeHeight = 200;
+const nodeHeight = 220;
 
 const getLayoutedElements = (
   nodes: Node[],
