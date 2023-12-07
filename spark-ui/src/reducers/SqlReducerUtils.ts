@@ -97,7 +97,7 @@ const nodeRenamerDict: Record<string, string> = {
   MicroBatchScan: "Read Micro batch"
 };
 
-function extractTotalFromStatisticsMetric(value: string): string | undefined {
+export function extractTotalFromStatisticsMetric(value: string | undefined): string | undefined {
   if (value === undefined) {
     return undefined
   }

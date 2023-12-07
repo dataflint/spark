@@ -10,7 +10,7 @@ import {
 import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
-import { timeStrToEpocTime } from "../utils/FormatUtils";
+import { timeStrToEpocTime, timeStringToMilliseconds } from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
 import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
@@ -24,6 +24,7 @@ import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import {
   calcNodeMetrics,
   calcNodeType,
+  extractTotalFromStatisticsMetric,
   nodeEnrichedNameBuilder,
 } from "./SqlReducerUtils";
 
@@ -130,6 +131,16 @@ export function parseNodePlan(
   return undefined;
 }
 
+function getCodegenDuration(node: EnrichedSqlNode): number | undefined {
+  const durationStr = node.metrics.find(metric => metric.name === "duration")?.value;
+  if (durationStr === undefined) {
+    return undefined;
+  }
+  const totalDurationStr = extractTotalFromStatisticsMetric(durationStr);
+  const duration = timeStringToMilliseconds(totalDurationStr);
+  return duration
+}
+
 function calculateSql(
   sql: SparkSQL,
   plan: SQLPlan | undefined,
@@ -144,6 +155,7 @@ function calculateSql(
     const parsedPlan =
       nodePlan !== undefined ? parseNodePlan(node, nodePlan) : undefined;
     const isCodegenNode = node.nodeName.includes("WholeStageCodegen");
+    const codegenDuration = isCodegenNode ? getCodegenDuration(node) : undefined;
     return {
       ...node,
       type: type,
@@ -151,12 +163,18 @@ function calculateSql(
       enrichedName: nodeEnrichedNameBuilder(node.nodeName, parsedPlan),
       isCodegenNode: isCodegenNode,
       wholeStageCodegenId: isCodegenNode ? extractCodegenId() : node.wholeStageCodegenId,
+      codegenDuration: codegenDuration
     };
 
     function extractCodegenId(): number | undefined {
       return parseInt(node.nodeName.replace("WholeStageCodegen (", "").replace(")", ""));
     }
   });
+
+  const onlyCodeGenNodes = typeEnrichedNodes.filter(
+    (node) =>
+      node.isCodegenNode,
+  );
 
   const onlyGraphNodes = typeEnrichedNodes.filter(
     (node) =>
@@ -206,6 +224,7 @@ function calculateSql(
   return {
     ...enrichedSql,
     nodes: metricEnrichedNodes,
+    codegenNodes: onlyCodeGenNodes,
     filters: {
       "io": {
         nodesIds: ioNodesIds,

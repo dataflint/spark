@@ -8,6 +8,7 @@ import { SparkSQLs } from "../interfaces/SparkSQLs";
 import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { SQLPlans } from "../interfaces/SQLPlan";
+import { StagesRdd } from "../interfaces/StagesRdd";
 import { reduceAlers as reduceAlerts } from "./AlertsReducer";
 import { extractConfig, extractRunMetadata } from "./ConfigReducer";
 import { calculateSparkExecutorsStore } from "./ExecutorsReducer";
@@ -78,7 +79,7 @@ const sparkSlice = createSlice({
       state.jobs = undefined;
       state.executors = undefined;
     },
-    setStages: (state, action: PayloadAction<{ value: SparkStages }>) => {
+    setStages: (state, action: PayloadAction<{ value: SparkStages, stagesRdd: StagesRdd }>) => {
       if (state.status === undefined) {
         return;
       }
@@ -89,6 +90,7 @@ const sparkSlice = createSlice({
       if (stageStatus !== state.status?.stages) {
         const stageStore = calculateStagesStore(
           state.stages,
+          action.payload.stagesRdd,
           action.payload.value,
         );
         state.status.stages = stageStatus;

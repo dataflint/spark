@@ -3,6 +3,7 @@ import * as Moment from "moment";
 import { extendMoment } from "moment-range";
 import {
   EnrichedSparkSQL,
+  SQLNodeStageData,
   SparkExecutorsStore,
   SparkJobsStore,
   SparkMetricsStore,
@@ -14,17 +15,20 @@ import {
 import { SparkJobs } from "../interfaces/SparkJobs";
 import { SqlStatus } from "../interfaces/SparkSQLs";
 import { SparkStages } from "../interfaces/SparkStages";
+import { StagesRdd } from "../interfaces/StagesRdd";
 import { msToHours } from "../utils/FormatUtils";
 
 const moment = extendMoment(Moment);
 
 export function calculateStagesStore(
   existingStore: SparkStagesStore | undefined,
+  stagesRdd: StagesRdd,
   stages: SparkStages,
 ): SparkStagesStore {
   //  stages with status SKIPPED does not have metrics, or in the case of numTasks has a "wrong" value
+
   const stagesStore: SparkStagesStore = stages
-    .filter((stage) => stage.status != "SKIPPED")
+    .filter((stage) => stage.status !== "SKIPPED")
     .map((stage) => {
       return {
         stageId: stage.stageId,
@@ -32,6 +36,7 @@ export function calculateStagesStore(
         status: stage.status,
         numTasks: stage.numTasks,
         failureReason: stage.failureReason,
+        stagesRdd: stagesRdd[stage.stageId],
         metrics: {
           executorRunTime: stage.executorRunTime,
           diskBytesSpilled: stage.diskBytesSpilled,
@@ -130,6 +135,22 @@ function calculateSqlQueryResourceUsage(
   return intersectTime;
 }
 
+export function stageDataFromStage(stageId: number | undefined, stages: SparkStagesStore): SQLNodeStageData | undefined {
+  if (stageId === undefined) {
+    return undefined;
+  }
+  const stage = stages.find(stage => stage.stageId === stageId);
+  if (stage === undefined) {
+    return undefined;
+  }
+  return {
+    stageId: stageId,
+    status: stage?.status,
+    stageDuration: stage?.metrics.executorRunTime,
+  }
+}
+
+
 export function calculateSqlQueryLevelMetricsReducer(
   existingStore: SparkSQLStore,
   statusStore: StatusStore,
@@ -160,16 +181,16 @@ export function calculateSqlQueryLevelMetricsReducer(
         executors.length === 1
           ? queryResourceUsageWithDriverMs
           : calculateSqlQueryResourceUsage(
-              sql,
-              executors.filter((executor) => !executor.isDriver),
-            );
+            sql,
+            executors.filter((executor) => !executor.isDriver),
+          );
       const totalTasksTime = sql.stageMetrics?.executorRunTime as number;
       const activityRate =
         queryResourceUsageExecutorsOnlyMs !== 0
           ? Math.min(
-              100,
-              (totalTasksTime / queryResourceUsageExecutorsOnlyMs) * 100,
-            )
+            100,
+            (totalTasksTime / queryResourceUsageExecutorsOnlyMs) * 100,
+          )
           : 0;
       const coreHourUsage = msToHours(queryResourceUsageWithDriverMs);
       const resourceUsageStore: SparkSQLResourceUsageStore = {
@@ -179,9 +200,9 @@ export function calculateSqlQueryLevelMetricsReducer(
           statusStore.executors?.totalCoreHour === undefined
             ? 0
             : Math.min(
-                100,
-                (coreHourUsage / statusStore.executors.totalCoreHour) * 100,
-              ),
+              100,
+              (coreHourUsage / statusStore.executors.totalCoreHour) * 100,
+            ),
         durationPercentage:
           statusStore.duration === undefined
             ? 0
@@ -202,6 +223,22 @@ export function calculateSqlQueryLevelMetricsReducer(
       )?.failureReason;
 
       return { ...sql, failureReason };
+    })
+    .map((sql) => {
+      const codegenNodes = sql.codegenNodes.map(node => {
+        return { ...node, stage: stageDataFromStage(stages.find(stage => stage.stagesRdd !== undefined && Object.values(stage.stagesRdd).includes(node.nodeName))?.stageId, stages) }
+      });
+      const nodes = sql.nodes.map(node => {
+        const stageCodegen = codegenNodes.find(codegenNode => codegenNode.wholeStageCodegenId === node.wholeStageCodegenId)
+        const stageData = stageDataFromStage(stageCodegen?.stage?.stageId, stages);
+        const duration = stageCodegen?.codegenDuration ?? stageData?.stageDuration;
+        const durationPercentage = duration !== undefined && sql.stageMetrics !== undefined ? (sql.stageMetrics?.executorRunTime === 0 ? 0 : ((duration / sql.stageMetrics?.executorRunTime) * 100)) : undefined;
+        return {
+          ...node, stage: stageData, duration: duration,
+          durationPercentage: durationPercentage
+        }
+      });
+      return { ...sql, nodes: nodes, codegenNodes: codegenNodes }
     });
   return { sqls: newSqls };
 }

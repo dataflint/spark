@@ -121,6 +121,7 @@ export interface EnrichedSparkSQL {
   successJobIds: number[];
   failedJobIds: number[];
   nodes: EnrichedSqlNode[];
+  codegenNodes: EnrichedSqlNode[];
   edges: EnrichedSqlEdge[];
   filters: Record<GraphFilter, FilteredGraph>
   failureReason: string | undefined;
@@ -205,7 +206,17 @@ export interface EnrichedSqlNode {
   type: NodeType;
   wholeStageCodegenId?: number;
   isCodegenNode: boolean;
+  codegenDuration: number | undefined;
+  duration: number | undefined;
+  durationPercentage: number | undefined;
+  stage: SQLNodeStageData | undefined;
   parsedPlan: ParsedNodePlan | undefined;
+}
+
+export interface SQLNodeStageData {
+  stageId: number;
+  status: string;
+  stageDuration: number;
 }
 
 export interface EnrichedSqlMetric {
@@ -270,6 +281,7 @@ export interface SparkStageStore {
   stageId: number;
   numTasks: number;
   name: string;
+  stagesRdd: Record<string, string> | undefined
   failureReason: string | undefined;
   metrics: SparkMetricsStore;
 }

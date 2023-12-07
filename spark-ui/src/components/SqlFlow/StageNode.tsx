@@ -1,4 +1,7 @@
-import { Box, Tooltip, Typography } from "@mui/material";
+import CheckIcon from '@mui/icons-material/Check';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import PendingIcon from '@mui/icons-material/Pending';
+import { Box, CircularProgress, Tooltip, Typography } from "@mui/material";
 import React, { FC } from "react";
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { a11yDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
@@ -19,6 +22,66 @@ interface MetricWithTooltip {
   tooltip?: string | JSX.Element
   showBlock?: boolean
   showSyntax?: boolean
+}
+
+
+function getBucketedColor(percentage: number): string {
+  if (percentage < 0 || percentage > 100) {
+    throw new Error("Percentage must be between 0 and 100");
+  }
+
+  // Determine the bucket
+  let bucket = Math.floor(percentage / 10);
+
+  // Assign a color to each bucket
+  switch (bucket) {
+    case 0: return "#006400"; // Dark green
+    case 1: return "#228B22"; // Forest green
+    case 2: return "#6B8E23"; // Olive drab
+    case 3: return "#B8860B"; // Dark goldenrod
+    case 4: // Fall through
+    case 5: // Fall through
+    case 6: // Fall through
+    case 7: // Fall through
+    case 8: // Fall through
+    case 9: // Fall through
+    case 10: return "#FF4500"; // Red-orange
+    default: return "#FF0000"; // Red
+  }
+}
+
+const StatusIcon: FC<{ status: string | undefined }> = ({ status }): JSX.Element => {
+  if (status === undefined) {
+    return <div></div>
+  }
+  switch (status) {
+    case "ACTIVE":
+      return (
+        <CircularProgress
+          color="info"
+          style={{ width: "30px", height: "30px" }}
+        />
+      );
+    case "COMPLETE":
+      return (
+        <CheckIcon color="success" style={{ width: "30px", height: "30px" }} />
+      );
+    case "FAILED":
+      return (
+        <ErrorOutlineIcon
+          color="error"
+          style={{ width: "30px", height: "30px" }}
+        />
+      );
+    case "PENDING":
+      return <PendingIcon
+        sx={{ color: "#b2a300" }}
+        style={{ width: "30px", height: "30px" }}
+      />
+        ;
+    default:
+      return <div></div>
+  }
 }
 
 export const StageNode: FC<{
@@ -169,6 +232,23 @@ export const StageNode: FC<{
           </div>
         </div>
         <AlertBadge alert={sqlNodeAlert} margin="20px" placement="top" />
+        <Box sx={{
+          position: "absolute",
+          top: "80%",
+          right: "85%",
+        }}>
+          <StatusIcon status={data.node.stage?.status} />
+        </Box>
+        <Box sx={{
+          position: "absolute",
+          top: "85%",
+          right: "42%",
+          color: getBucketedColor(data.node.durationPercentage ?? 0)
+        }}>
+          <Typography variant="body2">
+            {data.node.durationPercentage !== undefined ? data.node.durationPercentage.toFixed(2) + "%" : ""}
+          </Typography>
+        </Box>
       </Box >
       <Handle type="source" position={Position.Right} id="a" />
     </>

@@ -10,6 +10,7 @@ import { SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { SQLPlans } from "../interfaces/SQLPlan";
+import { StagesRdd } from "../interfaces/StagesRdd";
 import {
   onCycleEnd,
   setInitial,
@@ -63,6 +64,10 @@ class SparkAPI {
 
   private buildSqlPlanPath(offset: number): string {
     return `${this.baseCurrentPage}/sqlplan/json/?offset=${offset}&length=${SQL_QUERY_LENGTH}`;
+  }
+
+  private buildStageRdd(): string {
+    return `${this.baseCurrentPage}/stagesrdd/json/`;
   }
 
   private get executorsPath(): string {
@@ -164,8 +169,9 @@ class SparkAPI {
         this.dispatch(updateDuration({ epocCurrentTime: Date.now() }));
       }
 
+      const stagesRdd: StagesRdd = await this.queryData(this.buildStageRdd());
       const sparkStages: SparkStages = await this.queryData(this.stagesPath);
-      this.dispatch(setStages({ value: sparkStages }));
+      this.dispatch(setStages({ value: sparkStages, stagesRdd: stagesRdd }));
 
       const sparkExecutors: SparkExecutors = await this.queryData(
         this.executorsPath,

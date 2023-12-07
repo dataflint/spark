@@ -14,6 +14,7 @@ object DataflintSparkUILoader {
     val tab = new DataflintTab(ui)
     tab.attachPage(new DataflintSQLPlanPage(ui, sqlListener))
     tab.attachPage(new DataflintSQLMetricsPage(ui, sqlListener))
+    tab.attachPage(new DataflintSQLStagesRddPage(ui))
     ui.attachTab(tab)
     ui.webUrl
   }
