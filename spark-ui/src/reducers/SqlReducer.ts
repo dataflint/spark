@@ -4,6 +4,7 @@ import {
   EnrichedSparkSQL,
   EnrichedSqlEdge,
   EnrichedSqlNode,
+  ExchangeMetrics,
   ParsedNodePlan,
   SparkSQLStore,
 } from "../interfaces/AppStore";
@@ -28,16 +29,24 @@ import {
   nodeEnrichedNameBuilder,
 } from "./SqlReducerUtils";
 
-export function cleanUpDAG(
+export function generateGraph(
   edges: EnrichedSqlEdge[],
   allNodes: EnrichedSqlNode[],
-  visibleNodes: EnrichedSqlNode[]
-): EnrichedSqlEdge[] {
+): Graph {
   var g = new Graph();
   allNodes.forEach((node) => g.setNode(node.nodeId.toString()));
   edges.forEach((edge) =>
     g.setEdge(edge.fromId.toString(), edge.toId.toString()),
   );
+  return g;
+}
+
+export function cleanUpDAG(
+  edges: EnrichedSqlEdge[],
+  allNodes: EnrichedSqlNode[],
+  visibleNodes: EnrichedSqlNode[]
+): EnrichedSqlEdge[] {
+  var g = generateGraph(edges, allNodes);
 
   const visibleNodesIds = visibleNodes.map((node) => node.nodeId);
   const notVisibleNodes = allNodes.filter((node) => !visibleNodesIds.includes(node.nodeId));
@@ -131,8 +140,8 @@ export function parseNodePlan(
   return undefined;
 }
 
-function getCodegenDuration(node: EnrichedSqlNode): number | undefined {
-  const durationStr = node.metrics.find(metric => metric.name === "duration")?.value;
+export function getMetricDuration(metricName: string, node: EnrichedSqlNode): number | undefined {
+  const durationStr = node.metrics.find(metric => metric.name === metricName)?.value;
   if (durationStr === undefined) {
     return undefined;
   }
@@ -155,15 +164,13 @@ function calculateSql(
     const parsedPlan =
       nodePlan !== undefined ? parseNodePlan(node, nodePlan) : undefined;
     const isCodegenNode = node.nodeName.includes("WholeStageCodegen");
-    const codegenDuration = isCodegenNode ? getCodegenDuration(node) : undefined;
     return {
       ...node,
       type: type,
       parsedPlan: parsedPlan,
       enrichedName: nodeEnrichedNameBuilder(node.nodeName, parsedPlan),
       isCodegenNode: isCodegenNode,
-      wholeStageCodegenId: isCodegenNode ? extractCodegenId() : node.wholeStageCodegenId,
-      codegenDuration: codegenDuration
+      wholeStageCodegenId: isCodegenNode ? extractCodegenId() : node.wholeStageCodegenId
     };
 
     function extractCodegenId(): number | undefined {
@@ -188,7 +195,10 @@ function calculateSql(
   }
 
   const metricEnrichedNodes = onlyGraphNodes.map((node) => {
-    return { ...node, metrics: calcNodeMetrics(node.type, node.metrics) };
+    const codegenDuration = calcCodegenDuration(node);
+    const exchangeMetrics = calcExchangeMetrics(node);
+
+    return { ...node, metrics: calcNodeMetrics(node.type, node.metrics), codegenDuration: codegenDuration, exchangeMetrics: exchangeMetrics };
   });
 
   const ioNodes = onlyGraphNodes.filter(node => node.type === "input" || node.type === "output" || node.type === "join");
@@ -327,13 +337,39 @@ export function updateSqlNodeMetrics(
     if (matchedMetricsNodes.length === 0) {
       return node;
     }
+
+    const codegenDuration = calcCodegenDuration(node);
+    const exchangeMetrics = calcExchangeMetrics(node);
+
     // TODO: maybe do a smarter replacement, or send only the initialized metrics
     return {
       ...node,
       metrics: calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics),
+      codegenDuration: codegenDuration,
+      exchangeMetrics: exchangeMetrics
     };
   });
 
   const updatedSql = { ...runningSql, nodes: nodes, metricUpdateId: uuidv4() };
   return { ...currentStore, sqls: [...notEffectedSqls, updatedSql] };
 }
+function calcCodegenDuration(node: EnrichedSqlNode) {
+  return node.isCodegenNode ? getMetricDuration("duration", node) : undefined;
+}
+
+function calcExchangeMetrics(node: EnrichedSqlNode) {
+  var exchangeMetrics: ExchangeMetrics | undefined = undefined;
+  if (node.nodeName == "Exchange") {
+    const writeDuration = getMetricDuration("shuffle write time", node) ?? 0;
+    const readDuration = (getMetricDuration("fetch wait time", node) ?? 0) +
+      (getMetricDuration("remote reqs duration", node) ?? 0) +
+      (getMetricDuration("remote merged reqs duration", node) ?? 0);
+    exchangeMetrics = {
+      writeDuration: writeDuration,
+      readDuration: readDuration,
+      duration: writeDuration + readDuration
+    };
+  }
+  return exchangeMetrics;
+}
+

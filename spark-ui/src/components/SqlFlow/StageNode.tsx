@@ -7,7 +7,7 @@ import SyntaxHighlighter from 'react-syntax-highlighter';
 import { a11yDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { Handle, Position } from "reactflow";
 import { useAppSelector } from "../../Hooks";
-import { EnrichedSqlNode } from "../../interfaces/AppStore";
+import { EnrichedSqlNode, SQLNodeExchangeStageData, SQLNodeStageData } from "../../interfaces/AppStore";
 import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
 import AlertBadge, { TransperantTooltip } from "../AlertBadge/AlertBadge";
@@ -26,8 +26,8 @@ interface MetricWithTooltip {
 
 
 function getBucketedColor(percentage: number): string {
-  if (percentage < 0 || percentage > 100) {
-    throw new Error("Percentage must be between 0 and 100");
+  if (percentage > 100) {
+    percentage = 100;
   }
 
   // Determine the bucket
@@ -50,10 +50,7 @@ function getBucketedColor(percentage: number): string {
   }
 }
 
-const StatusIcon: FC<{ status: string | undefined }> = ({ status }): JSX.Element => {
-  if (status === undefined) {
-    return <div></div>
-  }
+const getStatusIcon = (status: string): JSX.Element => {
   switch (status) {
     case "ACTIVE":
       return (
@@ -82,6 +79,19 @@ const StatusIcon: FC<{ status: string | undefined }> = ({ status }): JSX.Element
     default:
       return <div></div>
   }
+}
+
+const StageIcon: FC<{ stage: SQLNodeStageData | SQLNodeExchangeStageData | undefined }> = ({ stage }): JSX.Element => {
+  if (stage === undefined)
+    return <div></div>
+
+  const text = stage.type === "onestage" ?
+    `Stage ${stage.stageId}` :
+    `Write Stage: ${stage.writeStage}\n, Read Stage: ${stage.readStage}`
+
+  return <Tooltip sx={{ zIndex: 6 }} title={text}>
+    {getStatusIcon(stage.status)}
+  </Tooltip>
 }
 
 export const StageNode: FC<{
@@ -237,7 +247,7 @@ export const StageNode: FC<{
           top: "80%",
           right: "85%",
         }}>
-          <StatusIcon status={data.node.stage?.status} />
+          <StageIcon stage={data.node.stage} />
         </Box>
         <Box sx={{
           position: "absolute",

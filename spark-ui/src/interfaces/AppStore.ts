@@ -198,6 +198,11 @@ export type ParsedNodePlan =
   | { type: "Join"; plan: ParsedJoinPlan }
   | { type: "Sort"; plan: ParsedSortPlan };
 
+export interface ExchangeMetrics {
+  writeDuration: number;
+  readDuration: number;
+  duration: number;
+}
 export interface EnrichedSqlNode {
   nodeId: number;
   nodeName: string;
@@ -209,11 +214,20 @@ export interface EnrichedSqlNode {
   codegenDuration: number | undefined;
   duration: number | undefined;
   durationPercentage: number | undefined;
-  stage: SQLNodeStageData | undefined;
+  stage: SQLNodeStageData | SQLNodeExchangeStageData | undefined;
   parsedPlan: ParsedNodePlan | undefined;
+  exchangeMetrics: ExchangeMetrics | undefined;
+}
+
+export interface SQLNodeExchangeStageData {
+  type: "exchange";
+  writeStage: number;
+  readStage: number;
+  status: string;
 }
 
 export interface SQLNodeStageData {
+  type: "onestage";
   stageId: number;
   status: string;
   stageDuration: number;

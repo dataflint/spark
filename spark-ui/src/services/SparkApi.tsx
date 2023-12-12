@@ -201,7 +201,7 @@ class SparkAPI {
           // in cases of SQLs out of order, like id 2 is running and 3 is completed, we will try to ask from id 2 again
           finishedSqls.forEach(sql => {
             if (parseInt(sql.id) === this.lastCompletedSqlId + 1) {
-              this.lastCompletedSqlId += this.lastCompletedSqlId;
+              this.lastCompletedSqlId += 1;
             }
           });
         }
