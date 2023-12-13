@@ -171,7 +171,7 @@ export function calculateSqlStage(
     const nodesWithDuration: EnrichedSqlNode[] = nodesWithStageDuration.map(node => {
         const stageCodegen = codegenNodes.find(codegenNode => codegenNode.wholeStageCodegenId === node.wholeStageCodegenId)
         const duration = stageCodegen?.codegenDuration ?? node.exchangeMetrics?.duration ?? (node.stage?.type === "onestage" ? (node.stage?.restOfStageDuration ?? node.stage?.stageDuration) : undefined);
-        const durationPercentage = duration !== undefined && sql.stageMetrics !== undefined ? (sql.stageMetrics?.executorRunTime === 0 ? 0 : ((duration / sql.stageMetrics?.executorRunTime) * 100)) : undefined;
+        const durationPercentage = duration !== undefined && sql.stageMetrics !== undefined ? (sql.stageMetrics?.executorRunTime === 0 ? 0 : (Math.max(0, Math.min(100, duration / sql.stageMetrics?.executorRunTime) * 100))) : undefined;
         return {
             ...node,
             duration: duration,
