@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import {
   EnrichedSparkSQL,
   EnrichedSqlEdge,
+  EnrichedSqlMetric,
   EnrichedSqlNode,
   ExchangeMetrics,
   ParsedNodePlan,
@@ -140,8 +141,8 @@ export function parseNodePlan(
   return undefined;
 }
 
-export function getMetricDuration(metricName: string, node: EnrichedSqlNode): number | undefined {
-  const durationStr = node.metrics.find(metric => metric.name === metricName)?.value;
+export function getMetricDuration(metricName: string, metrics: EnrichedSqlMetric[]): number | undefined {
+  const durationStr = metrics.find(metric => metric.name === metricName)?.value;
   if (durationStr === undefined) {
     return undefined;
   }
@@ -181,7 +182,10 @@ function calculateSql(
   const onlyCodeGenNodes = typeEnrichedNodes.filter(
     (node) =>
       node.isCodegenNode,
-  );
+  ).map(node => {
+    const codegenDuration = calcCodegenDuration(node.metrics);
+    return { ...node, codegenDuration: codegenDuration };
+  });
 
   const onlyGraphNodes = typeEnrichedNodes.filter(
     (node) =>
@@ -194,12 +198,13 @@ function calculateSql(
     lastNode.type = "output";
   }
 
-  const metricEnrichedNodes = onlyGraphNodes.map((node) => {
-    const codegenDuration = calcCodegenDuration(node);
-    const exchangeMetrics = calcExchangeMetrics(node);
-
-    return { ...node, metrics: calcNodeMetrics(node.type, node.metrics), codegenDuration: codegenDuration, exchangeMetrics: exchangeMetrics };
+  const metricEnrichedNodes: EnrichedSqlNode[] = onlyGraphNodes.map((node) => {
+    const exchangeMetrics = calcExchangeMetrics(node.nodeName, node.metrics);
+    const exchangeBroadcastDuration = calcBroadcastExchangeDuration(node.nodeName, node.metrics);
+    return { ...node, metrics: calcNodeMetrics(node.type, node.metrics), exchangeMetrics: exchangeMetrics, exchangeBroadcastDuration: exchangeBroadcastDuration };
   });
+
+
 
   const ioNodes = onlyGraphNodes.filter(node => node.type === "input" || node.type === "output" || node.type === "join");
   const basicNodes = onlyGraphNodes.filter(node => node.type === "input" || node.type === "output" || node.type === "join" || node.type === "transformation");
@@ -338,32 +343,49 @@ export function updateSqlNodeMetrics(
       return node;
     }
 
-    const codegenDuration = calcCodegenDuration(node);
-    const exchangeMetrics = calcExchangeMetrics(node);
+    const metrics = calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics);
+    const exchangeMetrics = calcExchangeMetrics(node.nodeName, metrics);
 
     // TODO: maybe do a smarter replacement, or send only the initialized metrics
     return {
       ...node,
-      metrics: calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics),
-      codegenDuration: codegenDuration,
+      metrics: metrics,
       exchangeMetrics: exchangeMetrics
     };
   });
 
-  const updatedSql = { ...runningSql, nodes: nodes, metricUpdateId: uuidv4() };
+  const codegenNodes = runningSql.codegenNodes.map((node) => {
+    const matchedMetricsNodes = sqlMetrics.filter(
+      (nodeMetrics) => nodeMetrics.id === node.nodeId,
+    );
+    if (matchedMetricsNodes.length === 0) {
+      return node;
+    }
+
+    const metrics = calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics);
+    const codegenDuration = calcCodegenDuration(metrics);
+
+    return {
+      ...node,
+      codegenDuration: codegenDuration,
+    };
+  });
+
+
+  const updatedSql = { ...runningSql, nodes: nodes, codegenNodes: codegenNodes, metricUpdateId: uuidv4() };
   return { ...currentStore, sqls: [...notEffectedSqls, updatedSql] };
 }
-function calcCodegenDuration(node: EnrichedSqlNode) {
-  return node.isCodegenNode ? getMetricDuration("duration", node) : undefined;
+function calcCodegenDuration(metrics: EnrichedSqlMetric[]): number | undefined {
+  return getMetricDuration("duration", metrics);
 }
 
-function calcExchangeMetrics(node: EnrichedSqlNode) {
+function calcExchangeMetrics(nodeName: string, metrics: EnrichedSqlMetric[]) {
   var exchangeMetrics: ExchangeMetrics | undefined = undefined;
-  if (node.nodeName == "Exchange") {
-    const writeDuration = getMetricDuration("shuffle write time", node) ?? 0;
-    const readDuration = (getMetricDuration("fetch wait time", node) ?? 0) +
-      (getMetricDuration("remote reqs duration", node) ?? 0) +
-      (getMetricDuration("remote merged reqs duration", node) ?? 0);
+  if (nodeName == "Exchange") {
+    const writeDuration = getMetricDuration("shuffle write time", metrics) ?? 0;
+    const readDuration = (getMetricDuration("fetch wait time", metrics) ?? 0) +
+      (getMetricDuration("remote reqs duration", metrics) ?? 0) +
+      (getMetricDuration("remote merged reqs duration", metrics) ?? 0);
     exchangeMetrics = {
       writeDuration: writeDuration,
       readDuration: readDuration,
@@ -373,3 +395,12 @@ function calcExchangeMetrics(node: EnrichedSqlNode) {
   return exchangeMetrics;
 }
 
+function calcBroadcastExchangeDuration(nodeName: string, metrics: EnrichedSqlMetric[]): number | undefined {
+  if (nodeName == "BroadcastExchange") {
+    const duration = getMetricDuration("time to broadcast", metrics) ?? 0;
+    + (getMetricDuration("time to build", metrics) ?? 0) +
+      (getMetricDuration("time to collect", metrics) ?? 0);
+    return duration;
+  }
+  return undefined;
+}

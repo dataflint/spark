@@ -3,14 +3,15 @@ import { EnrichedSparkSQL, EnrichedSqlNode, SQLNodeStageData, SparkJobsStore, Sp
 import { generateGraph } from "./SqlReducer";
 
 export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
-    const { nodesIds, edges } = sql.filters["advanced"];
+    // const { nodesIds, edges } = sql.filters["advanced"];
+
+    let nodes = sql.nodes;
 
     function findNode(id: number): EnrichedSqlNode {
-        return sql.nodes.find(node => node.nodeId === id) as EnrichedSqlNode;
+        return nodes.find(node => node.nodeId === id) as EnrichedSqlNode;
     }
 
-    const nodes = nodesIds.map(id => findNode(id));
-    const graph = generateGraph(edges, nodes);
+    const graph = generateGraph(sql.edges, nodes);
 
     function findNextNode(id: number): EnrichedSqlNode | undefined {
         const inputEdges = graph.outEdges(id.toString());
@@ -28,7 +29,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
         return undefined
     }
 
-    const modifiedNodes: EnrichedSqlNode[] = nodes.map(node => {
+    nodes = nodes.map(node => {
         if (node.nodeName == "CollectLimit" || node.nodeName === "BroadcastExchange") {
             const previousNode = findPreviousNode(node.nodeId);
             if (previousNode !== undefined && previousNode.stage !== undefined) {
@@ -36,7 +37,8 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
             }
         }
         return node;
-    }).map(node => {
+    });
+    nodes = nodes.map(node => {
         if (node.nodeName === "AQEShuffleRead") {
             const nextNode = findNextNode(node.nodeId);
             if (nextNode !== undefined && nextNode.stage !== undefined) {
@@ -44,7 +46,8 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
             }
         }
         return node;
-    }).map(node => {
+    });
+    nodes = nodes.map(node => {
         if (node.nodeName === "Exchange") {
             const nextNode = findNextNode(node.nodeId);
             const previousNode = findPreviousNode(node.nodeId);
@@ -62,7 +65,8 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
             }
         }
         return node;
-    }).map(node => {
+    });
+    nodes = nodes.map(node => {
         if (node.type === "input") {
             const nextNode = findNextNode(node.nodeId);
             if (nextNode !== undefined && nextNode.stage !== undefined) {
@@ -70,16 +74,26 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
             }
         }
         return node;
-    }).map(node => {
+    });
+    nodes = nodes.map(node => {
         if (node.nodeName === "Execute InsertIntoHadoopFsRelationCommand") {
             const previousNode = findPreviousNode(node.nodeId);
-            if (previousNode !== undefined && previousNode.stage !== undefined) {
+            if (previousNode === undefined) {
+                return node;
+            }
+            if (previousNode.stage !== undefined) {
                 return { ...node, stage: previousNode.stage };
             }
+            // in full graph before insertInto there is a WriteFiles node
+            const previousPreviousNode = findPreviousNode(previousNode.nodeId);
+            if (previousPreviousNode !== undefined && previousPreviousNode.stage !== undefined) {
+                return { ...node, stage: previousPreviousNode.stage };
+            }
+
         }
         return node;
     });
-    return { ...sql, nodes: modifiedNodes };
+    return { ...sql, nodes: nodes };
 }
 
 export function stageDataFromStage(stageId: number | undefined, stages: SparkStagesStore): SQLNodeStageData | undefined {
@@ -95,6 +109,7 @@ export function stageDataFromStage(stageId: number | undefined, stages: SparkSta
         stageId: stageId,
         status: stage?.status,
         stageDuration: stage?.metrics.executorRunTime,
+        restOfStageDuration: stage?.metrics.executorRunTime, // will be calculate later
     }
 }
 
@@ -116,16 +131,52 @@ export function calculateSqlStage(
     const nodes = sql.nodes.map(node => {
         const stageCodegen = codegenNodes.find(codegenNode => codegenNode.wholeStageCodegenId === node.wholeStageCodegenId)
         const stageData = stageDataFromStage(stageCodegen?.stage?.stageId, stages);
-        const duration = stageCodegen?.codegenDuration ?? node.exchangeMetrics?.duration ?? stageData?.stageDuration;
-        const durationPercentage = duration !== undefined && sql.stageMetrics !== undefined ? (sql.stageMetrics?.executorRunTime === 0 ? 0 : ((duration / sql.stageMetrics?.executorRunTime) * 100)) : undefined;
         return {
             ...node,
             stage: stageData,
+        }
+    });
+    const knownStageSql = { ...sql, nodes: nodes, codegenNodes: codegenNodes, metricUpdateId: uuidv4() }
+
+    const calculatedStageSql = calculateSQLNodeStage(knownStageSql);
+
+    const otherStageDuration = sqlStages.map(stage => {
+        const id = stage.stageId
+        const codegensNodes = calculatedStageSql.codegenNodes.filter(node => node?.stage?.type === "onestage" && node?.stage?.stageId === id);
+        const exchangeWriteNodes = calculatedStageSql.nodes.filter(node => node?.stage?.type === "exchange" && node?.stage?.writeStage === id);
+        const exchangeReadNodes = calculatedStageSql.nodes.filter(node => node?.stage?.type === "exchange" && node?.stage?.readStage === id);
+        const broadcastExchangeNodes = calculatedStageSql.nodes.filter(node => node.nodeName === "BroadcastExchange" && node?.stage?.type === "onestage" && node?.stage?.stageId === id);
+
+        const codegensDuration = codegensNodes.map(node => node.codegenDuration ?? 0).reduce((a, b) => a + b, 0);
+        const exchangeWriteDuration = exchangeWriteNodes.map(node => node.exchangeMetrics?.writeDuration ?? 0).reduce((a, b) => a + b, 0);
+        const exchangeReadDuration = exchangeReadNodes.map(node => node.exchangeMetrics?.readDuration ?? 0).reduce((a, b) => a + b, 0);
+        const broadcastExchangeDuration = broadcastExchangeNodes.map(node => node.exchangeBroadcastDuration ?? 0).reduce((a, b) => a + b, 0);
+
+        const restOfStageDuration = Math.max(0, (stage.metrics.executorRunTime ?? 0) - codegensDuration - exchangeWriteDuration - exchangeReadDuration - broadcastExchangeDuration);
+
+        return { id: id, restOfStageDuration: restOfStageDuration };
+    });
+
+    const nodesWithStageDuration: EnrichedSqlNode[] = calculatedStageSql.nodes.map(node => {
+        if (node.exchangeMetrics !== undefined || node.wholeStageCodegenId !== undefined) {
+            return node;
+        }
+        if (node.stage === undefined) {
+            return node;
+        }
+        const restOfStageDuration = otherStageDuration.find(stage => node.stage?.type === "onestage" && stage.id === node.stage?.stageId)?.restOfStageDuration;
+        return { ...node, stage: { ...node.stage, restOfStageDuration: restOfStageDuration } }
+    });
+
+    const nodesWithDuration: EnrichedSqlNode[] = nodesWithStageDuration.map(node => {
+        const stageCodegen = codegenNodes.find(codegenNode => codegenNode.wholeStageCodegenId === node.wholeStageCodegenId)
+        const duration = stageCodegen?.codegenDuration ?? node.exchangeMetrics?.duration ?? (node.stage?.type === "onestage" ? (node.stage?.restOfStageDuration ?? node.stage?.stageDuration) : undefined);
+        const durationPercentage = duration !== undefined && sql.stageMetrics !== undefined ? (sql.stageMetrics?.executorRunTime === 0 ? 0 : ((duration / sql.stageMetrics?.executorRunTime) * 100)) : undefined;
+        return {
+            ...node,
             duration: duration,
             durationPercentage: durationPercentage
         }
     });
-    const knownStageSql = { ...sql, nodes: nodes, codegenNodes: codegenNodes, metricUpdateId: uuidv4() }
-    const calculatedStageSql = calculateSQLNodeStage(knownStageSql);
-    return calculatedStageSql;
+    return { ...calculatedStageSql, nodes: nodesWithDuration };
 }

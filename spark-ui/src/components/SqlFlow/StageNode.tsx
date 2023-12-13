@@ -2,6 +2,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import PendingIcon from '@mui/icons-material/Pending';
 import { Box, CircularProgress, Tooltip, Typography } from "@mui/material";
+import { duration } from 'moment';
 import React, { FC } from "react";
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { a11yDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
@@ -10,6 +11,7 @@ import { useAppSelector } from "../../Hooks";
 import { EnrichedSqlNode, SQLNodeExchangeStageData, SQLNodeStageData } from "../../interfaces/AppStore";
 import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
+import { humanizeTimeDiff } from '../../utils/FormatUtils';
 import AlertBadge, { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import { ConditionalWrapper } from "../InfoBox/InfoBox";
 import styles from "./node-style.module.css";
@@ -255,9 +257,11 @@ export const StageNode: FC<{
           right: "42%",
           color: getBucketedColor(data.node.durationPercentage ?? 0)
         }}>
-          <Typography variant="body2">
-            {data.node.durationPercentage !== undefined ? data.node.durationPercentage.toFixed(2) + "%" : ""}
-          </Typography>
+          <Tooltip sx={{ zIndex: 6 }} title={data.node.duration !== undefined ? humanizeTimeDiff(duration(data.node.duration)) : undefined}>
+            <Typography variant="body2">
+              {data.node.durationPercentage !== undefined ? data.node.durationPercentage.toFixed(2) + "%" : ""}
+            </Typography>
+          </Tooltip>
         </Box>
       </Box >
       <Handle type="source" position={Position.Right} id="a" />

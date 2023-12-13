@@ -212,6 +212,7 @@ export interface EnrichedSqlNode {
   wholeStageCodegenId?: number;
   isCodegenNode: boolean;
   codegenDuration: number | undefined;
+  exchangeBroadcastDuration: number | undefined;
   duration: number | undefined;
   durationPercentage: number | undefined;
   stage: SQLNodeStageData | SQLNodeExchangeStageData | undefined;
@@ -231,6 +232,7 @@ export interface SQLNodeStageData {
   stageId: number;
   status: string;
   stageDuration: number;
+  restOfStageDuration: number | undefined;
 }
 
 export interface EnrichedSqlMetric {
