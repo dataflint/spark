@@ -1,4 +1,12 @@
-export type NodeType = "input" | "output" | "transformation" | "join" | "shuffle" | "broadcast" | "sort" | "other";
+export type NodeType =
+  | "input"
+  | "output"
+  | "transformation"
+  | "join"
+  | "shuffle"
+  | "broadcast"
+  | "sort"
+  | "other";
 
 export type AppStore = {
   isConnected: boolean;
@@ -97,8 +105,8 @@ export interface SparkSQLStore {
 export type GraphFilter = "io" | "basic" | "advanced";
 
 export interface FilteredGraph {
-  nodesIds: number[]
-  edges: EnrichedSqlEdge[]
+  nodesIds: number[];
+  edges: EnrichedSqlEdge[];
 }
 
 export interface EnrichedSparkSQL {
@@ -123,7 +131,7 @@ export interface EnrichedSparkSQL {
   nodes: EnrichedSqlNode[];
   codegenNodes: EnrichedSqlNode[];
   edges: EnrichedSqlEdge[];
-  filters: Record<GraphFilter, FilteredGraph>
+  filters: Record<GraphFilter, FilteredGraph>;
   failureReason: string | undefined;
 }
 
@@ -150,11 +158,11 @@ export type ParseFileScanPlan = {
 };
 
 export type ParsedProjectPlan = {
-  fields: string[]
+  fields: string[];
 };
 
 export type ParseFilterPlan = {
-  condition: string
+  condition: string;
 };
 
 export type ParsedExchangePlan = {
@@ -164,7 +172,7 @@ export type ParsedExchangePlan = {
 
 export interface ParsedJoinPlan {
   joinType: string;
-  joinSideType: string
+  joinSideType: string;
   leftKeys?: string[];
   rightKeys?: string[];
   joinCondition?: string;
@@ -248,8 +256,8 @@ export interface EnrichedSqlEdge {
 export interface SparkExecutorsStatus {
   numOfExecutors: number;
   totalCoreHour: number;
-  totalDriverMemoryGibHour: number,
-  totalExecutorMemoryGibHour: number,
+  totalDriverMemoryGibHour: number;
+  totalExecutorMemoryGibHour: number;
   totalMemoryGibHour: number;
   totalDFU: number;
   activityRate: number;
@@ -277,7 +285,7 @@ export interface SparkSQLResourceUsageStore {
   dfuPercentage: number;
   durationPercentage: number;
   memoryGbHourUsage: number;
-  dfu: number
+  dfu: number;
 }
 
 export type SparkJobsStore = SparkJobStore[];
@@ -299,7 +307,7 @@ export interface SparkStageStore {
   stageId: number;
   numTasks: number;
   name: string;
-  stagesRdd: Record<string, string> | undefined
+  stagesRdd: Record<string, string> | undefined;
   failureReason: string | undefined;
   metrics: SparkMetricsStore;
 }

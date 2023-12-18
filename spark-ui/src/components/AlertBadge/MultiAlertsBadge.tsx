@@ -22,7 +22,13 @@ export default function MultiAlertBadge({ alerts }: ToggableAlertProps) {
           >
             <AlertTitle>{alert.title}</AlertTitle>
             {alert.message}
-            {alerts.length > 1 ? (<React.Fragment><br /> + {alerts.length} additional alerts</React.Fragment>) : ""}
+            {alerts.length > 1 ? (
+              <React.Fragment>
+                <br /> + {alerts.length} additional alerts
+              </React.Fragment>
+            ) : (
+              ""
+            )}
           </Alert>
         </React.Fragment>
       }
@@ -30,13 +36,13 @@ export default function MultiAlertBadge({ alerts }: ToggableAlertProps) {
       {alert.type === "warning" ? (
         <WarningIcon
           sx={{
-            color: "#ff9100"
+            color: "#ff9100",
           }}
         ></WarningIcon>
       ) : (
         <ErrorIcon
           sx={{
-            color: "#bf360c"
+            color: "#bf360c",
           }}
         ></ErrorIcon>
       )}

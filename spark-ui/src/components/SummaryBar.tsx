@@ -37,7 +37,10 @@ const SummaryBar: FC = (): JSX.Element => {
 
   const durationText = humanizeTimeDiff(duration(status.duration));
 
-  const totalDFUFormated = status.executors.totalDFU > 1 ? status.executors.totalDFU.toFixed(2) : status.executors.totalDFU.toFixed(4)
+  const totalDFUFormated =
+    status.executors.totalDFU > 1
+      ? status.executors.totalDFU.toFixed(2)
+      : status.executors.totalDFU.toFixed(4);
   return (
     <Grid
       container
@@ -71,19 +74,28 @@ const SummaryBar: FC = (): JSX.Element => {
                 DataFlint Units (DFU)
               </Typography>
               <Typography variant="subtitle2">
-                Is measurement unit for spark usage, which is a simular concept to DBU (DataBricks Unit)
+                Is measurement unit for spark usage, which is a simular concept
+                to DBU (DataBricks Unit)
               </Typography>
               <Typography variant="subtitle2">
                 It's calculated by: {totalDFUFormated} (DFU) =
               </Typography>
               <Typography variant="subtitle2">
-                <b>{status.executors.totalCoreHour.toFixed(2)}</b> (core/hour usage) * 0.052624 (core/hour ratio) +
+                <b>{status.executors.totalCoreHour.toFixed(2)}</b> (core/hour
+                usage) * 0.052624 (core/hour ratio) +
               </Typography>
               <Typography variant="subtitle2">
-                <b>{status.executors.totalMemoryGibHour.toFixed(2)}</b> (GiB memory/hour usage) * 0.0057785 (GiB memory/hour ratio)
+                <b>{status.executors.totalMemoryGibHour.toFixed(2)}</b> (GiB
+                memory/hour usage) * 0.0057785 (GiB memory/hour ratio)
               </Typography>
               <Typography variant="subtitle2">
-                For more information see <Link color="inherit" href="https://dataflint.gitbook.io/dataflint-for-spark/advanced/dfu-calculation">documentation</Link>
+                For more information see{" "}
+                <Link
+                  color="inherit"
+                  href="https://dataflint.gitbook.io/dataflint-for-spark/advanced/dfu-calculation"
+                >
+                  documentation
+                </Link>
               </Typography>
             </React.Fragment>
           }

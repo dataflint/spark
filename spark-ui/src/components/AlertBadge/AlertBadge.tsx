@@ -1,7 +1,7 @@
 import ErrorIcon from "@mui/icons-material/Error";
 import WarningIcon from "@mui/icons-material/Warning";
 import { Alert, AlertTitle, styled } from "@mui/material";
-import Tooltip, { TooltipProps, tooltipClasses } from "@mui/material/Tooltip";
+import Tooltip, { tooltipClasses, TooltipProps } from "@mui/material/Tooltip";
 import * as React from "react";
 import { Alert as DataflintAlert } from "../../interfaces/AppStore";
 
@@ -9,23 +9,25 @@ type InfoBoxProps = {
   alert?: DataflintAlert;
   margin?: string;
   placement?:
-  | "top"
-  | "right"
-  | "bottom"
-  | "left"
-  | "bottom-end"
-  | "bottom-start"
-  | "left-end"
-  | "left-start"
-  | "right-end"
-  | "right-start"
-  | "top-end"
-  | "top-start";
+    | "top"
+    | "right"
+    | "bottom"
+    | "left"
+    | "bottom-end"
+    | "bottom-start"
+    | "left-end"
+    | "left-start"
+    | "right-end"
+    | "right-start"
+    | "top-end"
+    | "top-start";
 };
 
-export const TransperantTooltip = styled(({ className, ...props }: TooltipProps) => (
-  <Tooltip {...props} classes={{ popper: className }} />
-))(({ theme }) => ({
+export const TransperantTooltip = styled(
+  ({ className, ...props }: TooltipProps) => (
+    <Tooltip {...props} classes={{ popper: className }} />
+  ),
+)(({ theme }) => ({
   [`& .${tooltipClasses.tooltip}`]: {
     backgroundColor: "transparent",
   },

@@ -17,17 +17,24 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "number of written files",
     "number of output rows",
     "written output",
-    "number of dynamic part"
+    "number of dynamic part",
   ],
   join: ["number of output rows"],
   transformation: ["number of output rows"],
-  shuffle: ["number of partitions", "shuffle bytes written", "shuffle records written"],
+  shuffle: [
+    "number of partitions",
+    "shuffle bytes written",
+    "shuffle records written",
+  ],
   broadcast: ["number of output rows", "data size"],
   sort: ["spill size"],
   other: [],
 };
 
-const metricsValueTransformer: Record<string, (value: string) => string | undefined> = {
+const metricsValueTransformer: Record<
+  string,
+  (value: string) => string | undefined
+> = {
   "size of files read": extractTotalFromStatisticsMetric,
   "shuffle bytes written": extractTotalFromStatisticsMetric,
   "spill size": extractTotalFromStatisticsMetric,
@@ -38,7 +45,7 @@ const metricsValueTransformer: Record<string, (value: string) => string | undefi
     } else {
       return value;
     }
-  }
+  },
 };
 
 const metricsRenamer: Record<string, string> = {
@@ -51,7 +58,8 @@ const metricsRenamer: Record<string, string> = {
   "number of dynamic part": "partitions written",
   "number of partitions": "partitions",
   "shuffle bytes written": "shuffle write",
-  "estimated number of fetched offsets out of range": "fetched offsets out of range",
+  "estimated number of fetched offsets out of range":
+    "fetched offsets out of range",
   "number of data loss error": "data loss error",
 };
 
@@ -72,7 +80,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   BroadcastExchange: "broadcast",
   Sort: "sort",
   Project: "transformation",
-  Window: "transformation"
+  Window: "transformation",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -94,12 +102,14 @@ const nodeRenamerDict: Record<string, string> = {
   AQEShuffleRead: "Optimizer Repartition",
   BroadcastExchange: "Broadcast",
   Project: "Select",
-  MicroBatchScan: "Read Micro batch"
+  MicroBatchScan: "Read Micro batch",
 };
 
-export function extractTotalFromStatisticsMetric(value: string | undefined): string | undefined {
+export function extractTotalFromStatisticsMetric(
+  value: string | undefined,
+): string | undefined {
   if (value === undefined) {
-    return undefined
+    return undefined;
   }
   const newlineSplit = value.split("\n");
   if (newlineSplit.length < 2) {
@@ -120,8 +130,12 @@ export function nodeEnrichedNameBuilder(
   if (plan !== undefined) {
     switch (plan.type) {
       case "HashAggregate":
-        return "Aggregate" + (plan.plan.operations.length > 0 && plan.plan.operations.length < 3 ?
-          ` (${plan.plan.operations.join(", ")})` : "");
+        return (
+          "Aggregate" +
+          (plan.plan.operations.length > 0 && plan.plan.operations.length < 3
+            ? ` (${plan.plan.operations.join(", ")})`
+            : "")
+        );
       case "Exchange":
         if (plan.plan.type === "hashpartitioning") {
           return `Repartition By Hash`;
@@ -155,23 +169,26 @@ export function calcNodeMetrics(
   metrics: EnrichedSqlMetric[],
 ): EnrichedSqlMetric[] {
   const allowList = metricAllowlist[type];
-  return (metrics
-    .filter((metric) => allowList.includes(metric.name))
-    .map((metric) => {
-      const valueTransformer = metricsValueTransformer[metric.name];
-      if (valueTransformer === undefined) {
-        return metric;
-      }
-      const valueTransformed = valueTransformer(metric.value);
-      return valueTransformed === undefined ? undefined : { ...metric, value: valueTransformed };
-    })
-    .filter((metric) => metric !== undefined) as EnrichedSqlMetric[])
-    .map((metric) => {
-      const metricNameRenamed = metricsRenamer[metric.name];
-      return metricNameRenamed === undefined
-        ? metric
-        : { ...metric, name: metricNameRenamed };
-    });
+  return (
+    metrics
+      .filter((metric) => allowList.includes(metric.name))
+      .map((metric) => {
+        const valueTransformer = metricsValueTransformer[metric.name];
+        if (valueTransformer === undefined) {
+          return metric;
+        }
+        const valueTransformed = valueTransformer(metric.value);
+        return valueTransformed === undefined
+          ? undefined
+          : { ...metric, value: valueTransformed };
+      })
+      .filter((metric) => metric !== undefined) as EnrichedSqlMetric[]
+  ).map((metric) => {
+    const metricNameRenamed = metricsRenamer[metric.name];
+    return metricNameRenamed === undefined
+      ? metric
+      : { ...metric, name: metricNameRenamed };
+  });
 }
 
 export function calcNodeType(name: string): NodeType {

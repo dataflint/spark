@@ -84,12 +84,13 @@ describe("parseHashAggregate", () => {
   ];
 
   testCases.forEach((testCase, index) => {
-    it(`should extract keys, functions, and operations correctly for test case ${index + 1
-      }`, () => {
-        const result = parseHashAggregate(testCase.input);
-        expect(result.keys).toEqual(testCase.expected.keys);
-        expect(result.functions).toEqual(testCase.expected.functions);
-        expect(result.operations).toEqual(testCase.expected.operations);
-      });
+    it(`should extract keys, functions, and operations correctly for test case ${
+      index + 1
+    }`, () => {
+      const result = parseHashAggregate(testCase.input);
+      expect(result.keys).toEqual(testCase.expected.keys);
+      expect(result.functions).toEqual(testCase.expected.functions);
+      expect(result.operations).toEqual(testCase.expected.operations);
+    });
   });
 });

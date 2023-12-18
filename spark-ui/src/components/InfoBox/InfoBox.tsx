@@ -1,5 +1,5 @@
 import { Box, Grid, Paper, styled } from "@mui/material";
-import Tooltip, { TooltipProps, tooltipClasses } from "@mui/material/Tooltip";
+import Tooltip, { tooltipClasses, TooltipProps } from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import * as React from "react";
 import { Alert as DataflintAlert } from "../../interfaces/AppStore";

@@ -10,7 +10,7 @@ import {
   SparkSQLResourceUsageStore,
   SparkSQLStore,
   SparkStagesStore,
-  StatusStore
+  StatusStore,
 } from "../interfaces/AppStore";
 import { SparkJobs } from "../interfaces/SparkJobs";
 import { SqlStatus } from "../interfaces/SparkSQLs";
@@ -136,40 +136,49 @@ function calculateSqlQueryResourceUsage(
       intersectRange: intersect,
       intersectTime: intersect === null ? 0 : intersect.valueOf(),
       cores: executor.totalCores,
-      memoryGB: (executor.id === "driver" ? configStore.driverMemoryBytes : configStore.executorContainerMemoryBytes) / 1024 / 1024 / 1024
+      memoryGB:
+        (executor.id === "driver"
+          ? configStore.driverMemoryBytes
+          : configStore.executorContainerMemoryBytes) /
+        1024 /
+        1024 /
+        1024,
     };
   });
   const intersectTime = intersectsAndExecutors
     .map((intersect) => {
       const coreUsageMs = intersect.intersectTime * intersect.cores;
       const coreHour = msToHours(coreUsageMs);
-      const memoryHour = msToHours(intersect.intersectTime * intersect.memoryGB);
+      const memoryHour = msToHours(
+        intersect.intersectTime * intersect.memoryGB,
+      );
       // see documentation about DFU calculation
-      const totalDFU = (coreHour * 0.052624) + (memoryHour * 0.0057785)
+      const totalDFU = coreHour * 0.052624 + memoryHour * 0.0057785;
       return {
         coreUsageMs,
         coreHour,
         memoryHour,
-        totalDFU
+        totalDFU,
       };
     })
-    .reduce((a, b) => {
-      return {
-        coreUsageMs: a.coreUsageMs + b.coreUsageMs,
-        coreHour: a.coreHour + b.coreHour,
-        memoryHour: a.memoryHour + b.memoryHour,
-        totalDFU: a.totalDFU + b.totalDFU,
-      };
-    },
+    .reduce(
+      (a, b) => {
+        return {
+          coreUsageMs: a.coreUsageMs + b.coreUsageMs,
+          coreHour: a.coreHour + b.coreHour,
+          memoryHour: a.memoryHour + b.memoryHour,
+          totalDFU: a.totalDFU + b.totalDFU,
+        };
+      },
       {
         coreUsageMs: 0,
         coreHour: 0,
         memoryHour: 0,
-        totalDFU: 0
-      });
+        totalDFU: 0,
+      },
+    );
   return intersectTime;
 }
-
 
 export function calculateSqlQueryLevelMetricsReducer(
   configStore: ConfigStore,
@@ -203,17 +212,17 @@ export function calculateSqlQueryLevelMetricsReducer(
         executors.length === 1
           ? resourceUsageWithDriver
           : calculateSqlQueryResourceUsage(
-            configStore,
-            sql,
-            executors.filter((executor) => !executor.isDriver),
-          );
+              configStore,
+              sql,
+              executors.filter((executor) => !executor.isDriver),
+            );
       const totalTasksTime = sql.stageMetrics?.executorRunTime as number;
       const activityRate =
         resourceUsageExecutorsOnly.coreUsageMs !== 0
           ? Math.min(
-            100,
-            (totalTasksTime / resourceUsageExecutorsOnly.coreUsageMs) * 100,
-          )
+              100,
+              (totalTasksTime / resourceUsageExecutorsOnly.coreUsageMs) * 100,
+            )
           : 0;
       const resourceUsageStore: SparkSQLResourceUsageStore = {
         coreHourUsage: resourceUsageWithDriver.coreHour,
@@ -224,9 +233,11 @@ export function calculateSqlQueryLevelMetricsReducer(
           statusStore.executors?.totalDFU === undefined
             ? 0
             : Math.min(
-              100,
-              (resourceUsageWithDriver.totalDFU / statusStore.executors.totalDFU) * 100,
-            ),
+                100,
+                (resourceUsageWithDriver.totalDFU /
+                  statusStore.executors.totalDFU) *
+                  100,
+              ),
         durationPercentage:
           statusStore.duration === undefined
             ? 0
@@ -248,6 +259,6 @@ export function calculateSqlQueryLevelMetricsReducer(
 
       return { ...sql, failureReason };
     })
-    .map(sql => calculateSqlStage(sql, stages, jobs));
+    .map((sql) => calculateSqlStage(sql, stages, jobs));
   return { sqls: newSqls };
 }

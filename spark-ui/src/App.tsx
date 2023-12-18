@@ -13,7 +13,7 @@ import {
   IS_HISTORY_SERVER_MODE,
 } from "./utils/UrlConsts";
 
-const DOCUMENT_TITLE_PREFIX = 'DataFlint - '
+const DOCUMENT_TITLE_PREFIX = "DataFlint - ";
 
 export default function App() {
   const location = useLocation();
@@ -36,7 +36,7 @@ export default function App() {
 
   React.useEffect(() => {
     if (store.runMetadata?.appName) {
-      document.title = DOCUMENT_TITLE_PREFIX + store.runMetadata.appName
+      document.title = DOCUMENT_TITLE_PREFIX + store.runMetadata.appName;
     }
   }, [store.runMetadata?.appName]);
 

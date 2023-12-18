@@ -1,9 +1,9 @@
 import React, { FC, useCallback, useEffect, useState } from "react";
 import ReactFlow, {
+  addEdge,
   ConnectionLineType,
   Controls,
   ReactFlowInstance,
-  addEdge,
   useEdgesState,
   useNodesState,
 } from "reactflow";
@@ -18,20 +18,18 @@ const options = { hideAttribution: true };
 const nodeTypes = { [StageNodeName]: StageNode };
 
 const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
-  sparkSQL
+  sparkSQL,
 }): JSX.Element => {
   const [instance, setInstace] = useState<ReactFlowInstance | undefined>();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [graphFilter, setGraphFilter] = React.useState<GraphFilter>(
-    "basic",
-  );
+  const [graphFilter, setGraphFilter] = React.useState<GraphFilter>("basic");
 
   React.useEffect(() => {
     if (!sparkSQL) return;
     const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
       sparkSQL,
-      graphFilter
+      graphFilter,
     );
 
     setNodes(layoutNodes);
@@ -41,7 +39,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     if (!sparkSQL) return;
     const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
       sparkSQL,
-      graphFilter
+      graphFilter,
     );
 
     setNodes(layoutNodes);
@@ -54,7 +52,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     }
   }, [instance, edges]);
 
-  useEffect(() => { }, [nodes]);
+  useEffect(() => {}, [nodes]);
 
   const onConnect = useCallback(
     (params: any) =>
@@ -88,12 +86,22 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
       >
         <Controls />
         <Box display={"flex"}>
-          <FormControl sx={{ zIndex: 6, position: "absolute", bottom: "10px", right: "10px", width: "120px" }}>
+          <FormControl
+            sx={{
+              zIndex: 6,
+              position: "absolute",
+              bottom: "10px",
+              right: "10px",
+              width: "120px",
+            }}
+          >
             <InputLabel>Mode</InputLabel>
             <Select
               value={graphFilter}
               label="Mode"
-              onChange={(event) => setGraphFilter(event.target.value as GraphFilter)}
+              onChange={(event) =>
+                setGraphFilter(event.target.value as GraphFilter)
+              }
             >
               <MenuItem value={"io"}>Only IO</MenuItem>
               <MenuItem value={"basic"}>Basic</MenuItem>

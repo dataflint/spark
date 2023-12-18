@@ -13,11 +13,11 @@ import theme from "./theme";
 const rootElement = document.getElementById("root");
 const root = ReactDOM.createRoot(rootElement!);
 
-if (location.protocol == 'https:') {
-  var meta = document.createElement('meta');
+if (location.protocol == "https:") {
+  var meta = document.createElement("meta");
   meta.httpEquiv = "Content-Security-Policy";
   meta.content = "upgrade-insecure-requests";
-  document.getElementsByTagName('head')[0].appendChild(meta);
+  document.getElementsByTagName("head")[0].appendChild(meta);
 }
 
 MixpanelService.InitMixpanel();

@@ -79,7 +79,10 @@ const sparkSlice = createSlice({
       state.jobs = undefined;
       state.executors = undefined;
     },
-    setStages: (state, action: PayloadAction<{ value: SparkStages, stagesRdd: StagesRdd }>) => {
+    setStages: (
+      state,
+      action: PayloadAction<{ value: SparkStages; stagesRdd: StagesRdd }>,
+    ) => {
       if (state.status === undefined) {
         return;
       }
@@ -117,7 +120,10 @@ const sparkSlice = createSlice({
         currentEndDate,
         state.config.executorMemoryBytes,
       );
-      const executorsStatus = calculateSparkExecutorsStatus(executorsStore, state.config);
+      const executorsStatus = calculateSparkExecutorsStatus(
+        executorsStore,
+        state.config,
+      );
 
       state.status = { ...state.status, executors: executorsStatus };
       state.executors = executorsStore;
@@ -129,7 +135,13 @@ const sparkSlice = createSlice({
       if (state.status === undefined) {
         return;
       }
-      if (state.config && state.jobs && state.sql && state.executors && state.stages) {
+      if (
+        state.config &&
+        state.jobs &&
+        state.sql &&
+        state.executors &&
+        state.stages
+      ) {
         const sqlWithNodeMetrics = updateSqlNodeMetrics(
           state.sql,
           action.payload.sqlId,
@@ -211,7 +223,13 @@ const sparkSlice = createSlice({
           calculateSqlIdleTime(state.sql!, state.status!, state.runMetadata!),
         );
       }
-      if (state.config && state.jobs && state.sql && state.executors && state.stages) {
+      if (
+        state.config &&
+        state.jobs &&
+        state.sql &&
+        state.executors &&
+        state.stages
+      ) {
         state.sql = calculateSqlQueryLevelMetricsReducer(
           state.config,
           state.sql,

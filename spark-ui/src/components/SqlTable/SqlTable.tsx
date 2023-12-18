@@ -1,17 +1,13 @@
 import CheckIcon from "@mui/icons-material/Check";
-import {
-  Box,
-  CircularProgress,
-  TableSortLabel
-} from "@mui/material";
+import { Box, CircularProgress, TableSortLabel } from "@mui/material";
 import Paper from "@mui/material/Paper";
+import { styled } from "@mui/material/styles";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import { styled } from "@mui/material/styles";
 import { visuallyHidden } from "@mui/utils";
 import _ from "lodash";
 import { duration } from "moment";
@@ -46,10 +42,7 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
 }));
 
-function StatusIcon(
-  status: string,
-  failureReason: string
-): JSX.Element {
+function StatusIcon(status: string, failureReason: string): JSX.Element {
   switch (status) {
     case SqlStatus.Running.valueOf():
       return (
@@ -63,9 +56,7 @@ function StatusIcon(
         <CheckIcon color="success" style={{ width: "30px", height: "30px" }} />
       );
     case SqlStatus.Failed.valueOf():
-      return (
-        <ExceptionIcon failureReason={failureReason} />
-      );
+      return <ExceptionIcon failureReason={failureReason} />;
     default:
       return <div></div>;
   }
@@ -121,18 +112,18 @@ const createSqlTableData = (sqls: EnrichedSparkSQL[]): Data[] => {
     return !sql.stageMetrics || !sql.resourceMetrics
       ? []
       : {
-        id: sql.id,
-        status: sql.status,
-        description: sql.description,
-        duration: sql.duration,
-        durationPercentage: sql.resourceMetrics.durationPercentage,
-        dfu: sql.resourceMetrics.dfu,
-        dfuPercentage: sql.resourceMetrics?.dfuPercentage,
-        activityRate: sql.resourceMetrics.activityRate,
-        input: sql.stageMetrics.inputBytes,
-        output: sql.stageMetrics.outputBytes,
-        failureReason: !sql.failureReason ? "" : sql.failureReason,
-      };
+          id: sql.id,
+          status: sql.status,
+          description: sql.description,
+          duration: sql.duration,
+          durationPercentage: sql.resourceMetrics.durationPercentage,
+          dfu: sql.resourceMetrics.dfu,
+          dfuPercentage: sql.resourceMetrics?.dfuPercentage,
+          activityRate: sql.resourceMetrics.activityRate,
+          input: sql.stageMetrics.inputBytes,
+          output: sql.stageMetrics.outputBytes,
+          failureReason: !sql.failureReason ? "" : sql.failureReason,
+        };
   });
 };
 
@@ -184,14 +175,14 @@ export default function SqlTable({
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof Data>("id");
   const [sqlsTableData, setSqlsTableData] = React.useState<Data[]>([]);
-  const sqlAlerts = useAppSelector((state) => state.spark.alerts)?.alerts.filter(alert => alert.source.type === "sql");
+  const sqlAlerts = useAppSelector(
+    (state) => state.spark.alerts,
+  )?.alerts.filter((alert) => alert.source.type === "sql");
 
   React.useEffect(() => {
     if (!sqlStore) return;
 
-    const sqls = createSqlTableData(
-      sqlStore.sqls.slice(),
-    );
+    const sqls = createSqlTableData(sqlStore.sqls.slice());
     if (_.isEqual(sqls, sqlsTableData)) return;
 
     setSqlsTableData(sqls);
@@ -212,26 +203,33 @@ export default function SqlTable({
   );
 
   if (sqlStore === undefined) {
-    return (<div
-      style={{
-        overflow: "hidden",
-        height: "100%",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}>
-      <Progress />
-    </div>);
+    return (
+      <div
+        style={{
+          overflow: "hidden",
+          height: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Progress />
+      </div>
+    );
   }
 
   return (
     <div
-      style={{ width: "100%", height: "100%", display: "flex", justifyContent: "space-around", marginBottom: "15px", overflow: "hidden" }}
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        justifyContent: "space-around",
+        marginBottom: "15px",
+        overflow: "hidden",
+      }}
     >
-      <TableContainer
-        component={Paper}
-        sx={{ width: "80%" }}
-      >
+      <TableContainer component={Paper} sx={{ width: "80%" }}>
         <Table
           size="small"
           stickyHeader
@@ -260,8 +258,20 @@ export default function SqlTable({
                 <StyledTableCell component="th" scope="row">
                   <Box display="flex" alignItems="center" flexWrap="wrap">
                     {sql.description}
-                    {sqlAlerts !== undefined && sqlAlerts.find(alert => alert.source.type === "sql" && alert.source.sqlId === sql.id) !== undefined ?
-                      <MultiAlertBadge alerts={sqlAlerts.filter(alert => alert.source.type === "sql" && alert.source.sqlId === sql.id)} ></MultiAlertBadge> : null}
+                    {sqlAlerts !== undefined &&
+                    sqlAlerts.find(
+                      (alert) =>
+                        alert.source.type === "sql" &&
+                        alert.source.sqlId === sql.id,
+                    ) !== undefined ? (
+                      <MultiAlertBadge
+                        alerts={sqlAlerts.filter(
+                          (alert) =>
+                            alert.source.type === "sql" &&
+                            alert.source.sqlId === sql.id,
+                        )}
+                      ></MultiAlertBadge>
+                    ) : null}
                   </Box>
                 </StyledTableCell>
                 <StyledTableCell align="left">

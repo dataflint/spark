@@ -50,7 +50,7 @@ export function renderTabIcon(selectedTab: Tab): JSX.Element {
     case Tab.Alerts:
       return <ReportIcon />;
     case Tab.Chat:
-      return <ChatIcon />
+      return <ChatIcon />;
     default:
       return <div></div>;
   }

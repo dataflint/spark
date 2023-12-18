@@ -29,7 +29,9 @@ export default function StatusTab() {
           <NoQuery />
         </div>
       ) : (
-        <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        <div
+          style={{ height: "100%", display: "flex", flexDirection: "column" }}
+        >
           <div
             style={{
               textAlign: "center",

@@ -9,20 +9,23 @@ import {
   ParsedNodePlan,
   SparkSQLStore,
 } from "../interfaces/AppStore";
-import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
-import { timeStrToEpocTime, timeStringToMilliseconds } from "../utils/FormatUtils";
+import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
+import {
+  timeStringToMilliseconds,
+  timeStrToEpocTime,
+} from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
 import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
+import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import { parseJoin } from "./PlanParsers/JoinParser";
 import { parseProject } from "./PlanParsers/ProjectParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
-import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import {
   calcNodeMetrics,
   calcNodeType,
@@ -45,12 +48,14 @@ export function generateGraph(
 export function cleanUpDAG(
   edges: EnrichedSqlEdge[],
   allNodes: EnrichedSqlNode[],
-  visibleNodes: EnrichedSqlNode[]
+  visibleNodes: EnrichedSqlNode[],
 ): EnrichedSqlEdge[] {
   var g = generateGraph(edges, allNodes);
 
   const visibleNodesIds = visibleNodes.map((node) => node.nodeId);
-  const notVisibleNodes = allNodes.filter((node) => !visibleNodesIds.includes(node.nodeId));
+  const notVisibleNodes = allNodes.filter(
+    (node) => !visibleNodesIds.includes(node.nodeId),
+  );
 
   notVisibleNodes.forEach((node) => {
     const nodeId = node.nodeId.toString();
@@ -71,7 +76,11 @@ export function cleanUpDAG(
     return { fromId: parseInt(edge.v), toId: parseInt(edge.w) };
   });
 
-  const removeRedundentEdges = filteredEdges.filter(edge => visibleNodesIds.includes(edge.toId) && visibleNodesIds.includes(edge.fromId))
+  const removeRedundentEdges = filteredEdges.filter(
+    (edge) =>
+      visibleNodesIds.includes(edge.toId) &&
+      visibleNodesIds.includes(edge.fromId),
+  );
 
   return removeRedundentEdges;
 }
@@ -105,23 +114,23 @@ export function parseNodePlan(
       case "Filter":
         return {
           type: "Filter",
-          plan: parseFilter(plan.planDescription)
-        }
+          plan: parseFilter(plan.planDescription),
+        };
       case "Exchange":
         return {
           type: "Exchange",
-          plan: parseExchange(plan.planDescription)
-        }
+          plan: parseExchange(plan.planDescription),
+        };
       case "Project":
         return {
           type: "Project",
-          plan: parseProject(plan.planDescription)
-        }
+          plan: parseProject(plan.planDescription),
+        };
       case "Sort":
         return {
           type: "Sort",
-          plan: parseSort(plan.planDescription)
-        }
+          plan: parseSort(plan.planDescription),
+        };
     }
     if (node.nodeName.includes("Scan")) {
       return {
@@ -141,14 +150,18 @@ export function parseNodePlan(
   return undefined;
 }
 
-export function getMetricDuration(metricName: string, metrics: EnrichedSqlMetric[]): number | undefined {
-  const durationStr = metrics.find(metric => metric.name === metricName)?.value;
+export function getMetricDuration(
+  metricName: string,
+  metrics: EnrichedSqlMetric[],
+): number | undefined {
+  const durationStr = metrics.find((metric) => metric.name === metricName)
+    ?.value;
   if (durationStr === undefined) {
     return undefined;
   }
   const totalDurationStr = extractTotalFromStatisticsMetric(durationStr);
   const duration = timeStringToMilliseconds(totalDurationStr);
-  return duration
+  return duration;
 }
 
 function calculateSql(
@@ -171,64 +184,83 @@ function calculateSql(
       parsedPlan: parsedPlan,
       enrichedName: nodeEnrichedNameBuilder(node.nodeName, parsedPlan),
       isCodegenNode: isCodegenNode,
-      wholeStageCodegenId: isCodegenNode ? extractCodegenId() : node.wholeStageCodegenId
+      wholeStageCodegenId: isCodegenNode
+        ? extractCodegenId()
+        : node.wholeStageCodegenId,
     };
 
     function extractCodegenId(): number | undefined {
-      return parseInt(node.nodeName.replace("WholeStageCodegen (", "").replace(")", ""));
+      return parseInt(
+        node.nodeName.replace("WholeStageCodegen (", "").replace(")", ""),
+      );
     }
   });
 
-  const onlyCodeGenNodes = typeEnrichedNodes.filter(
-    (node) =>
-      node.isCodegenNode,
-  ).map(node => {
-    const codegenDuration = calcCodegenDuration(node.metrics);
-    return { ...node, codegenDuration: codegenDuration };
-  });
+  const onlyCodeGenNodes = typeEnrichedNodes
+    .filter((node) => node.isCodegenNode)
+    .map((node) => {
+      const codegenDuration = calcCodegenDuration(node.metrics);
+      return { ...node, codegenDuration: codegenDuration };
+    });
 
   const onlyGraphNodes = typeEnrichedNodes.filter(
-    (node) =>
-      !node.isCodegenNode,
+    (node) => !node.isCodegenNode,
   );
 
   if (onlyGraphNodes.filter((node) => node.type === "output").length === 0) {
-    const aqeFilteredNodes = onlyGraphNodes.filter(node => node.nodeName !== "AdaptiveSparkPlan");
+    const aqeFilteredNodes = onlyGraphNodes.filter(
+      (node) => node.nodeName !== "AdaptiveSparkPlan",
+    );
     const lastNode = aqeFilteredNodes[aqeFilteredNodes.length - 1];
     lastNode.type = "output";
   }
 
   const metricEnrichedNodes: EnrichedSqlNode[] = onlyGraphNodes.map((node) => {
     const exchangeMetrics = calcExchangeMetrics(node.nodeName, node.metrics);
-    const exchangeBroadcastDuration = calcBroadcastExchangeDuration(node.nodeName, node.metrics);
-    return { ...node, metrics: calcNodeMetrics(node.type, node.metrics), exchangeMetrics: exchangeMetrics, exchangeBroadcastDuration: exchangeBroadcastDuration };
+    const exchangeBroadcastDuration = calcBroadcastExchangeDuration(
+      node.nodeName,
+      node.metrics,
+    );
+    return {
+      ...node,
+      metrics: calcNodeMetrics(node.type, node.metrics),
+      exchangeMetrics: exchangeMetrics,
+      exchangeBroadcastDuration: exchangeBroadcastDuration,
+    };
   });
 
-
-
-  const ioNodes = onlyGraphNodes.filter(node => node.type === "input" || node.type === "output" || node.type === "join");
-  const basicNodes = onlyGraphNodes.filter(node => node.type === "input" || node.type === "output" || node.type === "join" || node.type === "transformation");
-  const advancedNodes = onlyGraphNodes.filter(node => node.type !== "other");
-  const ioNodesIds = ioNodes.map(node => node.nodeId);
-  const basicNodesIds = basicNodes.map(node => node.nodeId);
-  const advancedNodesIds = advancedNodes.map(node => node.nodeId);
+  const ioNodes = onlyGraphNodes.filter(
+    (node) =>
+      node.type === "input" || node.type === "output" || node.type === "join",
+  );
+  const basicNodes = onlyGraphNodes.filter(
+    (node) =>
+      node.type === "input" ||
+      node.type === "output" ||
+      node.type === "join" ||
+      node.type === "transformation",
+  );
+  const advancedNodes = onlyGraphNodes.filter((node) => node.type !== "other");
+  const ioNodesIds = ioNodes.map((node) => node.nodeId);
+  const basicNodesIds = basicNodes.map((node) => node.nodeId);
+  const advancedNodesIds = advancedNodes.map((node) => node.nodeId);
 
   const basicFilteredEdges = cleanUpDAG(
     enrichedSql.edges,
     onlyGraphNodes,
-    basicNodes
+    basicNodes,
   );
 
   const advancedFilteredEdges = cleanUpDAG(
     enrichedSql.edges,
     onlyGraphNodes,
-    advancedNodes
+    advancedNodes,
   );
 
   const ioFilteredEdges = cleanUpDAG(
     enrichedSql.edges,
     onlyGraphNodes,
-    ioNodes
+    ioNodes,
   );
 
   const isSqlCommand =
@@ -241,17 +273,17 @@ function calculateSql(
     nodes: metricEnrichedNodes,
     codegenNodes: onlyCodeGenNodes,
     filters: {
-      "io": {
+      io: {
         nodesIds: ioNodesIds,
-        edges: ioFilteredEdges
+        edges: ioFilteredEdges,
       },
-      "basic": {
+      basic: {
         nodesIds: basicNodesIds,
-        edges: basicFilteredEdges
+        edges: basicFilteredEdges,
       },
-      "advanced": {
+      advanced: {
         nodesIds: advancedNodesIds,
-        edges: advancedFilteredEdges
+        edges: advancedFilteredEdges,
       },
     },
     uniqueId: uuidv4(),
@@ -282,7 +314,9 @@ export function calculateSqlStore(
   const minId = Math.min(...sqlIds);
 
   // add existing completed IDs
-  let updatedSqls: EnrichedSparkSQL[] = currentStore.sqls.filter(sql => parseInt(sql.id) < minId)
+  let updatedSqls: EnrichedSparkSQL[] = currentStore.sqls.filter(
+    (sql) => parseInt(sql.id) < minId,
+  );
 
   for (const id of sqlIds) {
     const newSql = sqls.find(
@@ -350,7 +384,7 @@ export function updateSqlNodeMetrics(
     return {
       ...node,
       metrics: metrics,
-      exchangeMetrics: exchangeMetrics
+      exchangeMetrics: exchangeMetrics,
     };
   });
 
@@ -371,8 +405,12 @@ export function updateSqlNodeMetrics(
     };
   });
 
-
-  const updatedSql = { ...runningSql, nodes: nodes, codegenNodes: codegenNodes, metricUpdateId: uuidv4() };
+  const updatedSql = {
+    ...runningSql,
+    nodes: nodes,
+    codegenNodes: codegenNodes,
+    metricUpdateId: uuidv4(),
+  };
   return { ...currentStore, sqls: [...notEffectedSqls, updatedSql] };
 }
 function calcCodegenDuration(metrics: EnrichedSqlMetric[]): number | undefined {
@@ -383,22 +421,26 @@ function calcExchangeMetrics(nodeName: string, metrics: EnrichedSqlMetric[]) {
   var exchangeMetrics: ExchangeMetrics | undefined = undefined;
   if (nodeName == "Exchange") {
     const writeDuration = getMetricDuration("shuffle write time", metrics) ?? 0;
-    const readDuration = (getMetricDuration("fetch wait time", metrics) ?? 0) +
+    const readDuration =
+      (getMetricDuration("fetch wait time", metrics) ?? 0) +
       (getMetricDuration("remote reqs duration", metrics) ?? 0) +
       (getMetricDuration("remote merged reqs duration", metrics) ?? 0);
     exchangeMetrics = {
       writeDuration: writeDuration,
       readDuration: readDuration,
-      duration: writeDuration + readDuration
+      duration: writeDuration + readDuration,
     };
   }
   return exchangeMetrics;
 }
 
-function calcBroadcastExchangeDuration(nodeName: string, metrics: EnrichedSqlMetric[]): number | undefined {
+function calcBroadcastExchangeDuration(
+  nodeName: string,
+  metrics: EnrichedSqlMetric[],
+): number | undefined {
   if (nodeName == "BroadcastExchange") {
     const duration = getMetricDuration("time to broadcast", metrics) ?? 0;
-    + (getMetricDuration("time to build", metrics) ?? 0) +
+    +(getMetricDuration("time to build", metrics) ?? 0) +
       (getMetricDuration("time to collect", metrics) ?? 0);
     return duration;
   }

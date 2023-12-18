@@ -1,6 +1,9 @@
 import Button from "@mui/material/Button";
 import * as React from "react";
-import { BASE_CURRENT_PAGE, IS_HISTORY_SERVER_MODE } from "../../utils/UrlConsts";
+import {
+  BASE_CURRENT_PAGE,
+  IS_HISTORY_SERVER_MODE,
+} from "../../utils/UrlConsts";
 import { getBaseAppUrl } from "../../utils/UrlUtils";
 
 export default function DrawerFooter({ version }: { version?: string }) {
@@ -25,9 +28,11 @@ export default function DrawerFooter({ version }: { version?: string }) {
       <Button onClick={onSparkUiClick} color="inherit">
         To Spark UI
       </Button>
-      {IS_HISTORY_SERVER_MODE ? <Button onClick={onHistoryServerClick} color="inherit">
-        To History Server
-      </Button> : null}
+      {IS_HISTORY_SERVER_MODE ? (
+        <Button onClick={onHistoryServerClick} color="inherit">
+          To History Server
+        </Button>
+      ) : null}
       {`Version ${version}`}
     </div>
   );

@@ -20,7 +20,7 @@ import {
   setSQLMetrics,
   setStages,
   updateConnection,
-  updateDuration
+  updateDuration,
 } from "../reducers/SparkSlice";
 import { AppDispatch } from "../Store";
 import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";
@@ -199,7 +199,7 @@ class SparkAPI {
 
         if (finishedSqls.length > 0) {
           // in cases of SQLs out of order, like id 2 is running and 3 is completed, we will try to ask from id 2 again
-          finishedSqls.forEach(sql => {
+          finishedSqls.forEach((sql) => {
             if (parseInt(sql.id) === this.lastCompletedSqlId + 1) {
               this.lastCompletedSqlId += 1;
             }

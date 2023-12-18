@@ -8,7 +8,7 @@ import {
   StatusStore,
 } from "../interfaces/AppStore";
 import { SparkStages } from "../interfaces/SparkStages";
-import { humanFileSize, msToHours } from '../utils/FormatUtils';
+import { humanFileSize, msToHours } from "../utils/FormatUtils";
 
 export function calculateStageStatus(
   existingStore: StagesSummeryStore | undefined,
@@ -76,7 +76,7 @@ export function calculateStageStatus(
 
 export function calculateSparkExecutorsStatus(
   sparkExecutors: SparkExecutorsStore,
-  config: ConfigStore
+  config: ConfigStore,
 ): SparkExecutorsStatus {
   const driver = sparkExecutors.filter((executor) => executor.isDriver)[0];
   const executors = sparkExecutors.filter((executor) => !executor.isDriver);
@@ -89,25 +89,32 @@ export function calculateSparkExecutorsStatus(
     numOfExecutors === 0
       ? driver.totalTaskDuration
       : executors
-        .map((executor) => executor.totalTaskDuration)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.totalTaskDuration)
+          .reduce((a, b) => a + b, 0);
   const totalPotentialTaskTimeMs =
     numOfExecutors === 0
       ? driver.duration * driver.maxTasks
       : executors
-        .map((executor) => executor.duration * executor.maxTasks)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.duration * executor.maxTasks)
+          .reduce((a, b) => a + b, 0);
   const totalCoreHour = sparkExecutors
     .map((executor) => executor.totalCores * msToHours(executor.duration))
     .reduce((a, b) => a + b, 0);
 
   // divide executorMemoryBytes by 1024 * 1024 * 1024 to get amount in GiBs
   const totalExecutorMemoryGibHour = executors
-    .map((executor) => config.executorContainerMemoryBytes / (1024 * 1024 * 1024) * msToHours(executor.duration))
+    .map(
+      (executor) =>
+        (config.executorContainerMemoryBytes / (1024 * 1024 * 1024)) *
+        msToHours(executor.duration),
+    )
     .reduce((a, b) => a + b, 0);
 
-  const totalDriverMemoryGibHour = config.driverMemoryBytes / (1024 * 1024 * 1024) * msToHours(driver.duration)
-  const totalMemoryGibHour = totalExecutorMemoryGibHour + totalDriverMemoryGibHour
+  const totalDriverMemoryGibHour =
+    (config.driverMemoryBytes / (1024 * 1024 * 1024)) *
+    msToHours(driver.duration);
+  const totalMemoryGibHour =
+    totalExecutorMemoryGibHour + totalDriverMemoryGibHour;
 
   const activityRate =
     totalPotentialTaskTimeMs !== 0 && totalTaskTimeMs !== undefined
@@ -127,25 +134,25 @@ export function calculateSparkExecutorsStatus(
     numOfExecutors === 0
       ? driver.totalInputBytes
       : executors
-        .map((executor) => executor.totalInputBytes)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.totalInputBytes)
+          .reduce((a, b) => a + b, 0);
 
   const totalShuffleRead =
     numOfExecutors === 0
       ? driver.totalShuffleRead
       : executors
-        .map((executor) => executor.totalShuffleRead)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.totalShuffleRead)
+          .reduce((a, b) => a + b, 0);
 
   const totalShuffleWrite =
     numOfExecutors === 0
       ? driver.totalShuffleWrite
       : executors
-        .map((executor) => executor.totalShuffleWrite)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.totalShuffleWrite)
+          .reduce((a, b) => a + b, 0);
 
   // see documentation about DFU calculation
-  const totalDFU = (totalCoreHour * 0.052624) + (totalMemoryGibHour * 0.0057785)
+  const totalDFU = totalCoreHour * 0.052624 + totalMemoryGibHour * 0.0057785;
 
   return {
     numOfExecutors,
@@ -160,7 +167,7 @@ export function calculateSparkExecutorsStatus(
     maxExecutorMemoryBytes,
     totalInputBytes: humanFileSize(totalInputBytes),
     totalShuffleRead: humanFileSize(totalShuffleRead),
-    totalShuffleWrite: humanFileSize(totalShuffleWrite)
+    totalShuffleWrite: humanFileSize(totalShuffleWrite),
   };
 }
 
@@ -182,7 +189,8 @@ export function calculateSqlIdleTime(
     runMetadata.startTime +
     status.duration -
     Math.max(
-      ...sqlStore.sqls.map((sql) => sql.submissionTimeEpoc + sql.duration), runMetadata.startTime
+      ...sqlStore.sqls.map((sql) => sql.submissionTimeEpoc + sql.duration),
+      runMetadata.startTime,
     )
   );
 }

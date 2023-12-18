@@ -67,16 +67,33 @@ export function extractConfig(
   const driverMemoryBytes = parseSize(driverMemoryStr);
   const driverMemoryBytesString = humanFileSize(driverMemoryBytes);
 
-  const memoryOverheadFactorString = sparkPropertiesObj["spark.kubernetes.memoryOverheadFactor"] ?? sparkPropertiesObj["spark.executor.memoryOverheadFactor"] ?? "0.1";
+  const memoryOverheadFactorString =
+    sparkPropertiesObj["spark.kubernetes.memoryOverheadFactor"] ??
+    sparkPropertiesObj["spark.executor.memoryOverheadFactor"] ??
+    "0.1";
   const executorMemoryOverheadFactor = parseFloat(memoryOverheadFactorString);
-  const memoryOverheadViaConfigString = sparkPropertiesObj["spark.executor.memoryOverhead"] ?? "384m";
-  const executorMemoryOverheadViaConfig = parseSize(memoryOverheadViaConfigString);
-  const totalExectorMemoryViaFactor = executorMemoryBytes * executorMemoryOverheadFactor;
-  const totalExectorMemoryViaFactorString = humanFileSize(totalExectorMemoryViaFactor);
-  const executorMemoryOverheadBytes = Math.max(totalExectorMemoryViaFactor, executorMemoryOverheadViaConfig);
-  const executorContainerMemoryBytes = executorMemoryBytes + executorMemoryOverheadBytes
-  const executorMemoryOverheadString = humanFileSize(executorMemoryOverheadBytes)
-  const executorContainerMemoryString = humanFileSize(executorContainerMemoryBytes)
+  const memoryOverheadViaConfigString =
+    sparkPropertiesObj["spark.executor.memoryOverhead"] ?? "384m";
+  const executorMemoryOverheadViaConfig = parseSize(
+    memoryOverheadViaConfigString,
+  );
+  const totalExectorMemoryViaFactor =
+    executorMemoryBytes * executorMemoryOverheadFactor;
+  const totalExectorMemoryViaFactorString = humanFileSize(
+    totalExectorMemoryViaFactor,
+  );
+  const executorMemoryOverheadBytes = Math.max(
+    totalExectorMemoryViaFactor,
+    executorMemoryOverheadViaConfig,
+  );
+  const executorContainerMemoryBytes =
+    executorMemoryBytes + executorMemoryOverheadBytes;
+  const executorMemoryOverheadString = humanFileSize(
+    executorMemoryOverheadBytes,
+  );
+  const executorContainerMemoryString = humanFileSize(
+    executorContainerMemoryBytes,
+  );
 
   const appName = sparkPropertiesObj["spark.app.name"];
   const config: Record<string, string> = {
@@ -92,7 +109,7 @@ export function extractConfig(
     "executor memory overhead via factor": totalExectorMemoryViaFactorString,
     "executor memory overhead factor": memoryOverheadFactorString,
     "executor memory overhead": executorMemoryOverheadString,
-    "executor container memory": executorContainerMemoryString
+    "executor container memory": executorContainerMemoryString,
   };
 
   return [
@@ -111,7 +128,7 @@ export function extractConfig(
       executorMemoryBytesSparkFormatString: executorMemoryStr,
       driverMemoryBytesSparkFormatString: driverMemoryStr,
       driverMemoryBytes,
-      driverMemoryBytesString
+      driverMemoryBytesString,
     },
   ];
 }

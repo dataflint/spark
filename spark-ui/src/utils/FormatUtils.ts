@@ -12,11 +12,13 @@ export function humanFileSize(bytes: number): string {
 }
 
 export function parseBytesString(str: string): number {
-  return parse(str
-    .replace("KiB", "KB")
-    .replace("MiB", "MB")
-    .replace("GiB", "GB")
-    .replace("TiB", "TB"));
+  return parse(
+    str
+      .replace("KiB", "KB")
+      .replace("MiB", "MB")
+      .replace("GiB", "GB")
+      .replace("TiB", "TB"),
+  );
 }
 
 export function humanFileSizeSparkConfigFormat(bytes: number): string {
@@ -60,7 +62,9 @@ export function timeStrToEpocTime(time: string): number {
   return addTimeMoment.getTime();
 }
 
-export function timeStringToMilliseconds(timeString: string | undefined): number | undefined {
+export function timeStringToMilliseconds(
+  timeString: string | undefined,
+): number | undefined {
   if (timeString === undefined) {
     return undefined;
   }
@@ -68,14 +72,14 @@ export function timeStringToMilliseconds(timeString: string | undefined): number
   const value = parseFloat(timeString.slice(0, -2).trim());
 
   switch (unit) {
-    case 'ms':
+    case "ms":
       return value;
-    case 's':
-      return duration(value, 'seconds').asMilliseconds();
-    case 'm':
-      return duration(value, 'minutes').asMilliseconds();
-    case 'h':
-      return duration(value, 'hours').asMilliseconds();
+    case "s":
+      return duration(value, "seconds").asMilliseconds();
+    case "m":
+      return duration(value, "minutes").asMilliseconds();
+    case "h":
+      return duration(value, "hours").asMilliseconds();
     default:
       throw new Error(`Unsupported time unit: ${unit}`);
   }

@@ -5,7 +5,7 @@ import SparkSlice from "./reducers/SparkSlice";
 const store = configureStore({
   reducer: {
     spark: SparkSlice,
-    chat: ChatSlice
+    chat: ChatSlice,
   },
 });
 
