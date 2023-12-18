@@ -1,11 +1,8 @@
 import CheckIcon from "@mui/icons-material/Check";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import {
   Box,
   CircularProgress,
-  Fade,
-  Snackbar,
-  TableSortLabel,
+  TableSortLabel
 } from "@mui/material";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
@@ -14,7 +11,6 @@ import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Tooltip, { TooltipProps, tooltipClasses } from "@mui/material/Tooltip";
 import { styled } from "@mui/material/styles";
 import { visuallyHidden } from "@mui/utils";
 import _ from "lodash";
@@ -25,6 +21,7 @@ import { EnrichedSparkSQL, SparkSQLStore } from "../../interfaces/AppStore";
 import { SqlStatus } from "../../interfaces/SparkSQLs";
 import { humanFileSize, humanizeTimeDiff } from "../../utils/FormatUtils";
 import { default as MultiAlertBadge } from "../AlertBadge/MultiAlertsBadge";
+import ExceptionIcon from "../ExceptionIcon";
 import Progress from "../Progress";
 import { Data, EnhancedTableProps, HeadCell, Order } from "./TableTypes";
 import { getComparator, stableSort } from "./TableUtils";
@@ -49,43 +46,9 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
 }));
 
-const CustomWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
-  <Tooltip {...props} classes={{ popper: className }} />
-))({
-  [`& .${tooltipClasses.tooltip}`]: {
-    maxWidth: 500,
-    maxHeight: 300,
-    overflow: "auto",
-    whiteSpace: "pre",
-  },
-});
-
-const onTooltipClick = (
-  event: React.MouseEvent<unknown>,
-  failureReason: string,
-  setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>,
-) => {
-  event.stopPropagation();
-  setOpenSnackbar(true);
-  navigator.clipboard.writeText(failureReason);
-};
-
-const formatFailureReason = (failureReason: string) => {
-  const regex = /(Caused by:.*?)(?=\n)/s;
-  const match = regex.exec(failureReason);
-
-  if (match) {
-    const causedByText = match[1].trim();
-    return `${causedByText}\nFull stacktrace:\n${failureReason}`;
-  }
-
-  return failureReason;
-};
-
 function StatusIcon(
   status: string,
-  failureReason: string,
-  setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>,
+  failureReason: string
 ): JSX.Element {
   switch (status) {
     case SqlStatus.Running.valueOf():
@@ -100,27 +63,8 @@ function StatusIcon(
         <CheckIcon color="success" style={{ width: "30px", height: "30px" }} />
       );
     case SqlStatus.Failed.valueOf():
-      const formatedFailureReason = formatFailureReason(failureReason);
       return (
-        <div
-          onClick={(event) =>
-            onTooltipClick(event, failureReason, setOpenSnackbar)
-          }
-        >
-          <CustomWidthTooltip
-            arrow
-            placement="top"
-            style={{ overflow: "auto" }}
-            title={formatedFailureReason}
-            TransitionComponent={Fade}
-            TransitionProps={{ timeout: 300 }}
-          >
-            <ErrorOutlineIcon
-              color="error"
-              style={{ width: "30px", height: "30px" }}
-            />
-          </CustomWidthTooltip>
-        </div>
+        <ExceptionIcon failureReason={failureReason} />
       );
     default:
       return <div></div>;
@@ -239,7 +183,6 @@ export default function SqlTable({
 }) {
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof Data>("id");
-  const [openSnackbar, setOpenSnackbar] = React.useState<boolean>(false);
   const [sqlsTableData, setSqlsTableData] = React.useState<Data[]>([]);
   const sqlAlerts = useAppSelector((state) => state.spark.alerts)?.alerts.filter(alert => alert.source.type === "sql");
 
@@ -267,17 +210,6 @@ export default function SqlTable({
     () => stableSort(sqlsTableData, getComparator(order, orderBy)),
     [order, orderBy, sqlsTableData],
   );
-
-  const handleClose = (
-    event: React.SyntheticEvent | Event,
-    reason?: string,
-  ) => {
-    if (reason === "clickaway") {
-      return;
-    }
-
-    setOpenSnackbar(false);
-  };
 
   if (sqlStore === undefined) {
     return (<div
@@ -323,7 +255,7 @@ export default function SqlTable({
                   {sql.id}
                 </StyledTableCell>
                 <StyledTableCell component="th" scope="row">
-                  {StatusIcon(sql.status, sql.failureReason, setOpenSnackbar)}
+                  {StatusIcon(sql.status, sql.failureReason)}
                 </StyledTableCell>
                 <StyledTableCell component="th" scope="row">
                   <Box display="flex" alignItems="center" flexWrap="wrap">
@@ -351,12 +283,6 @@ export default function SqlTable({
           </TableBody>
         </Table>
       </TableContainer>
-      <Snackbar
-        onClose={handleClose}
-        open={openSnackbar}
-        autoHideDuration={2000}
-        message="Copied to clip board"
-      />
     </div>
   );
 }

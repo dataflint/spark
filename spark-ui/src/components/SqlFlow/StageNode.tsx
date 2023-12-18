@@ -1,5 +1,4 @@
 import CheckIcon from '@mui/icons-material/Check';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import PendingIcon from '@mui/icons-material/Pending';
 import { Box, CircularProgress, Tooltip, Typography } from "@mui/material";
 import { duration } from 'moment';
@@ -13,6 +12,7 @@ import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
 import { humanizeTimeDiff } from '../../utils/FormatUtils';
 import AlertBadge, { TransperantTooltip } from "../AlertBadge/AlertBadge";
+import ExceptionIcon from '../ExceptionIcon';
 import { ConditionalWrapper } from "../InfoBox/InfoBox";
 import styles from "./node-style.module.css";
 
@@ -52,7 +52,7 @@ function getBucketedColor(percentage: number): string {
   }
 }
 
-const getStatusIcon = (status: string): JSX.Element => {
+const getStatusIcon = (status: string, failureReason: string | undefined): JSX.Element => {
   switch (status) {
     case "ACTIVE":
       return (
@@ -67,10 +67,7 @@ const getStatusIcon = (status: string): JSX.Element => {
       );
     case "FAILED":
       return (
-        <ErrorOutlineIcon
-          color="error"
-          style={{ width: "30px", height: "30px" }}
-        />
+        <ExceptionIcon failureReason={failureReason ?? ""} />
       );
     case "PENDING":
       return <PendingIcon
@@ -87,12 +84,18 @@ const StageIcon: FC<{ stage: SQLNodeStageData | SQLNodeExchangeStageData | undef
   if (stage === undefined)
     return <div></div>
 
+  const stages = useAppSelector((state) => state.spark.stages);
+  const stageData = stages?.find(currentStage =>
+    (stage.type === "onestage" && stage.stageId === currentStage.stageId) ||
+    (stage.type === "exchange" && (stage.writeStage === currentStage.stageId || stage.readStage === currentStage.stageId))
+  );
+
   const text = stage.type === "onestage" ?
     `Stage ${stage.stageId}` :
     `Write Stage: ${stage.writeStage}\n, Read Stage: ${stage.readStage}`
 
   return <Tooltip sx={{ zIndex: 6 }} title={text}>
-    {getStatusIcon(stage.status)}
+    {getStatusIcon(stage.status, stageData?.failureReason)}
   </Tooltip>
 }
 
