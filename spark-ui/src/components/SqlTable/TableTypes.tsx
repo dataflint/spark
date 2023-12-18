@@ -16,8 +16,8 @@ export interface Data {
   description: string;
   duration: number;
   durationPercentage: number;
-  coreHour: number;
-  coreHourPercentage: number;
+  dfu: number;
+  dfuPercentage: number;
   activityRate: number;
   input: number;
   output: number;

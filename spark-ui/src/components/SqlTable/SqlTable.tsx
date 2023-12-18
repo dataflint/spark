@@ -153,10 +153,10 @@ const headCells: readonly HeadCell[] = [
     label: "Duration",
   },
   {
-    id: "coreHour",
+    id: "dfu",
     numeric: false,
     disablePadding: false,
-    label: "Core/Hour",
+    label: "DFU",
   },
   {
     id: "input",
@@ -182,8 +182,8 @@ const createSqlTableData = (sqls: EnrichedSparkSQL[]): Data[] => {
         description: sql.description,
         duration: sql.duration,
         durationPercentage: sql.resourceMetrics.durationPercentage,
-        coreHour: sql.resourceMetrics.coreHourUsage,
-        coreHourPercentage: sql.resourceMetrics?.coreHourPercentage,
+        dfu: sql.resourceMetrics.dfu,
+        dfuPercentage: sql.resourceMetrics?.dfuPercentage,
         activityRate: sql.resourceMetrics.activityRate,
         input: sql.stageMetrics.inputBytes,
         output: sql.stageMetrics.outputBytes,
@@ -337,7 +337,7 @@ export default function SqlTable({
                   {sql.durationPercentage.toFixed(1)}%)
                 </StyledTableCell>
                 <StyledTableCell align="left">
-                  {sql.coreHour.toFixed(4)} ({sql.coreHourPercentage.toFixed(1)}
+                  {sql.dfu.toFixed(4)} ({sql.dfuPercentage.toFixed(1)}
                   %)
                 </StyledTableCell>
                 <StyledTableCell align="left">

@@ -274,8 +274,10 @@ export interface SparkMetricsStore {
 export interface SparkSQLResourceUsageStore {
   coreHourUsage: number;
   activityRate: number;
-  coreHourPercentage: number;
+  dfuPercentage: number;
   durationPercentage: number;
+  memoryGbHourUsage: number;
+  dfu: number
 }
 
 export type SparkJobsStore = SparkJobStore[];

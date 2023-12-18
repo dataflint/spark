@@ -51,6 +51,10 @@ export function msToHours(ms: number): number {
   return ms / 1000 / 60 / 60;
 }
 
+export function hoursToMS(ms: number): number {
+  return ms * 1000 * 60 * 60;
+}
+
 export function timeStrToEpocTime(time: string): number {
   const addTimeMoment = new Date(time.replace("GMT", "Z"));
   return addTimeMoment.getTime();

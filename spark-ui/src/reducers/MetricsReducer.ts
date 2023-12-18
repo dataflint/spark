@@ -2,6 +2,7 @@ import isEqual from "lodash/isEqual";
 import * as Moment from "moment";
 import { extendMoment } from "moment-range";
 import {
+  ConfigStore,
   EnrichedSparkSQL,
   SparkExecutorsStore,
   SparkJobsStore,
@@ -19,6 +20,13 @@ import { msToHours } from "../utils/FormatUtils";
 import { calculateSqlStage } from "./SQLNodeStageReducer";
 
 const moment = extendMoment(Moment);
+
+interface ResourceUsage {
+  coreUsageMs: number;
+  coreHour: number;
+  memoryHour: number;
+  totalDFU: number;
+}
 
 export function calculateStagesStore(
   existingStore: SparkStagesStore | undefined,
@@ -107,9 +115,10 @@ export function calculateJobsStore(
 }
 
 function calculateSqlQueryResourceUsage(
+  configStore: ConfigStore,
   sql: EnrichedSparkSQL,
   executors: SparkExecutorsStore,
-): number {
+): ResourceUsage {
   const queryEndTimeEpoc = sql.submissionTimeEpoc + sql.duration;
   const queryRange = moment.range(
     moment(sql.submissionTimeEpoc),
@@ -127,16 +136,43 @@ function calculateSqlQueryResourceUsage(
       intersectRange: intersect,
       intersectTime: intersect === null ? 0 : intersect.valueOf(),
       cores: executor.totalCores,
+      memoryGB: (executor.id === "driver" ? configStore.driverMemoryBytes : configStore.executorContainerMemoryBytes) / 1024 / 1024 / 1024
     };
   });
   const intersectTime = intersectsAndExecutors
-    .map((intersect) => intersect.intersectTime * intersect.cores)
-    .reduce((a, b) => a + b, 0);
+    .map((intersect) => {
+      const coreUsageMs = intersect.intersectTime * intersect.cores;
+      const coreHour = msToHours(coreUsageMs);
+      const memoryHour = msToHours(intersect.intersectTime * intersect.memoryGB);
+      // see documentation about DFU calculation
+      const totalDFU = (coreHour * 0.052624) + (memoryHour * 0.0057785)
+      return {
+        coreUsageMs,
+        coreHour,
+        memoryHour,
+        totalDFU
+      };
+    })
+    .reduce((a, b) => {
+      return {
+        coreUsageMs: a.coreUsageMs + b.coreUsageMs,
+        coreHour: a.coreHour + b.coreHour,
+        memoryHour: a.memoryHour + b.memoryHour,
+        totalDFU: a.totalDFU + b.totalDFU,
+      };
+    },
+      {
+        coreUsageMs: 0,
+        coreHour: 0,
+        memoryHour: 0,
+        totalDFU: 0
+      });
   return intersectTime;
 }
 
 
 export function calculateSqlQueryLevelMetricsReducer(
+  configStore: ConfigStore,
   existingStore: SparkSQLStore,
   statusStore: StatusStore,
   jobs: SparkJobsStore,
@@ -158,35 +194,38 @@ export function calculateSqlQueryLevelMetricsReducer(
       return { ...sql, stageMetrics: sqlMetric };
     })
     .map((sql) => {
-      const queryResourceUsageWithDriverMs = calculateSqlQueryResourceUsage(
+      const resourceUsageWithDriver = calculateSqlQueryResourceUsage(
+        configStore,
         sql,
         executors,
       );
-      const queryResourceUsageExecutorsOnlyMs =
+      const resourceUsageExecutorsOnly =
         executors.length === 1
-          ? queryResourceUsageWithDriverMs
+          ? resourceUsageWithDriver
           : calculateSqlQueryResourceUsage(
+            configStore,
             sql,
             executors.filter((executor) => !executor.isDriver),
           );
       const totalTasksTime = sql.stageMetrics?.executorRunTime as number;
       const activityRate =
-        queryResourceUsageExecutorsOnlyMs !== 0
+        resourceUsageExecutorsOnly.coreUsageMs !== 0
           ? Math.min(
             100,
-            (totalTasksTime / queryResourceUsageExecutorsOnlyMs) * 100,
+            (totalTasksTime / resourceUsageExecutorsOnly.coreUsageMs) * 100,
           )
           : 0;
-      const coreHourUsage = msToHours(queryResourceUsageWithDriverMs);
       const resourceUsageStore: SparkSQLResourceUsageStore = {
-        coreHourUsage: coreHourUsage,
+        coreHourUsage: resourceUsageWithDriver.coreHour,
+        memoryGbHourUsage: resourceUsageWithDriver.memoryHour,
+        dfu: resourceUsageWithDriver.totalDFU,
         activityRate: activityRate,
-        coreHourPercentage:
-          statusStore.executors?.totalCoreHour === undefined
+        dfuPercentage:
+          statusStore.executors?.totalDFU === undefined
             ? 0
             : Math.min(
               100,
-              (coreHourUsage / statusStore.executors.totalCoreHour) * 100,
+              (resourceUsageWithDriver.totalDFU / statusStore.executors.totalDFU) * 100,
             ),
         durationPercentage:
           statusStore.duration === undefined
