@@ -27,7 +27,7 @@ import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";
 import { MixpanelService } from "./MixpanelService";
 
 const POLL_TIME = 1000;
-const SQL_QUERY_LENGTH = 300;
+const SQL_QUERY_LENGTH = 1000;
 
 class SparkAPI {
   basePath: string;
