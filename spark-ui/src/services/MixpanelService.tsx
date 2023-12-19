@@ -9,8 +9,8 @@ export class MixpanelService {
 
     const MIX_PANEL_TOKEN =
       process.env.NODE_ENV === "development"
-        ? "4b4ba202495eacfd7b46b1147d27f930"
-        : "5251dfa36e60af653d1c6380ccf97857";
+        ? "114c37f7dc10c79978b850277136c232"
+        : "114c37f7dc10c79978b850277136c232";
 
     // For debugging add debug: true to the props
     mixpanel.init(MIX_PANEL_TOKEN, {
