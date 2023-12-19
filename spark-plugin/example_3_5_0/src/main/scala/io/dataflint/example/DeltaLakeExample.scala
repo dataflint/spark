@@ -19,7 +19,7 @@ object DeltaLakeExample {
 
       import spark.implicits._
 
-      spark.sql("CREATE TABLE delta.`/tmp/delta-table` USING DELTA AS SELECT col1 as id FROM VALUES 0,1,2,3,4;")
+      spark.sql("CREATE TABLE IF NOT EXISTS delta.`/tmp/delta-table` USING DELTA AS SELECT col1 as id FROM VALUES 0,1,2,3,4;")
 
       spark.sql("INSERT OVERWRITE delta.`/tmp/delta-table` SELECT col1 as id FROM VALUES 5,6,7,8,9;")
 
