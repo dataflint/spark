@@ -11,11 +11,16 @@ on:
 
 jobs:
   test:
+    defaults:
+      run:
+        working-directory: ./spark-ui
+
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        working-directory: ./app
 
       - name: Set up Node.js
         uses: actions/setup-node@v2
