@@ -9,13 +9,19 @@ export const isProxyMode = (): boolean =>
 
 export function hrefWithoutEndSlash(): string {
   const href = window.location.href;
+  let fixedUrl = href.split("/#/")[0];
 
   // We are using a HashRouter so we split by #
-  const baseUrl = href.split("/#/")[0];
-  if (baseUrl.endsWith("/")) {
-    return baseUrl.substring(0, href.length - 1);
+  if (fixedUrl.endsWith("index.html")) {
+    fixedUrl = fixedUrl.substring(0, fixedUrl.length - "index.html".length)
   }
-  return baseUrl;
+  if (fixedUrl.endsWith("index2.html")) {
+    fixedUrl = fixedUrl.substring(0, fixedUrl.length - "index2.html".length)
+  }
+  if (fixedUrl.endsWith("/")) {
+    fixedUrl = fixedUrl.substring(0, fixedUrl.length - 1);
+  }
+  return fixedUrl;
 }
 
 export const getProxyBasePath = (): string =>
