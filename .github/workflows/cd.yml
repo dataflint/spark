@@ -31,7 +31,12 @@ jobs:
         run: npm run deploy
         working-directory: ./spark-ui
 
-      - run: sbt publishSigned
+      - name: package plugin
+        run: sbt package
+        working-directory: ./spark-plugin
+
+      - name: publish to maven staging
+        run: sbt ci-release
         working-directory: ./spark-plugin
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
