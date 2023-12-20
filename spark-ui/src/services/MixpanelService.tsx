@@ -14,6 +14,7 @@ export class MixpanelService {
 
     // For debugging add debug: true to the props
     mixpanel.init(MIX_PANEL_TOKEN, {
+      api_host: "https://drblx6b8i77l.cloudfront.net",
       track_pageview: true,
       persistence: "localStorage",
     });
