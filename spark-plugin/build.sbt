@@ -1,7 +1,8 @@
 import xerial.sbt.Sonatype._
 
 ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
-// ThisBuild / sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+
+lazy val versionNum: String = "0.0.8"
 
 lazy val dataflint = project
   .in(file("."))
@@ -22,7 +23,11 @@ lazy val plugin = (project in file("plugin"))
     name := "spark",
     organization := "io.dataflint",
     scalaVersion := "2.12.18",
-    version      := "0.0.7-SNAPSHOT",
+    version      := (if (git.gitCurrentBranch.value == "release") {
+      versionNum
+    } else {
+      versionNum + "-SNAPSHOT"
+    }),
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.4.1" % "provided",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.4.1"  % "provided",
     publishTo := sonatypePublishToBundle.value

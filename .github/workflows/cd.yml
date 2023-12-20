@@ -1,0 +1,40 @@
+name: CD
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main, release]
+    types:
+      - completed
+jobs:
+  publish:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 8
+          cache: sbt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 20
+
+      - name: Install npm dependencies
+        run: npm ci
+        working-directory: ./spark-ui
+  
+      - name: build frontend
+        run: npm run deploy
+        working-directory: ./spark-ui
+
+      - run: sbt publishSigned
+        working-directory: ./spark-plugin
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
