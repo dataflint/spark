@@ -51,7 +51,7 @@
     "proxy": "for i in {1..100}; do lcp --proxyUrl http://localhost:10000 && break || sleep 5; done",
     "proxy-history": "for i in {1..100}; do lcp --proxyUrl http://localhost:18080 --port 8011 && break || sleep 5; done",
     "proxy-tpch": "for i in {1..100}; do lcp --proxyUrl http://localhost:9000 --port 8012 && break || sleep 5; done",
-    "deploy": "react-scripts build && npx gulp && rm -r ./spark-ui/build/static && mkdir -p ../spark-plugin/plugin/src/main/resources/io/dataflint/spark/static/ui/ && rm -r ../spark-plugin/plugin/src/main/resources/io/dataflint/spark/static/ui/ && mkdir -p ../spark-plugin/plugin/src/main/resources/io/dataflint/spark/static/ui/ && cp -r ./build/ ../spark-plugin/plugin/src/main/resources/io/dataflint/spark/static/ui",
+    "deploy": "react-scripts build && npx gulp && rm -r ./build/static && mkdir -p ../spark-plugin/plugin/src/main/resources/io/dataflint/spark/static/ui/ && rm -r ../spark-plugin/plugin/src/main/resources/io/dataflint/spark/static/ui/ && mkdir -p ../spark-plugin/plugin/src/main/resources/io/dataflint/spark/static/ui/ && cp -r ./build/ ../spark-plugin/plugin/src/main/resources/io/dataflint/spark/static/ui",
     "deploy-win": "react-scripts build && xcopy \"./build\" \"../spark-plugin/plugin/src/main/resources/io/dataflint/spark/static/ui\" /s /e /y",
     "format": "./node_modules/.bin/prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\""
   },
