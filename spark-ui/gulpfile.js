@@ -1,20 +1,18 @@
 const gulp = require('gulp');
 const inlinesource = require('gulp-inline-source');
 const replace = require('gulp-replace');
-var del = require('del');
 
 gulp.task('default', () => {
-  return gulp
+return gulp
     .src('./build/*.html')
     .pipe(replace('.js"></script>', '.js" inline></script>'))
     .pipe(replace('<link rel="shortcut icon" href="./icon.png"/>', ''))
     .pipe(replace('<link rel="manifest" href="./manifest.json"/>', ''))
     .pipe(replace('rel="stylesheet">', 'rel="stylesheet" inline>'))
     .pipe(
-      inlinesource({
+    inlinesource({
         compress: false
-      })
+    })
     )
-    .pipe(del(["./build/static"]))
     .pipe(gulp.dest('./build'));
 });

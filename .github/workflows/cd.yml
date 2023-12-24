@@ -61,6 +61,9 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
+            See: https://dataflint.gitbook.io/dataflint-for-spark/overview/release-notes#version-${{ github.ref_name }}
+
+            commits change log:
             ${{ steps.Changelog.outputs.changelog }}
           draft: false
           prerelease: false
