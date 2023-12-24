@@ -11,10 +11,10 @@ ThisBuild / licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENS
 import xerial.sbt.Sonatype._
 ThisBuild / sonatypeProjectHosting := Some(GitHubHosting("menishmueli", "dataflint/spark", "menishmueli@gmail.com"))
 
-ThisBuild / description := "Observability solution for Apache Spark, including query heat map, alerting performance issues and AI assistant"
+ThisBuild / description := "Open Source Data-Application Performance Monitoring for Apache Spark"
 
 // or if you want to set these fields manually
-ThisBuild / homepage := Some(url("http://dataflint.io"))
+ThisBuild / homepage := Some(url("https://github.com/dataflint/spark"))
 ThisBuild / scmInfo := Some(
   ScmInfo(
     url("https://github.com/dataflint/spark"),
