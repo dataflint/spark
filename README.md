@@ -1,5 +1,95 @@
-# DataFlint spark
+<p align="center">
+<img alt="Logo" src="documentation/resources/logo.png" height="300">
+</p>
 
-DataFlint is a observability and visibility tool for Apache Spark
+<h2 align="center">
+ Data-Application Performance Monitoring for data engineers
+</h2>
 
-For more details see our documentation here: https://dataflint.gitbook.io/dataflint-for-spark/
+<div align="center">
+
+[![Test Status](https://github.com/dataflint/spark/actions/workflows/ci.yml/badge.svg)](https://github.com/your_username/your_repo/actions/workflows/tests.yml)
+[![Slack](https://img.shields.io/badge/Slack-Join%20Us-purple)](https://join.slack.com/t/dataflint/shared_invite/zt-28sr3r3pf-Td_mLx~0Ss6D1t0EJb8CNA)
+[![Docs](https://img.shields.io/badge/Docs-Read%20the%20Docs-blue)](https://dataflint.gitbook.io/dataflint-for-spark/)
+![License](https://img.shields.io/badge/License-Apache%202.0-orange)
+
+If you enjoy DataFlint please give us a ⭐️ and join our [slack community](https://join.slack.com/t/dataflint/shared_invite/zt-28sr3r3pf-Td_mLx~0Ss6D1t0EJb8CNA) for feature requests, support and more!
+
+</div>
+
+## What is DataFlint?
+
+DataFlint is an open-source Data Application Performance Monitoring (DAPM) for Apache Spark, built for big data engineers.
+
+It is installed within minutes via open source library, working on top of the existing Spark-UI infrastructure, all in order to help you solve big data performance issues and debug failures!
+
+## Demo
+
+![Demo](documentation/resources/demo.gif)
+
+## Features
+
+- 📈 Real-time query and cluster status
+- 📊 Query breakdown with performance heat map
+- 📋 Application Run Summary
+- ⚠️ Performance alerts and suggestions
+- 👀 Identify query failures
+- 🤖 Spark AI Assistant
+
+See [Our Features](https://dataflint.gitbook.io/dataflint-for-spark/overview/our-features) for more information
+
+## Installation
+
+For installing for scala via sbt:
+```sbt
+libraryDependencies += "io.dataflint" %% "spark_2.12" % "0.0.8-SNAPSHOT"
+```
+
+Than instruct spark to load the DataFlint plugin:
+```scala
+val spark = SparkSession
+    .builder
+    .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
+    ...
+    .getOrCreate()
+```
+
+Alternitavly, install DataFlint with no code change as a spark ivy package by adding this 3 lines to your spark-submit command:
+
+```bash
+spark-submit
+--packages io.dataflint:spark_2.12:0.0.8-SNAPSHOT \
+--repositories https://s01.oss.sonatype.org/content/repositories/snapshots \
+--conf spark.plugins=io.dataflint.spark.SparkDataflintPlugin \
+...
+```
+
+* For more installation options, including for python and k8s spark-operator, see [Install on Spark docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark)
+* For installing DataFlint in spark history server for historical past runs observability see [install on spark history server docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark-history-server)
+* For installing DataFlint on DataBricks see [install on databricks](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark-history-server)
+
+## How it Works
+
+![How it Works](documentation/resources/howitworks.png)
+
+DataFlint is installed as a plugin on the spark driver and history server.
+
+It exposes an additional http resoures for additional metrics not available in Spark UI, and a modern web-app.
+
+For more information, see [how it works docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/how-it-works)
+
+## Compatibility Matrix
+
+DataFlint require spark version 3.2 and up, and scala version 2.12. 
+
+| Platforms              | Spark | History Server |
+|------------------------|-------|----------------|
+| Local                  |   ✅   |       ✅       |
+| Standalone             |   ✅   |       ✅       |
+| Kubernetes Operator    |   ✅   |       ✅       |
+| EMR                    |   ✅   |       ❓       |
+| Dataproc               |   ✅   |       ❓       |
+| HDInsights             |   ✅   |       ❓       |
+| Databricks             |   ✅   |       ❌       |
+
+For more information, see [docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/supported-versions)
