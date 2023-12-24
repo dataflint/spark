@@ -54,7 +54,7 @@ val spark = SparkSession
     .getOrCreate()
 ```
 
-Alternitavly, install DataFlint with no code change as a spark ivy package by adding this 3 lines to your spark-submit command:
+Alternatively, install DataFlint with **no code change** as a spark ivy package by adding this 3 lines to your spark-submit command:
 
 ```bash
 spark-submit
