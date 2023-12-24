@@ -22,7 +22,7 @@ class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
   }
 
   override def registerMetrics(appId: String, pluginContext: PluginContext): Unit = {
-    var webUrl = DataflintSparkUILoader.load(sc)
+    var webUrl = DataflintSparkUILoader.install(sc)
     logInfo(s"spark dataflint url is $webUrl/dataflint")
     super.registerMetrics(appId, pluginContext)
   }

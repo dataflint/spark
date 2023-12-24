@@ -226,6 +226,7 @@ export interface EnrichedSqlNode {
   stage: SQLNodeStageData | SQLNodeExchangeStageData | undefined;
   parsedPlan: ParsedNodePlan | undefined;
   exchangeMetrics: ExchangeMetrics | undefined;
+  rddScopeId: string | undefined;
 }
 
 export interface SQLNodeExchangeStageData {

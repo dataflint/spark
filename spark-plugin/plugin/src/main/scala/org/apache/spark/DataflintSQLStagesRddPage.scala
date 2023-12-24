@@ -16,8 +16,8 @@ class DataflintSQLStagesRddPage(ui: SparkUI)
       val graphs = ui.store.stageList(null)
         .filter(_.submissionTime.isDefined) // filter skipped or pending stages
         .map(stage => Tuple2(stage.stageId,
-          ui.store.operationGraphForStage(stage.stageId).rootCluster.childClusters.map(rdd =>
-            Tuple2(rdd.id.toInt, rdd.name)).toMap))
+          ui.store.operationGraphForStage(stage.stageId).rootCluster.childClusters
+            .map(rdd => Tuple2(rdd.id, rdd.name)).toMap))
         .toMap
       val jsonValue: JValue = Extraction.decompose(graphs)(org.json4s.DefaultFormats)
       jsonValue

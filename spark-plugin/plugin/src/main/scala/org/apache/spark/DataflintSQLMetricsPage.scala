@@ -6,7 +6,7 @@ import org.json4s.JsonAST
 
 import javax.servlet.http.HttpServletRequest
 import scala.xml.Node
-import org.apache.spark.sql.execution.ui.{SQLAppStatusListener, SQLAppStatusStore}
+import org.apache.spark.sql.execution.ui.{SQLAppStatusListener, SQLAppStatusStore, SparkPlanGraph}
 import org.json4s.JsonAST.JValue
 import org.json4s._
 
@@ -27,7 +27,13 @@ class DataflintSQLMetricsPage(ui: SparkUI, sqlListener: () => Option[SQLAppStatu
       }
       val executionIdLong = executionId.toLong
       val metrics = sqlStore.executionMetrics(executionIdLong)
-      val graph = sqlStore.planGraph(executionIdLong)
+      val isDatabricks = ui.conf.getOption("spark.databricks.clusterUsageTags.cloudProvider").isDefined
+      val graph = if (isDatabricks) {
+        val exec = sqlStore.execution(executionIdLong).get
+        val planVersion = exec.getClass.getMethod("latestVersion").invoke(exec).asInstanceOf[Long]
+        sqlStore.getClass.getMethods.filter(_.getName == "planGraph").head.invoke(sqlStore, executionIdLong.asInstanceOf[Object], planVersion.asInstanceOf[Object]).asInstanceOf[SparkPlanGraph]
+      } else
+        sqlStore.planGraph(executionIdLong)
       val nodesMetrics = graph.allNodes.map(node => NodeMetrics(node.id, node.name, node.metrics.map(metric => {
           NodeMetric(metric.name, metrics.get(metric.accumulatorId))
         })))

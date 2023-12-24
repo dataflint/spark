@@ -4,7 +4,7 @@ import org.apache.spark.sql.execution.ui.SQLAppStatusListener
 import org.apache.spark.ui.SparkUI
 
 object DataflintSparkUILoader {
-  def load(context: SparkContext): String = {
+  def install(context: SparkContext): String = {
     val sqlListener = () => context.listenerBus.listeners.toArray().find(_.isInstanceOf[SQLAppStatusListener]).asInstanceOf[Option[SQLAppStatusListener]]
     loadUI(context.ui.get, sqlListener)
   }

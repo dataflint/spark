@@ -14,6 +14,8 @@ export class MixpanelService {
 
     // For debugging add debug: true to the props
     mixpanel.init(MIX_PANEL_TOKEN, {
+      // using a cloudfront to skip ad blockers, see:
+      // https://blog.pranavp.com.np/prevent-ad-blockers-from-blocking-mixpanel-without-nginx
       api_host: "https://drblx6b8i77l.cloudfront.net",
       track_pageview: true,
       persistence: "localStorage",

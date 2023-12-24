@@ -18,6 +18,9 @@ export function hrefWithoutEndSlash(): string {
   if (fixedUrl.endsWith("index2.html")) {
     fixedUrl = fixedUrl.substring(0, fixedUrl.length - "index2.html".length)
   }
+  if (fixedUrl.includes("?o=")) {
+    fixedUrl = fixedUrl.split("dataflint")[0] + "dataflint"
+  }
   if (fixedUrl.endsWith("/")) {
     fixedUrl = fixedUrl.substring(0, fixedUrl.length - 1);
   }
