@@ -1,13 +1,13 @@
 import CheckIcon from "@mui/icons-material/Check";
 import { Box, CircularProgress, TableSortLabel } from "@mui/material";
 import Paper from "@mui/material/Paper";
-import { styled } from "@mui/material/styles";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import { styled } from "@mui/material/styles";
 import { visuallyHidden } from "@mui/utils";
 import _ from "lodash";
 import { duration } from "moment";
@@ -88,10 +88,10 @@ const headCells: readonly HeadCell[] = [
     label: "Duration",
   },
   {
-    id: "dfu",
+    id: "dcu",
     numeric: false,
     disablePadding: false,
-    label: "DFU",
+    label: "DCU",
   },
   {
     id: "input",
@@ -112,18 +112,18 @@ const createSqlTableData = (sqls: EnrichedSparkSQL[]): Data[] => {
     return !sql.stageMetrics || !sql.resourceMetrics
       ? []
       : {
-          id: sql.id,
-          status: sql.status,
-          description: sql.description,
-          duration: sql.duration,
-          durationPercentage: sql.resourceMetrics.durationPercentage,
-          dfu: sql.resourceMetrics.dfu,
-          dfuPercentage: sql.resourceMetrics?.dfuPercentage,
-          activityRate: sql.resourceMetrics.activityRate,
-          input: sql.stageMetrics.inputBytes,
-          output: sql.stageMetrics.outputBytes,
-          failureReason: !sql.failureReason ? "" : sql.failureReason,
-        };
+        id: sql.id,
+        status: sql.status,
+        description: sql.description,
+        duration: sql.duration,
+        durationPercentage: sql.resourceMetrics.durationPercentage,
+        dcu: sql.resourceMetrics.dcu,
+        dcuPercentage: sql.resourceMetrics?.dcuPercentage,
+        activityRate: sql.resourceMetrics.activityRate,
+        input: sql.stageMetrics.inputBytes,
+        output: sql.stageMetrics.outputBytes,
+        failureReason: !sql.failureReason ? "" : sql.failureReason,
+      };
   });
 };
 
@@ -259,11 +259,11 @@ export default function SqlTable({
                   <Box display="flex" alignItems="center" flexWrap="wrap">
                     {sql.description}
                     {sqlAlerts !== undefined &&
-                    sqlAlerts.find(
-                      (alert) =>
-                        alert.source.type === "sql" &&
-                        alert.source.sqlId === sql.id,
-                    ) !== undefined ? (
+                      sqlAlerts.find(
+                        (alert) =>
+                          alert.source.type === "sql" &&
+                          alert.source.sqlId === sql.id,
+                      ) !== undefined ? (
                       <MultiAlertBadge
                         alerts={sqlAlerts.filter(
                           (alert) =>
@@ -279,7 +279,7 @@ export default function SqlTable({
                   {sql.durationPercentage.toFixed(1)}%)
                 </StyledTableCell>
                 <StyledTableCell align="left">
-                  {sql.dfu.toFixed(4)} ({sql.dfuPercentage.toFixed(1)}
+                  {sql.dcu.toFixed(4)} ({sql.dcuPercentage.toFixed(1)}
                   %)
                 </StyledTableCell>
                 <StyledTableCell align="left">

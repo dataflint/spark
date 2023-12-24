@@ -260,7 +260,7 @@ export interface SparkExecutorsStatus {
   totalDriverMemoryGibHour: number;
   totalExecutorMemoryGibHour: number;
   totalMemoryGibHour: number;
-  totalDFU: number;
+  totalDCU: number;
   activityRate: number;
   maxExecutorMemoryPercentage: number;
   maxExecutorMemoryBytesString: string;
@@ -283,10 +283,10 @@ export interface SparkMetricsStore {
 export interface SparkSQLResourceUsageStore {
   coreHourUsage: number;
   activityRate: number;
-  dfuPercentage: number;
+  dcuPercentage: number;
   durationPercentage: number;
   memoryGbHourUsage: number;
-  dfu: number;
+  dcu: number;
 }
 
 export type SparkJobsStore = SparkJobStore[];

@@ -15,8 +15,8 @@ export interface Data {
   description: string;
   duration: number;
   durationPercentage: number;
-  dfu: number;
-  dfuPercentage: number;
+  dcu: number;
+  dcuPercentage: number;
   activityRate: number;
   input: number;
   output: number;

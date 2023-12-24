@@ -89,14 +89,14 @@ export function calculateSparkExecutorsStatus(
     numOfExecutors === 0
       ? driver.totalTaskDuration
       : executors
-          .map((executor) => executor.totalTaskDuration)
-          .reduce((a, b) => a + b, 0);
+        .map((executor) => executor.totalTaskDuration)
+        .reduce((a, b) => a + b, 0);
   const totalPotentialTaskTimeMs =
     numOfExecutors === 0
       ? driver.duration * driver.maxTasks
       : executors
-          .map((executor) => executor.duration * executor.maxTasks)
-          .reduce((a, b) => a + b, 0);
+        .map((executor) => executor.duration * executor.maxTasks)
+        .reduce((a, b) => a + b, 0);
   const totalCoreHour = sparkExecutors
     .map((executor) => executor.totalCores * msToHours(executor.duration))
     .reduce((a, b) => a + b, 0);
@@ -134,25 +134,25 @@ export function calculateSparkExecutorsStatus(
     numOfExecutors === 0
       ? driver.totalInputBytes
       : executors
-          .map((executor) => executor.totalInputBytes)
-          .reduce((a, b) => a + b, 0);
+        .map((executor) => executor.totalInputBytes)
+        .reduce((a, b) => a + b, 0);
 
   const totalShuffleRead =
     numOfExecutors === 0
       ? driver.totalShuffleRead
       : executors
-          .map((executor) => executor.totalShuffleRead)
-          .reduce((a, b) => a + b, 0);
+        .map((executor) => executor.totalShuffleRead)
+        .reduce((a, b) => a + b, 0);
 
   const totalShuffleWrite =
     numOfExecutors === 0
       ? driver.totalShuffleWrite
       : executors
-          .map((executor) => executor.totalShuffleWrite)
-          .reduce((a, b) => a + b, 0);
+        .map((executor) => executor.totalShuffleWrite)
+        .reduce((a, b) => a + b, 0);
 
-  // see documentation about DFU calculation
-  const totalDFU = totalCoreHour * 0.052624 + totalMemoryGibHour * 0.0057785;
+  // see documentation about DCU calculation
+  const totalDCU = totalCoreHour * 0.052624 + totalMemoryGibHour * 0.0057785;
 
   return {
     numOfExecutors,
@@ -160,7 +160,7 @@ export function calculateSparkExecutorsStatus(
     totalDriverMemoryGibHour,
     totalExecutorMemoryGibHour,
     totalMemoryGibHour,
-    totalDFU,
+    totalDCU,
     activityRate,
     maxExecutorMemoryPercentage,
     maxExecutorMemoryBytesString,

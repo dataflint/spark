@@ -37,10 +37,10 @@ const SummaryBar: FC = (): JSX.Element => {
 
   const durationText = humanizeTimeDiff(duration(status.duration));
 
-  const totalDFUFormated =
-    status.executors.totalDFU > 1
-      ? status.executors.totalDFU.toFixed(2)
-      : status.executors.totalDFU.toFixed(4);
+  const totalDCUFormated =
+    status.executors.totalDCU > 1
+      ? status.executors.totalDCU.toFixed(2)
+      : status.executors.totalDCU.toFixed(4);
   return (
     <Grid
       container
@@ -64,35 +64,35 @@ const SummaryBar: FC = (): JSX.Element => {
           icon={AccessTimeIcon}
         ></InfoBox>
         <InfoBox
-          title="DFU"
-          text={totalDFUFormated}
+          title="DCU"
+          text={totalDCUFormated}
           color="#795548"
           icon={HubIcon}
           tooltipContent={
             <React.Fragment>
               <Typography variant="h6" color="inherit">
-                DataFlint Units (DFU)
+                DataFlint Compute Units (DCU)
               </Typography>
               <Typography variant="subtitle2">
                 Is measurement unit for spark usage, which is a simular concept
                 to DBU (DataBricks Unit)
               </Typography>
               <Typography variant="subtitle2">
-                It's calculated by: {totalDFUFormated} (DFU) =
+                It's calculated by: {totalDCUFormated} (DCU) =
               </Typography>
               <Typography variant="subtitle2">
                 <b>{status.executors.totalCoreHour.toFixed(2)}</b> (core/hour
-                usage) * 0.052624 (core/hour ratio) +
+                usage) * 0.05 (core/hour ratio) +
               </Typography>
               <Typography variant="subtitle2">
                 <b>{status.executors.totalMemoryGibHour.toFixed(2)}</b> (GiB
-                memory/hour usage) * 0.0057785 (GiB memory/hour ratio)
+                memory/hour usage) * 0.005 (GiB memory/hour ratio)
               </Typography>
               <Typography variant="subtitle2">
                 For more information see{" "}
                 <Link
                   color="inherit"
-                  href="https://dataflint.gitbook.io/dataflint-for-spark/advanced/dfu-calculation"
+                  href="https://dataflint.gitbook.io/dataflint-for-spark/advanced/dcu-calculation"
                 >
                   documentation
                 </Link>
