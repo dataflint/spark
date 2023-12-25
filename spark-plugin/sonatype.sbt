@@ -3,6 +3,8 @@ import xerial.sbt.Sonatype._
 
 ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
 
+sonatypeProfileName := "io.dataflint"
+
 ThisBuild / sonatypeProfileName := "io.dataflint"
 
 ThisBuild / publishMavenStyle := true
