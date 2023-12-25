@@ -40,7 +40,7 @@ See [Our Features](https://dataflint.gitbook.io/dataflint-for-spark/overview/our
 
 ## Installation
 
-For installing for scala via sbt:
+Install DataFlint via sbt:
 ```sbt
 libraryDependencies += "io.dataflint" %% "spark_2.12" % "0.0.8-SNAPSHOT"
 ```
@@ -82,14 +82,13 @@ For more information, see [how it works docs](https://dataflint.gitbook.io/dataf
 
 DataFlint require spark version 3.2 and up, and scala version 2.12. 
 
-| Platforms              | Spark | History Server |
-|------------------------|-------|----------------|
-| Local                  |   ✅   |       ✅       |
-| Standalone             |   ✅   |       ✅       |
-| Kubernetes Operator    |   ✅   |       ✅       |
-| EMR                    |   ✅   |       ❓       |
-| Dataproc               |   ✅   |       ❓       |
-| HDInsights             |   ✅   |       ❓       |
-| Databricks             |   ✅   |       ❌       |
-
+| Platforms                 | Spark | History Server |
+|---------------------------|-------|----------------|
+| Local                     |   ✅   |       ✅       |
+| Standalone                |   ✅   |       ✅       |
+| Kubernetes Spark Operator |   ✅   |       ✅       |
+| EMR                       |   ✅   |       ❓       |
+| Dataproc                  |   ✅   |       ❓       |
+| HDInsights                |   ✅   |       ❓       |
+| Databricks                |   ✅   |       ❌       |
 For more information, see [docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/supported-versions)
