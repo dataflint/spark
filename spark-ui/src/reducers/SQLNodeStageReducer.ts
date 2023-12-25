@@ -164,11 +164,17 @@ export function calculateSqlStage(
     };
   });
   const nodes = sql.nodes.map((node) => {
+    const databricksRddStageId = sqlStages.find(
+      (stage) =>
+        stage.stagesRdd !== undefined &&
+        node.rddScopeId !== undefined &&
+        Object.keys(stage.stagesRdd).includes(node.rddScopeId)
+    )?.stageId;
     const stageCodegen = codegenNodes.find(
       (codegenNode) =>
         codegenNode.wholeStageCodegenId === node.wholeStageCodegenId,
     );
-    const stageData = stageDataFromStage(stageCodegen?.stage?.stageId, stages);
+    const stageData = stageDataFromStage(databricksRddStageId ?? stageCodegen?.stage?.stageId, stages);
     return {
       ...node,
       stage: stageData,
