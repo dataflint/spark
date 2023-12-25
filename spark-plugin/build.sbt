@@ -1,7 +1,5 @@
 import xerial.sbt.Sonatype._
 
-ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
-
 lazy val versionNum: String = "0.0.8"
 
 lazy val dataflint = project
@@ -23,7 +21,7 @@ lazy val plugin = (project in file("plugin"))
     name := "spark",
     organization := "io.dataflint",
     scalaVersion := "2.12.18",
-    version      := (if (git.gitCurrentBranch.value == "release") {
+    version      := (if (git.gitCurrentTags.value.exists(_.startsWith("v"))) {
       versionNum
     } else {
       versionNum + "-SNAPSHOT"
