@@ -155,9 +155,7 @@ export function calculateSqlStage(
             stage.stagesRdd !== undefined &&
             (Object.values(stage.stagesRdd).includes(node.nodeName) ||
               (node.rddScopeId !== undefined &&
-                Object.keys(stage.stagesRdd).includes(node.rddScopeId)
-              )
-            ),
+                Object.keys(stage.stagesRdd).includes(node.rddScopeId))),
         )?.stageId,
         stages,
       ),
@@ -168,13 +166,16 @@ export function calculateSqlStage(
       (stage) =>
         stage.stagesRdd !== undefined &&
         node.rddScopeId !== undefined &&
-        Object.keys(stage.stagesRdd).includes(node.rddScopeId)
+        Object.keys(stage.stagesRdd).includes(node.rddScopeId),
     )?.stageId;
     const stageCodegen = codegenNodes.find(
       (codegenNode) =>
         codegenNode.wholeStageCodegenId === node.wholeStageCodegenId,
     );
-    const stageData = stageDataFromStage(databricksRddStageId ?? stageCodegen?.stage?.stageId, stages);
+    const stageData = stageDataFromStage(
+      databricksRddStageId ?? stageCodegen?.stage?.stageId,
+      stages,
+    );
     return {
       ...node,
       stage: stageData,
@@ -225,10 +226,10 @@ export function calculateSqlStage(
     const restOfStageDuration = Math.max(
       0,
       (stage.metrics.executorRunTime ?? 0) -
-      codegensDuration -
-      exchangeWriteDuration -
-      exchangeReadDuration -
-      broadcastExchangeDuration,
+        codegensDuration -
+        exchangeWriteDuration -
+        exchangeReadDuration -
+        broadcastExchangeDuration,
     );
 
     return { id: id, restOfStageDuration: restOfStageDuration };
@@ -272,10 +273,10 @@ export function calculateSqlStage(
           ? sql.stageMetrics?.executorRunTime === 0
             ? 0
             : Math.max(
-              0,
-              Math.min(100, duration / sql.stageMetrics?.executorRunTime) *
-              100,
-            )
+                0,
+                Math.min(100, duration / sql.stageMetrics?.executorRunTime) *
+                  100,
+              )
           : undefined;
       return {
         ...node,

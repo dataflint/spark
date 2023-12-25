@@ -4,10 +4,10 @@ import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { Provider } from "react-redux";
 import { RouterProvider } from "react-router-dom";
-import { reactRouter } from "./Router";
-import store from "./Store";
 import { MixpanelEvents } from "./interfaces/Mixpanel";
+import { reactRouter } from "./Router";
 import { MixpanelService } from "./services/MixpanelService";
+import store from "./Store";
 import theme from "./theme";
 
 document.addEventListener("DOMContentLoaded", (event) => {

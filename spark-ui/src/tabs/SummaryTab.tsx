@@ -2,10 +2,10 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BuildIcon from "@mui/icons-material/Build";
 import { Box, Fade, IconButton, Tooltip, Typography } from "@mui/material";
 import * as React from "react";
-import { useAppSelector } from "../Hooks";
 import SqlFlow from "../components/SqlFlow/SqlFlow";
 import SqlTable from "../components/SqlTable/SqlTable";
 import SummaryBar from "../components/SummaryBar";
+import { useAppSelector } from "../Hooks";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 import { MixpanelService } from "../services/MixpanelService";
 import { BASE_CURRENT_PAGE } from "../utils/UrlConsts";
@@ -99,8 +99,15 @@ export default function SummaryTab() {
                 <BuildIcon style={{ width: "30px", height: "30px" }} />
               </IconButton>
             </Tooltip>
-            <Box marginLeft="10px" display="flex" alignItems="center" alignContent="center">
-              <Typography variant="h5">query {selectedSql?.id}: {selectedSql?.description}</Typography>
+            <Box
+              marginLeft="10px"
+              display="flex"
+              alignItems="center"
+              alignContent="center"
+            >
+              <Typography variant="h5">
+                query {selectedSql?.id}: {selectedSql?.description}
+              </Typography>
             </Box>
           </Box>
           {selectedSql !== undefined ? (

@@ -107,12 +107,18 @@ class SparkAPI {
     if (IS_HISTORY_SERVER_MODE) {
       return "history_server";
     }
-    const databricksConf = config.sparkProperties.find(conf => conf.length > 1 && conf[0] === "spark.databricks.clusterUsageTags.cloudProvider")
+    const databricksConf = config.sparkProperties.find(
+      (conf) =>
+        conf.length > 1 &&
+        conf[0] === "spark.databricks.clusterUsageTags.cloudProvider",
+    );
     if (databricksConf !== undefined) {
       return "databricks";
     }
 
-    const masterConfig = config.sparkProperties.find(conf => conf.length > 1 && conf[0] === "spark.master")
+    const masterConfig = config.sparkProperties.find(
+      (conf) => conf.length > 1 && conf[0] === "spark.master",
+    );
     if (masterConfig === undefined || masterConfig.length !== 2) {
       return "unknown";
     }
@@ -181,14 +187,14 @@ class SparkAPI {
             config: sparkConfiguration,
             appId: this.appId,
             attempt: currentAttempt,
-            epocCurrentTime: Date.now()
+            epocCurrentTime: Date.now(),
           }),
         );
 
         MixpanelService.Track(MixpanelEvents.SparkAppInitilized, {
           sparkVersion: currentAttempt?.appSparkVersion,
           duration: currentAttempt?.duration,
-          platform: this.getPlatform(sparkConfiguration)
+          platform: this.getPlatform(sparkConfiguration),
         });
       } else {
         this.dispatch(updateDuration({ epocCurrentTime: Date.now() }));

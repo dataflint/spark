@@ -13,13 +13,13 @@ export function hrefWithoutEndSlash(): string {
 
   // We are using a HashRouter so we split by #
   if (fixedUrl.endsWith("index.html")) {
-    fixedUrl = fixedUrl.substring(0, fixedUrl.length - "index.html".length)
+    fixedUrl = fixedUrl.substring(0, fixedUrl.length - "index.html".length);
   }
   if (fixedUrl.endsWith("index2.html")) {
-    fixedUrl = fixedUrl.substring(0, fixedUrl.length - "index2.html".length)
+    fixedUrl = fixedUrl.substring(0, fixedUrl.length - "index2.html".length);
   }
   if (fixedUrl.includes("?o=")) {
-    fixedUrl = fixedUrl.split("dataflint")[0] + "dataflint"
+    fixedUrl = fixedUrl.split("dataflint")[0] + "dataflint";
   }
   if (fixedUrl.endsWith("/")) {
     fixedUrl = fixedUrl.substring(0, fixedUrl.length - 1);

@@ -4,7 +4,7 @@ export interface SQLPlan {
   executionId: number;
   numOfNodes: number;
   nodesPlan: SQLNodePlan[];
-  rddScopesToStages?: Record<string, StartAndAttempt>
+  rddScopesToStages?: Record<string, StartAndAttempt>;
 }
 
 export interface StartAndAttempt {
@@ -15,5 +15,5 @@ export interface StartAndAttempt {
 export interface SQLNodePlan {
   id: number;
   planDescription: string;
-  rddScopeId?: string
+  rddScopeId?: string;
 }
