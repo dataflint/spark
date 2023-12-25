@@ -8,8 +8,9 @@
 
 <div align="center">
 
-[![Test Status](https://github.com/dataflint/spark/actions/workflows/ci.yml/badge.svg)](https://github.com/your_username/your_repo/actions/workflows/tests.yml)
+[![Maven Package](https://maven-badges.herokuapp.com/maven-central/io.dataflint/spark_2.12/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.dataflint/spark_2.12)
 [![Slack](https://img.shields.io/badge/Slack-Join%20Us-purple)](https://join.slack.com/t/dataflint/shared_invite/zt-28sr3r3pf-Td_mLx~0Ss6D1t0EJb8CNA)
+[![Test Status](https://github.com/dataflint/spark/actions/workflows/ci.yml/badge.svg)](https://github.com/your_username/your_repo/actions/workflows/tests.yml)
 [![Docs](https://img.shields.io/badge/Docs-Read%20the%20Docs-blue)](https://dataflint.gitbook.io/dataflint-for-spark/)
 ![License](https://img.shields.io/badge/License-Apache%202.0-orange)
 
