@@ -124,7 +124,9 @@ class SparkAPI {
     }
 
     const sparkMaster = masterConfig[1];
-    if (sparkMaster.startsWith("spark://")) {
+    if (sparkMaster.startsWith("local")) {
+      return "local";
+    } else if (sparkMaster.startsWith("spark://")) {
       return "standalone";
     } else if (sparkMaster.startsWith("yarn")) {
       return "yarn";
