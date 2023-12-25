@@ -23,6 +23,7 @@ import {
   updateDuration,
 } from "../reducers/SparkSlice";
 import { AppDispatch } from "../Store";
+import { IS_HISTORY_SERVER_MODE } from "../utils/UrlConsts";
 import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";
 import { MixpanelService } from "./MixpanelService";
 
@@ -102,6 +103,32 @@ class SparkAPI {
     return () => (this.pollingStopped = true);
   }
 
+  private getPlatform(config: SparkConfiguration): string {
+    if (IS_HISTORY_SERVER_MODE) {
+      return "history_server";
+    }
+    const databricksConf = config.sparkProperties.find(conf => conf.length > 1 && conf[0] === "spark.databricks.clusterUsageTags.cloudProvider")
+    if (databricksConf !== undefined) {
+      return "databricks";
+    }
+
+    const masterConfig = config.sparkProperties.find(conf => conf.length > 1 && conf[0] === "spark.master")
+    if (masterConfig === undefined || masterConfig.length !== 2) {
+      return "unknown";
+    }
+
+    const sparkMaster = masterConfig[1];
+    if (sparkMaster.startsWith("spark://")) {
+      return "standalone";
+    } else if (sparkMaster.startsWith("yarn")) {
+      return "yarn";
+    } else if (sparkMaster.startsWith("k8s://")) {
+      return "k8s";
+    }
+
+    return "unknown";
+  }
+
   private getCurrentApp(appData: SparkApplications): SparkApplication {
     if (this.historyServerMode) {
       const appId = getHistoryServerCurrentAppId();
@@ -154,16 +181,14 @@ class SparkAPI {
             config: sparkConfiguration,
             appId: this.appId,
             attempt: currentAttempt,
-            epocCurrentTime: Date.now(),
+            epocCurrentTime: Date.now()
           }),
         );
 
         MixpanelService.Track(MixpanelEvents.SparkAppInitilized, {
-          id: currentApplication.id,
           sparkVersion: currentAttempt?.appSparkVersion,
-          startTime: currentAttempt?.startTime,
-          endTime: currentAttempt?.endTime,
           duration: currentAttempt?.duration,
+          platform: this.getPlatform(sparkConfiguration)
         });
       } else {
         this.dispatch(updateDuration({ epocCurrentTime: Date.now() }));
