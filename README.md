@@ -42,7 +42,7 @@ See [Our Features](https://dataflint.gitbook.io/dataflint-for-spark/overview/our
 
 Install DataFlint via sbt:
 ```sbt
-libraryDependencies += "io.dataflint" %% "spark_2.12" % "0.0.8-SNAPSHOT"
+libraryDependencies += "io.dataflint" %% "spark_2.12" % "0.1.0"
 ```
 
 Than instruct spark to load the DataFlint plugin:
@@ -54,19 +54,18 @@ val spark = SparkSession
     .getOrCreate()
 ```
 
-Alternatively, install DataFlint with **no code change** as a spark ivy package by adding this 3 lines to your spark-submit command:
+Alternatively, install DataFlint with **no code change** as a spark ivy package by adding this 2 lines to your spark-submit command:
 
 ```bash
 spark-submit
---packages io.dataflint:spark_2.12:0.0.8-SNAPSHOT \
---repositories https://s01.oss.sonatype.org/content/repositories/snapshots \
+--packages io.dataflint:spark_2.12:0.1.0 \
 --conf spark.plugins=io.dataflint.spark.SparkDataflintPlugin \
 ...
 ```
 
 * For more installation options, including for python and k8s spark-operator, see [Install on Spark docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark)
 * For installing DataFlint in spark history server for historical past runs observability see [install on spark history server docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark-history-server)
-* For installing DataFlint on DataBricks see [install on databricks](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark-history-server)
+* For installing DataFlint on DataBricks see [install on databricks](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-databricks)
 
 ## How it Works
 
