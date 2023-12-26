@@ -46,7 +46,7 @@ Install DataFlint via sbt:
 libraryDependencies += "io.dataflint" %% "spark_2.12" % "0.1.0"
 ```
 
-Than instruct spark to load the DataFlint plugin:
+Then instruct spark to load the DataFlint plugin:
 ```scala
 val spark = SparkSession
     .builder
@@ -55,7 +55,7 @@ val spark = SparkSession
     .getOrCreate()
 ```
 
-Alternatively, install DataFlint with **no code change** as a spark ivy package by adding this 2 lines to your spark-submit command:
+Alternatively, install DataFlint with **no code change** as a spark ivy package by adding these 2 lines to your spark-submit command:
 
 ```bash
 spark-submit
@@ -91,4 +91,5 @@ DataFlint require spark version 3.2 and up, and scala version 2.12.
 | Dataproc                  |   ✅   |       ❓       |
 | HDInsights                |   ✅   |       ❓       |
 | Databricks                |   ✅   |       ❌       |
+
 For more information, see [docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/supported-versions)
