@@ -87,7 +87,7 @@ DataFlint require spark version 3.2 and up, and scala version 2.12.
 | Local                     |   ✅   |       ✅       |
 | Standalone                |   ✅   |       ✅       |
 | Kubernetes Spark Operator |   ✅   |       ✅       |
-| EMR                       |   ✅   |       ❓       |
+| EMR                       |   ✅   |       ✅       |
 | Dataproc                  |   ✅   |       ❓       |
 | HDInsights                |   ✅   |       ❓       |
 | Databricks                |   ✅   |       ❌       |
