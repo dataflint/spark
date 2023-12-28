@@ -20,11 +20,11 @@ If you enjoy DataFlint please give us a ⭐️ and join our [slack community](ht
 
 ## What is DataFlint?
 
-DataFlint is an open-source Data Application Performance Monitoring (DAPM) for Apache Spark, built for big data engineers.
+DataFlint is an open-source D-APM (Data-Application Performance Monitoring) for Apache Spark, built for big data engineers.
 
-It is installed within minutes via open source library, working on top of the existing Spark-UI infrastructure, all in order to help you solve big data performance issues and debug failures!
+DataFlint mission is to bring the development experience of using APM (Application Performance Monitoring) solutions such as DataDog and New Relic for the big data world.
 
-## Demo
+DataFlint is installed within minutes via open source library, working on top of the existing Spark-UI infrastructure, all in order to help you solve big data performance issues and debug failures!
 
 ![Demo](documentation/resources/demo.gif)
 
@@ -64,9 +64,14 @@ spark-submit
 ...
 ```
 
+After the installations you will see a "DataFlint" button in Spark UI, click on it to start using DataFlint
+
+<img alt="Logo" src="documentation/resources/usage.png">
+
+
 * For more installation options, including for python and k8s spark-operator, see [Install on Spark docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark)
-* For installing DataFlint in spark history server for historical past runs observability see [install on spark history server docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark-history-server)
-* For installing DataFlint on DataBricks see [install on databricks](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-databricks)
+* For installing DataFlint in spark history server for observability on completed runs see [install on spark history server docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark-history-server)
+* For installing DataFlint on DataBricks see [install on databricks docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-databricks)
 
 ## How it Works
 
@@ -74,7 +79,7 @@ spark-submit
 
 DataFlint is installed as a plugin on the spark driver and history server.
 
-It exposes an additional http resoures for additional metrics not available in Spark UI, and a modern web-app.
+The plugin exposes an additional HTTP resoures for additional metrics not available in Spark UI, and a modern SPA web-app that fetches data from spark without the need to refresh the page.
 
 For more information, see [how it works docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/how-it-works)
 
@@ -92,4 +97,4 @@ DataFlint require spark version 3.2 and up, and scala version 2.12.
 | HDInsights                |   ✅   |       ❓       |
 | Databricks                |   ✅   |       ❌       |
 
-For more information, see [docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/supported-versions)
+For more information, see [supported versions docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/supported-versions)
