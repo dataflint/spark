@@ -71,9 +71,9 @@ After the installations you will see a "DataFlint" button in Spark UI, click on 
 <img alt="Logo" src="documentation/resources/usage.png">
 
 
-* For more installation options, including for python and k8s spark-operator, see [Install on Spark docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark)
-* For installing DataFlint in spark history server for observability on completed runs see [install on spark history server docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark-history-server)
-* For installing DataFlint on DataBricks see [install on databricks docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-databricks)
+* For more installation options, including for **python** and **k8s spark-operator**, see [Install on Spark docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark)
+* For installing DataFlint in **spark history server** for observability on completed runs see [install on spark history server docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark-history-server)
+* For installing DataFlint on **DataBricks** see [install on databricks docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-databricks)
 
 ## How it Works
 
