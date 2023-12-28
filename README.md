@@ -26,6 +26,8 @@ DataFlint mission is to bring the development experience of using APM (Applicati
 
 DataFlint is installed within minutes via open source library, working on top of the existing Spark-UI infrastructure, all in order to help you solve big data performance issues and debug failures!
 
+## Demo
+
 ![Demo](documentation/resources/demo.gif)
 
 ## Features
