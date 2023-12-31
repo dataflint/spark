@@ -72,6 +72,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   BroadcastHashJoin: "join",
   SortMergeJoin: "join",
   BroadcastNestedLoopJoin: "join",
+  ShuffleHashJoin: "join",
   Filter: "transformation",
   Union: "join",
   Exchange: "shuffle",
@@ -103,6 +104,7 @@ const nodeRenamerDict: Record<string, string> = {
   BroadcastExchange: "Broadcast",
   Project: "Select",
   MicroBatchScan: "Read Micro batch",
+  ShuffleHashJoin: "Join (Shuffle Hash)"
 };
 
 export function extractTotalFromStatisticsMetric(
