@@ -85,6 +85,10 @@ The plugin exposes an additional HTTP resoures for additional metrics not availa
 
 For more information, see [how it works docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/how-it-works)
 
+## Articles
+
+[Fixing small files performance issues in Apache Spark using DataFlint](https://medium.com/@menishmueli/fixing-small-files-performance-issues-in-apache-spark-using-dataflint-49ffe3eb755f)
+
 ## Compatibility Matrix
 
 DataFlint require spark version 3.2 and up, and scala version 2.12. 
