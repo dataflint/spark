@@ -56,10 +56,9 @@ export class MixpanelService {
   }
 
   static ShouldTrack(): boolean {
-    // For tracking in dev mode set the following env var - 'ENABLE_MIXPANEL_IN_DEV = true'
     return (
-      process.env.NODE_ENV !== "development" ||
-      process.env.ENABLE_MIXPANEL_IN_DEV === "true"
+      process.env.NODE_ENV !== "development" &&
+      localStorage.getItem("SKIP_MIXPANEL") !== "true"
     );
   }
 }
