@@ -204,8 +204,8 @@ export const StageNode: FC<{
                 ? "hashed field"
                 : "hashed fields"
               : parsedPlan.plan.fields.length === 1
-              ? "ranged field"
-              : "ranged fields",
+                ? "ranged field"
+                : "ranged fields",
             parsedPlan.plan.fields,
           );
         }
@@ -308,7 +308,7 @@ export const StageNode: FC<{
   return (
     <>
       <Handle type="target" position={Position.Left} id="b" />
-      <Box position="relative" width={280} height={220}>
+      <Box position="relative" width={280} height={240}>
         <div className={styles.node}>
           <div className={styles.textWrapper}>
             <Typography

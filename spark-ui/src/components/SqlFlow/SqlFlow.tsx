@@ -1,16 +1,18 @@
 import React, { FC, useCallback, useEffect, useState } from "react";
 import ReactFlow, {
-  addEdge,
   ConnectionLineType,
   Controls,
   ReactFlowInstance,
+  addEdge,
   useEdgesState,
   useNodesState,
 } from "reactflow";
 
 import { Box, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
 import "reactflow/dist/style.css";
+import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
+import { setSQLMode } from "../../reducers/GeneralSlice";
 import SqlLayoutService from "./SqlLayoutService";
 import { StageNode, StageNodeName } from "./StageNode";
 
@@ -23,7 +25,9 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const [instance, setInstace] = useState<ReactFlowInstance | undefined>();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [graphFilter, setGraphFilter] = React.useState<GraphFilter>("basic");
+
+  const dispatch = useAppDispatch()
+  const graphFilter = useAppSelector(state => state.general.sqlMode)
 
   React.useEffect(() => {
     if (!sparkSQL) return;
@@ -52,7 +56,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     }
   }, [instance, edges]);
 
-  useEffect(() => {}, [nodes]);
+  useEffect(() => { }, [nodes]);
 
   const onConnect = useCallback(
     (params: any) =>
@@ -100,7 +104,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
               value={graphFilter}
               label="Mode"
               onChange={(event) =>
-                setGraphFilter(event.target.value as GraphFilter)
+                dispatch(setSQLMode({ newMode: event.target.value as GraphFilter }))
               }
             >
               <MenuItem value={"io"}>Only IO</MenuItem>

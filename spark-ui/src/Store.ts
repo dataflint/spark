@@ -1,11 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 import ChatSlice from "./reducers/ChatSlice";
+import GeneralSlice from "./reducers/GeneralSlice";
 import SparkSlice from "./reducers/SparkSlice";
 
 const store = configureStore({
   reducer: {
     spark: SparkSlice,
     chat: ChatSlice,
+    general: GeneralSlice
   },
 });
 
