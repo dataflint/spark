@@ -8,8 +8,10 @@ import {
 export function parseFilter(input: string): ParseFilterPlan {
   let filterStr = input;
   filterStr = removeFromStart(filterStr, "Filter ");
-  filterStr = removeFromStart(filterStr, "(");
-  filterStr = removeFromEnd(filterStr, ")");
+  if (filterStr.startsWith("(")) {
+    filterStr = removeFromStart(filterStr, "(");
+    filterStr = removeFromEnd(filterStr, ")");
+  }
   const condition = hashNumbersRemover(filterStr);
   return { condition: condition };
 }
