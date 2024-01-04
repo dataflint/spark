@@ -128,7 +128,7 @@ const StatusBar: FC = (): JSX.Element => {
             icon={HourglassBottomIcon}
           ></InfoBox>
           {currentSql === undefined ||
-          currentSql.stageMetrics === undefined ? null : (
+            currentSql.stageMetrics === undefined ? null : (
             <InfoBox
               title="Query Input"
               text={humanFileSize(currentSql.stageMetrics.inputBytes)}
@@ -137,7 +137,7 @@ const StatusBar: FC = (): JSX.Element => {
             ></InfoBox>
           )}
           {currentSql === undefined ||
-          currentSql.stageMetrics === undefined ? null : (
+            currentSql.stageMetrics === undefined ? null : (
             <InfoBox
               title="Query Output"
               text={humanFileSize(currentSql.stageMetrics.outputBytes)}
@@ -161,7 +161,7 @@ const StatusBar: FC = (): JSX.Element => {
                   What is Pending Tasks?
                 </Typography>
                 <Typography variant="subtitle2">
-                  Pending Tasks are the total number of tasks react to be
+                  Pending Tasks are the total number of tasks ready to be
                   executed on your cluster
                 </Typography>
                 <Typography variant="subtitle2">
