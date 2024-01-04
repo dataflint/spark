@@ -100,7 +100,7 @@ const nodeRenamerDict: Record<string, string> = {
   BroadcastNestedLoopJoin: "Join (Broadcast Nested Loop)",
   CreateNamespace: "Create Catalog Namespace",
   Exchange: "Repartition",
-  AQEShuffleRead: "Optimizer Repartition",
+  AQEShuffleRead: "Runtime Partition Coalescing",
   BroadcastExchange: "Broadcast",
   Project: "Select",
   MicroBatchScan: "Read Micro batch",
