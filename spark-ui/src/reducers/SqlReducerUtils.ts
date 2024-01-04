@@ -104,7 +104,7 @@ const nodeRenamerDict: Record<string, string> = {
   BroadcastExchange: "Broadcast",
   Project: "Select",
   MicroBatchScan: "Read Micro batch",
-  ShuffleHashJoin: "Join (Shuffle Hash)"
+  ShuffleHashJoin: "Join (Shuffle Hash)",
 };
 
 export function extractTotalFromStatisticsMetric(

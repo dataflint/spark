@@ -7,7 +7,7 @@ const store = configureStore({
   reducer: {
     spark: SparkSlice,
     chat: ChatSlice,
-    general: GeneralSlice
+    general: GeneralSlice,
   },
 });
 

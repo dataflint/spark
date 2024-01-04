@@ -1,9 +1,9 @@
 import React, { FC, useCallback, useEffect, useState } from "react";
 import ReactFlow, {
+  addEdge,
   ConnectionLineType,
   Controls,
   ReactFlowInstance,
-  addEdge,
   useEdgesState,
   useNodesState,
 } from "reactflow";
@@ -26,8 +26,8 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  const dispatch = useAppDispatch()
-  const graphFilter = useAppSelector(state => state.general.sqlMode)
+  const dispatch = useAppDispatch();
+  const graphFilter = useAppSelector((state) => state.general.sqlMode);
 
   React.useEffect(() => {
     if (!sparkSQL) return;
@@ -56,7 +56,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     }
   }, [instance, edges]);
 
-  useEffect(() => { }, [nodes]);
+  useEffect(() => {}, [nodes]);
 
   const onConnect = useCallback(
     (params: any) =>
@@ -104,7 +104,9 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
               value={graphFilter}
               label="Mode"
               onChange={(event) =>
-                dispatch(setSQLMode({ newMode: event.target.value as GraphFilter }))
+                dispatch(
+                  setSQLMode({ newMode: event.target.value as GraphFilter }),
+                )
               }
             >
               <MenuItem value={"io"}>Only IO</MenuItem>

@@ -204,8 +204,8 @@ export const StageNode: FC<{
                 ? "hashed field"
                 : "hashed fields"
               : parsedPlan.plan.fields.length === 1
-                ? "ranged field"
-                : "ranged fields",
+              ? "ranged field"
+              : "ranged fields",
             parsedPlan.plan.fields,
           );
         }

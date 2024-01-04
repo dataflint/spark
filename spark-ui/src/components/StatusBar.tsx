@@ -128,7 +128,7 @@ const StatusBar: FC = (): JSX.Element => {
             icon={HourglassBottomIcon}
           ></InfoBox>
           {currentSql === undefined ||
-            currentSql.stageMetrics === undefined ? null : (
+          currentSql.stageMetrics === undefined ? null : (
             <InfoBox
               title="Query Input"
               text={humanFileSize(currentSql.stageMetrics.inputBytes)}
@@ -137,7 +137,7 @@ const StatusBar: FC = (): JSX.Element => {
             ></InfoBox>
           )}
           {currentSql === undefined ||
-            currentSql.stageMetrics === undefined ? null : (
+          currentSql.stageMetrics === undefined ? null : (
             <InfoBox
               title="Query Output"
               text={humanFileSize(currentSql.stageMetrics.outputBytes)}

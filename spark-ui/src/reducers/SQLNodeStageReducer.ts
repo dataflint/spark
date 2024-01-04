@@ -9,8 +9,6 @@ import {
 import { generateGraph } from "./SqlReducer";
 
 export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
-  // const { nodesIds, edges } = sql.filters["advanced"];
-
   let nodes = sql.nodes;
 
   function findNode(id: number): EnrichedSqlNode {
