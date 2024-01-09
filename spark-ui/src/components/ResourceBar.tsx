@@ -2,7 +2,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import DirectionsRunIcon from "@mui/icons-material/DirectionsRun";
 import HubIcon from "@mui/icons-material/Hub";
 import MemoryIcon from "@mui/icons-material/Memory";
-import ScaleIcon from '@mui/icons-material/Scale';
+import ScaleIcon from "@mui/icons-material/Scale";
 import { Grid, Link, Typography } from "@mui/material";
 import { duration } from "moment";
 import React, { FC } from "react";
@@ -15,7 +15,8 @@ import Progress from "./Progress";
 const ResourceBar: FC = (): JSX.Element => {
   const status = useAppSelector((state) => state.spark.status);
   const alerts = useAppSelector((state) => state.spark.alerts);
-  const resourceControlType = useAppSelector((state) => state.spark.config?.resourceControlType) ?? "";
+  const resourceControlType =
+    useAppSelector((state) => state.spark.config?.resourceControlType) ?? "";
   const memoryAlert = alerts?.alerts.find(
     (alert) =>
       alert.source.type === "status" && alert.source.metric === "memory",

@@ -25,12 +25,13 @@ export default function ConfigTable({ config }: ConfigTableProps) {
         </TableHead>
         <TableBody>
           {config.map((row) => (
-            <TableRow
-              key={row.name}
-            >
+            <TableRow key={row.name}>
               <TableCell align="left">{row.name}</TableCell>
               <TableCell align="left">
-                {row.value ?? row.default}{row.value === undefined || row.value === row.default ? " (default)" : ""}
+                {row.value ?? row.default}
+                {row.value === undefined || row.value === row.default
+                  ? " (default)"
+                  : ""}
               </TableCell>
               <TableCell component="th" scope="row">
                 {row.documentation}

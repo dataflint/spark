@@ -8,9 +8,9 @@ export function hashNumbersRemover(input: string): string {
 
 export function truncateString(str: string, num: number): string {
   if (str.length <= num) {
-    return str
+    return str;
   }
-  return str.slice(0, num) + '...'
+  return str.slice(0, num) + "...";
 }
 
 export function truncateMiddle(str: string, maxLength: number): string {

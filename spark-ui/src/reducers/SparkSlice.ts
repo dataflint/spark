@@ -11,7 +11,10 @@ import { SQLPlans } from "../interfaces/SQLPlan";
 import { StagesRdd } from "../interfaces/StagesRdd";
 import { reduceAlers as reduceAlerts } from "./AlertsReducer";
 import { extractConfig, extractRunMetadata } from "./ConfigReducer";
-import { calculateSparkExecutorsStore, calculateSparkExecutorsTimeline } from "./ExecutorsReducer";
+import {
+  calculateSparkExecutorsStore,
+  calculateSparkExecutorsTimeline,
+} from "./ExecutorsReducer";
 import {
   calculateJobsStore,
   calculateSqlQueryLevelMetricsReducer,
@@ -36,7 +39,7 @@ export const initialState: AppStore = {
   stages: undefined,
   executors: undefined,
   alerts: undefined,
-  executorTimeline: undefined
+  executorTimeline: undefined,
 };
 
 const sparkSlice = createSlice({
@@ -127,8 +130,9 @@ const sparkSlice = createSlice({
       );
 
       const executorsTimeline = calculateSparkExecutorsTimeline(
-        executorsStore, state.runMetadata.startTime,
-        currentEndDate
+        executorsStore,
+        state.runMetadata.startTime,
+        currentEndDate,
       );
 
       state.status = { ...state.status, executors: executorsStatus };

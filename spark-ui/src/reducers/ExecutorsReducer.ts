@@ -1,4 +1,8 @@
-import { ExecutorTimelinePoint, ExecutorTimelinePoints, SparkExecutorsStore } from "../interfaces/AppStore";
+import {
+  ExecutorTimelinePoint,
+  ExecutorTimelinePoints,
+  SparkExecutorsStore,
+} from "../interfaces/AppStore";
 import { SparkExecutors } from "../interfaces/SparkExecutors";
 import { timeStrToEpocTime } from "../utils/FormatUtils";
 import { IS_HISTORY_SERVER_MODE } from "../utils/UrlConsts";
@@ -45,25 +49,45 @@ export function calculateSparkExecutorsStore(
 export function calculateSparkExecutorsTimeline(
   sparkExecutors: SparkExecutorsStore,
   startTimeEpoc: number,
-  endTimeEpoc: number
+  endTimeEpoc: number,
 ): ExecutorTimelinePoints {
-  const onlyExecutors = sparkExecutors.filter(executor => !executor.isDriver);
+  const onlyExecutors = sparkExecutors.filter((executor) => !executor.isDriver);
 
-  let resourceEvents: { type: "add" | "remove", timeMs: number, value: number }[] = [];
+  let resourceEvents: {
+    type: "add" | "remove";
+    timeMs: number;
+    value: number;
+  }[] = [];
 
-  onlyExecutors.forEach(executor => {
-    resourceEvents.push({ type: "add", timeMs: executor.addTimeEpoc - startTimeEpoc, value: 1 })
+  onlyExecutors.forEach((executor) => {
+    resourceEvents.push({
+      type: "add",
+      timeMs: executor.addTimeEpoc - startTimeEpoc,
+      value: 1,
+    });
     if (!executor.isActive || IS_HISTORY_SERVER_MODE) {
-      resourceEvents.push({ type: "remove", timeMs: executor.endTimeEpoc - startTimeEpoc, value: -1 })
+      resourceEvents.push({
+        type: "remove",
+        timeMs: executor.endTimeEpoc - startTimeEpoc,
+        value: -1,
+      });
     }
   });
 
-  let resourceEventsUnified: { type: "add" | "remove", timeMs: number, value: number }[] = [];
+  let resourceEventsUnified: {
+    type: "add" | "remove";
+    timeMs: number;
+    value: number;
+  }[] = [];
 
-  resourceEvents.forEach(resourceEvent => {
-    const existing = resourceEventsUnified.find(resourceEventUnified => resourceEvent.type === resourceEventUnified.type && resourceEvent.timeMs === resourceEventUnified.timeMs);
+  resourceEvents.forEach((resourceEvent) => {
+    const existing = resourceEventsUnified.find(
+      (resourceEventUnified) =>
+        resourceEvent.type === resourceEventUnified.type &&
+        resourceEvent.timeMs === resourceEventUnified.timeMs,
+    );
     if (existing === undefined) {
-      resourceEventsUnified.push({ ...resourceEvent })
+      resourceEventsUnified.push({ ...resourceEvent });
     } else {
       existing.value += resourceEvent.value;
     }
@@ -74,20 +98,23 @@ export function calculateSparkExecutorsTimeline(
   let currentExecutorNum = 0;
   const startPoint: ExecutorTimelinePoint = {
     timeMs: 0,
-    value: 0
+    value: 0,
   };
   const executorTimelinePoints: ExecutorTimelinePoints = [startPoint];
 
-  resourceEventsUnified.forEach(resourceEvent => {
+  resourceEventsUnified.forEach((resourceEvent) => {
     currentExecutorNum += resourceEvent.value;
-    executorTimelinePoints.push({ timeMs: resourceEvent.timeMs, value: currentExecutorNum });
+    executorTimelinePoints.push({
+      timeMs: resourceEvent.timeMs,
+      value: currentExecutorNum,
+    });
   });
 
   if (!IS_HISTORY_SERVER_MODE) {
     executorTimelinePoints.push({
       timeMs: endTimeEpoc - startTimeEpoc,
-      value: executorTimelinePoints[executorTimelinePoints.length - 1].value
-    })
+      value: executorTimelinePoints[executorTimelinePoints.length - 1].value,
+    });
   }
 
   return executorTimelinePoints;

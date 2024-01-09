@@ -1,7 +1,7 @@
 import AdjustIcon from "@mui/icons-material/Adjust";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import ChatIcon from "@mui/icons-material/Chat";
-import PrecisionManufacturingIcon from '@mui/icons-material/PrecisionManufacturing';
+import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 import ReportIcon from "@mui/icons-material/Report";
 import SettingsApplicationsIcon from "@mui/icons-material/SettingsApplications";
 import React from "react";
@@ -22,7 +22,7 @@ export const TabToUrl = {
   [Tab.Configuration]: "/config",
   [Tab.Alerts]: "/alerts",
   [Tab.Chat]: "/sparkassistant",
-  [Tab.Resources]: "/resources"
+  [Tab.Resources]: "/resources",
 };
 
 export const getTabByUrl = (path: string) => {

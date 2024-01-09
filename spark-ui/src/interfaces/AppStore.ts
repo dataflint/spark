@@ -18,7 +18,7 @@ export type AppStore = {
   jobs: SparkJobsStore | undefined;
   stages: SparkStagesStore | undefined;
   executors: SparkExecutorsStore | undefined;
-  executorTimeline: ExecutorTimelinePoints | undefined
+  executorTimeline: ExecutorTimelinePoints | undefined;
   alerts: AlertsStore | undefined;
 };
 
@@ -52,23 +52,35 @@ export interface Alert {
 
 export type AlertType = "error" | "warning";
 
-export type ConfigCategory = "general" | "resources" | "executor-memory" | "static-allocation" | "dynamic-allocation" | "dynamic-allocation-advanced" | "dynamic-allocation-super-advanced";
+export type ConfigCategory =
+  | "general"
+  | "resources"
+  | "executor-memory"
+  | "static-allocation"
+  | "dynamic-allocation"
+  | "dynamic-allocation-advanced"
+  | "dynamic-allocation-super-advanced";
 
-export type ResourceMode = "local" | "static" | "dynamic" | "databricks" | "unknown";
+export type ResourceMode =
+  | "local"
+  | "static"
+  | "dynamic"
+  | "databricks"
+  | "unknown";
 
 export interface ConfigEntry {
-  name: string
-  key: string | undefined
-  value: string | undefined
-  default: string | undefined
-  category: ConfigCategory
-  documentation: string
+  name: string;
+  key: string | undefined;
+  value: string | undefined;
+  default: string | undefined;
+  category: ConfigCategory;
+  documentation: string;
 }
 
 export type ConfigEntries = ConfigEntry[];
 
 export interface ConfigStore {
-  resourceControlType: ResourceMode,
+  resourceControlType: ResourceMode;
   configs: ConfigEntries;
   executorMemoryBytes: number;
   executorMemoryBytesString: string;
@@ -335,8 +347,8 @@ export type SparkExecutorsStore = SparkExecutorStore[];
 export type ExecutorTimelinePoints = ExecutorTimelinePoint[];
 
 export interface ExecutorTimelinePoint {
-  timeMs: number
-  value: number
+  timeMs: number;
+  value: number;
 }
 
 export interface SparkExecutorStore {

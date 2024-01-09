@@ -42,8 +42,8 @@ export const reactRouter = createHashRouter([
       },
       {
         path: "/resources",
-        element: <ResourcesTab />
-      }
+        element: <ResourcesTab />,
+      },
     ],
   },
 ]);
