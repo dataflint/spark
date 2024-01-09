@@ -19,6 +19,7 @@
     "apexcharts": "^3.45.1",
     "bytes": "^3.1.2",
     "dagre": "^0.8.5",
+    "distinct-colors": "^3.0.0",
     "husky": "^8.0.3",
     "lint-staged": "^15.0.2",
     "local-cors-proxy": "latest",

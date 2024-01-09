@@ -1,8 +1,10 @@
 import { ApexOptions } from "apexcharts";
+import distinctColors from 'distinct-colors';
 import { duration } from "moment";
 import React from "react";
 import ReactApexChart from "react-apexcharts";
 import { ExecutorTimelinePoints } from "../../interfaces/AppStore";
+import { truncateString } from "../../reducers/PlanParsers/PlanParserUtils";
 import { humanizeTimeDiff } from "../../utils/FormatUtils";
 
 export interface StaticResource {
@@ -16,12 +18,22 @@ export interface DynamicResource {
     max: number | undefined
 }
 
+export interface Query {
+    id: string
+    name: string
+    start: number
+    end: number
+}
+
 interface SteplineGraphProps {
     data: ExecutorTimelinePoints;
     resources: StaticResource | DynamicResource | undefined
+    queries: Query[]
 }
 
-const ResourceGraph: React.FC<SteplineGraphProps> = ({ data, resources }) => {
+
+
+const ResourceGraph: React.FC<SteplineGraphProps> = ({ data, resources, queries }) => {
     // Transforming data for the graph
     const series = [
         {
@@ -30,9 +42,9 @@ const ResourceGraph: React.FC<SteplineGraphProps> = ({ data, resources }) => {
         },
     ];
 
-    const annotations: YAxisAnnotations[] = [];
+    const yannotations: YAxisAnnotations[] = [];
     if (resources?.type === "static") {
-        annotations.push({
+        yannotations.push({
             y: resources.instances,
             borderColor: '#00E396',
             label: {
@@ -46,7 +58,7 @@ const ResourceGraph: React.FC<SteplineGraphProps> = ({ data, resources }) => {
         })
     }
     if (resources?.type === "dynamic") {
-        annotations.push({
+        yannotations.push({
             y: resources?.min,
             borderColor: '#00E396',
             label: {
@@ -59,7 +71,7 @@ const ResourceGraph: React.FC<SteplineGraphProps> = ({ data, resources }) => {
             }
         });
         if (resources.max !== undefined) {
-            annotations.push({
+            yannotations.push({
                 y: resources?.max,
                 strokeDashArray: 0,
                 borderColor: '#775DD0',
@@ -73,9 +85,29 @@ const ResourceGraph: React.FC<SteplineGraphProps> = ({ data, resources }) => {
                 }
             });
         }
-    }
+    };
 
-
+    var palette = distinctColors({ count: 1000 });
+    const xannotations: XAxisAnnotations[] = queries.map((query, i) => {
+        // first color is ugly so we skip it (i + 1)
+        const color = i < palette.length ? palette[i + 1].hex() : palette[i % (palette.length - 1)].hex();
+        return {
+            x: query.start,
+            x2: query.end,
+            borderColor: '#000',
+            fillColor: color,
+            opacity: 0.2,
+            label: {
+                borderColor: '#333',
+                style: {
+                    fontSize: '10px',
+                    color: '#333',
+                    background: color,
+                },
+                text: truncateString(`${query.id}: ${query.name}`, 30)
+            }
+        };
+    });
 
     const options: ApexOptions = {
         chart: {
@@ -83,7 +115,8 @@ const ResourceGraph: React.FC<SteplineGraphProps> = ({ data, resources }) => {
             height: 350
         },
         annotations: {
-            yaxis: annotations
+            yaxis: yannotations,
+            xaxis: xannotations
         },
         dataLabels: {
             enabled: false

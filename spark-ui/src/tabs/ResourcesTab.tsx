@@ -1,9 +1,9 @@
-import { Alert, Box, Divider } from "@mui/material";
+import { Alert, Box, Divider, FormControlLabel, FormGroup, Switch } from "@mui/material";
 import React, { FC } from "react";
 import { useAppSelector } from "../Hooks";
 import ConfigTable from "../components/ConfigTable";
 import ResourceBar from "../components/ResourceBar";
-import ResourceGraph, { DynamicResource, StaticResource } from "../components/ResourceGraph/ResourceGraph";
+import ResourceGraph, { DynamicResource, Query, StaticResource } from "../components/ResourceGraph/ResourceGraph";
 
 export const ResourcesTab: FC<{}> = (): JSX.Element => {
   const resourceControlType = useAppSelector((state) => state.spark.config?.resourceControlType) ?? "";
@@ -24,6 +24,10 @@ export const ResourcesTab: FC<{}> = (): JSX.Element => {
 
   const executorTimeline = useAppSelector((state) => state.spark.executorTimeline);
   const configs = useAppSelector((state) => state.spark.config?.configs);
+  const sqls = useAppSelector((state) => state.spark.sql?.sqls) ?? [];
+  const startTime = useAppSelector((state) => state.spark.runMetadata?.startTime) ?? 0;
+
+  const [showQueries, setShowQueries] = React.useState(false);
 
   const generalConfigs = configs?.filter(entry => entry.category === "resources") ?? [];
   const allocationConfigs = configs?.filter(entry => {
@@ -54,6 +58,15 @@ export const ResourcesTab: FC<{}> = (): JSX.Element => {
     };
   }
 
+  const queries: Query[] = showQueries ? sqls.map(sql => {
+    return {
+      id: sql.id,
+      name: sql.description,
+      start: sql.submissionTimeEpoc - startTime,
+      end: sql.submissionTimeEpoc + sql.duration - startTime
+    }
+  }) : [];
+
   return (
     <div
       style={{
@@ -67,7 +80,16 @@ export const ResourcesTab: FC<{}> = (): JSX.Element => {
         <ResourceBar />
         <Box width="100%">
           <Box margin="10px">
-            <ResourceGraph data={executorTimeline ?? []} resources={resources} ></ResourceGraph>
+            <ResourceGraph data={executorTimeline ?? []} resources={resources} queries={queries} ></ResourceGraph>
+          </Box>
+          <Box display="flex" justifyContent="center">
+            <FormGroup>
+              <FormControlLabel control={<Switch
+                checked={showQueries}
+                onChange={(evnt) => setShowQueries(evnt.target.checked)}
+                inputProps={{ 'aria-label': 'controlled' }}
+              />} label="Show Queries" />
+            </FormGroup>
           </Box>
           <Box margin="10px" display="flex" flexDirection="row" alignItems="flex-start">
             {generalConfigs.length !== 0 ? <ConfigTable config={generalConfigs} /> : undefined}

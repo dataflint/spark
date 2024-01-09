@@ -6,6 +6,13 @@ export function hashNumbersRemover(input: string): string {
   return input.replace(/#\d+L/g, "").replace(/#\d+/g, "");
 }
 
+export function truncateString(str: string, num: number): string {
+  if (str.length <= num) {
+    return str
+  }
+  return str.slice(0, num) + '...'
+}
+
 export function truncateMiddle(str: string, maxLength: number): string {
   if (str.length <= maxLength) {
     return str;
