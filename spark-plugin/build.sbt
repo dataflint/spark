@@ -1,6 +1,6 @@
 import xerial.sbt.Sonatype._
 
-lazy val versionNum: String = "0.1.0"
+lazy val versionNum: String = "0.1.1"
 
 lazy val dataflint = project
   .in(file("."))

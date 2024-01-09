@@ -45,7 +45,7 @@ See [Our Features](https://dataflint.gitbook.io/dataflint-for-spark/overview/our
 
 Install DataFlint via sbt:
 ```sbt
-libraryDependencies += "io.dataflint" %% "spark_2.12" % "0.1.0"
+libraryDependencies += "io.dataflint" %% "spark_2.12" % "0.1.1"
 ```
 
 Then instruct spark to load the DataFlint plugin:
@@ -61,7 +61,7 @@ Alternatively, install DataFlint with **no code change** as a spark ivy package 
 
 ```bash
 spark-submit
---packages io.dataflint:spark_2.12:0.1.0 \
+--packages io.dataflint:spark_2.12:0.1.1 \
 --conf spark.plugins=io.dataflint.spark.SparkDataflintPlugin \
 ...
 ```
