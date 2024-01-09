@@ -1,6 +1,7 @@
 import AdjustIcon from "@mui/icons-material/Adjust";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import ChatIcon from "@mui/icons-material/Chat";
+import PrecisionManufacturingIcon from '@mui/icons-material/PrecisionManufacturing';
 import ReportIcon from "@mui/icons-material/Report";
 import SettingsApplicationsIcon from "@mui/icons-material/SettingsApplications";
 import React from "react";
@@ -9,6 +10,7 @@ import { isHistoryServer } from "../utils/UrlUtils";
 export enum Tab {
   Status = "Status",
   Summary = "Summary",
+  Resources = "Resources",
   Configuration = "Configuration",
   Alerts = "Alerts",
   Chat = "Flint Assistant",
@@ -20,6 +22,7 @@ export const TabToUrl = {
   [Tab.Configuration]: "/config",
   [Tab.Alerts]: "/alerts",
   [Tab.Chat]: "/sparkassistant",
+  [Tab.Resources]: "/resources"
 };
 
 export const getTabByUrl = (path: string) => {
@@ -34,6 +37,8 @@ export const getTabByUrl = (path: string) => {
       return Tab.Alerts;
     case TabToUrl[Tab.Chat]:
       return Tab.Chat;
+    case TabToUrl[Tab.Resources]:
+      return Tab.Resources;
     default:
       return isHistoryServer() ? Tab.Summary : Tab.Status;
   }
@@ -51,6 +56,8 @@ export function renderTabIcon(selectedTab: Tab): JSX.Element {
       return <ReportIcon />;
     case Tab.Chat:
       return <ChatIcon />;
+    case Tab.Resources:
+      return <PrecisionManufacturingIcon />;
     default:
       return <div></div>;
   }

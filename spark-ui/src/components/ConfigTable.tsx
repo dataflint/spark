@@ -6,9 +6,10 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import * as React from "react";
+import { ConfigEntries } from "../interfaces/AppStore";
 
 type ConfigTableProps = {
-  config: Object;
+  config: ConfigEntries;
 };
 
 export default function ConfigTable({ config }: ConfigTableProps) {
@@ -17,20 +18,23 @@ export default function ConfigTable({ config }: ConfigTableProps) {
       <Table sx={{ minWidth: 200 }} size="small" aria-label="config table">
         <TableHead>
           <TableRow>
-            <TableCell>Config Name</TableCell>
-            <TableCell align="right">Config Value</TableCell>
+            <TableCell sx={{ minWidth: 150 }}>Name</TableCell>
+            <TableCell align="left">Value</TableCell>
+            <TableCell align="left">Documentation</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {Object.entries(config).map((row) => (
+          {config.map((row) => (
             <TableRow
-              key={row[0]}
-              sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+              key={row.name}
             >
-              <TableCell component="th" scope="row">
-                {row[0]}
+              <TableCell align="left">{row.name}</TableCell>
+              <TableCell align="left">
+                {row.value ?? row.default}{row.value === undefined || row.value === row.default ? " (default)" : ""}
               </TableCell>
-              <TableCell align="right">{row[1]}</TableCell>
+              <TableCell component="th" scope="row">
+                {row.documentation}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
