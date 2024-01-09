@@ -3,6 +3,8 @@ import { MixpanelEvents } from "../interfaces/Mixpanel";
 
 const KEEP_ALIVE_INTERVAL_MS = 60 * 1000;
 
+const baseProperties = { dataflintVersion: process.env.REACT_APP_VERSION ?? "unknown-version" };
+
 export class MixpanelService {
   static InitMixpanel(): void {
     if (!this.ShouldTrack()) return;
@@ -33,7 +35,7 @@ export class MixpanelService {
         return;
       }
 
-      this.Track(MixpanelEvents.KeepAlive);
+      this.Track(MixpanelEvents.KeepAlive, baseProperties);
     }, interval);
   }
 
@@ -43,13 +45,13 @@ export class MixpanelService {
   ): void {
     if (!this.ShouldTrack()) return;
 
-    mixpanel.track(event, properties);
+    mixpanel.track(event, { ...baseProperties, ...properties });
   }
 
   static TrackPageView(properties?: { [key: string]: any }): void {
     if (!this.ShouldTrack()) return;
 
-    mixpanel.track_pageview(properties);
+    mixpanel.track_pageview({ ...baseProperties, ...properties });
   }
 
   static ShouldTrack(): boolean {
