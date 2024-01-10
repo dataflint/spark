@@ -1,4 +1,4 @@
-package org.apache.spark
+package org.apache.spark.dataflint
 
 import org.apache.spark.ui.SparkUI
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark
+package org.apache.spark.dataflint
 
 case class NodeMetric(name: String, value: Option[String])
 

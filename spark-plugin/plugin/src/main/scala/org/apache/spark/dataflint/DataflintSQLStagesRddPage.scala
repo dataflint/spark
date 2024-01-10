@@ -1,7 +1,6 @@
-package org.apache.spark
+package org.apache.spark.dataflint
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.execution.ui.{SQLAppStatusListener, SQLAppStatusStore}
 import org.apache.spark.ui.{SparkUI, WebUIPage}
 import org.json4s.JsonAST.JValue
 import org.json4s.{JsonAST, _}

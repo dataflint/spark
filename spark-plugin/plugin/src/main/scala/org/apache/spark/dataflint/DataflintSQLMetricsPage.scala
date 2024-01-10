@@ -1,14 +1,13 @@
-package org.apache.spark
+package org.apache.spark.dataflint
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.execution.ui.{SQLAppStatusListener, SQLAppStatusStore, SparkPlanGraph}
 import org.apache.spark.ui.{SparkUI, WebUIPage}
-import org.json4s.JsonAST
+import org.json4s.JsonAST.JValue
+import org.json4s.{JsonAST, _}
 
 import javax.servlet.http.HttpServletRequest
 import scala.xml.Node
-import org.apache.spark.sql.execution.ui.{SQLAppStatusListener, SQLAppStatusStore, SparkPlanGraph}
-import org.json4s.JsonAST.JValue
-import org.json4s._
 
 class DataflintSQLMetricsPage(ui: SparkUI, sqlListener: () => Option[SQLAppStatusListener])
   extends WebUIPage("sqlmetrics") with Logging {

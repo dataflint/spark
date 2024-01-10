@@ -1,18 +1,14 @@
-package org.apache.spark
+package org.apache.spark.dataflint
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.catalyst.expressions.TypeOf
-import org.apache.spark.ui.{SparkUI, WebUIPage}
-import org.json4s.JsonAST
-
-import javax.servlet.http.HttpServletRequest
-import scala.xml.Node
 import org.apache.spark.sql.execution.ui.{SQLAppStatusListener, SQLAppStatusStore, SparkPlanGraph}
-import org.apache.spark.status.protobuf.StoreTypes.{SQLExecutionUIData, SparkPlanGraphNode}
+import org.apache.spark.ui.{SparkUI, WebUIPage}
 import org.json4s.JsonAST.JValue
-import org.json4s._
+import org.json4s.{JsonAST, _}
 
 import java.lang.reflect.Method
+import javax.servlet.http.HttpServletRequest
+import scala.xml.Node
 
 class DataflintSQLPlanPage(ui: SparkUI, sqlListener: () => Option[SQLAppStatusListener])
   extends WebUIPage("sqlplan") with Logging {

@@ -1,10 +1,10 @@
 package org.apache.spark.deploy.history
 
-import org.apache.spark.{SparkConf, DataflintSparkUILoader}
+import org.apache.spark.SparkConf
+import org.apache.spark.dataflint.DataflintSparkUILoader
 import org.apache.spark.util.{Clock, SystemClock}
 
 class FsDataflintHistoryProvider(conf: SparkConf, clock: Clock) extends FsHistoryProvider(conf, clock) {
-
   def this(conf: SparkConf) = {
     this(conf, new SystemClock())
   }
