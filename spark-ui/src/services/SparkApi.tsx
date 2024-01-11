@@ -1,8 +1,5 @@
+import { ApplicationInfo } from "../interfaces/ApplicationInfo";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
-import {
-  SparkApplication,
-  SparkApplications,
-} from "../interfaces/SparkApplications";
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
 import { SparkExecutors } from "../interfaces/SparkExecutors";
 import { SparkJobs } from "../interfaces/SparkJobs";
@@ -24,7 +21,6 @@ import {
 } from "../reducers/SparkSlice";
 import { AppDispatch } from "../Store";
 import { IS_HISTORY_SERVER_MODE } from "../utils/UrlConsts";
-import { getHistoryServerCurrentAppId } from "../utils/UrlUtils";
 import { MixpanelService } from "./MixpanelService";
 
 const POLL_TIME = 1000;
@@ -69,6 +65,9 @@ class SparkAPI {
 
   private buildStageRdd(): string {
     return `${this.baseCurrentPage}/stagesrdd/json/`;
+  }
+  private applicationinfoPath(): string {
+    return `${this.baseCurrentPage}/applicationinfo/json/`;
   }
 
   private get executorsPath(): string {
@@ -137,20 +136,6 @@ class SparkAPI {
     return "unknown";
   }
 
-  private getCurrentApp(appData: SparkApplications): SparkApplication {
-    if (this.historyServerMode) {
-      const appId = getHistoryServerCurrentAppId();
-      const app = appData.find((app) => app.id === appId);
-      if (!app) {
-        throw new Error();
-      }
-
-      return app;
-    }
-
-    return appData[0];
-  }
-
   async queryData(path: string): Promise<any> {
     try {
       const requestContent = await fetch(path);
@@ -170,12 +155,12 @@ class SparkAPI {
       }
       if (!this.initialized || !this.isConnected) {
         this.resetState(); // In case of disconnection
-        const appData: SparkApplications = await this.queryData(
-          this.applicationsPath,
+        const appInfo: ApplicationInfo = await this.queryData(
+          this.applicationinfoPath(),
         );
 
-        const currentApplication = this.getCurrentApp(appData);
-        this.appId = currentApplication.id;
+        const currentApplication = appInfo.info
+        this.appId = appInfo.runId ?? currentApplication.id;
         const currentAttempt =
           currentApplication.attempts[currentApplication.attempts.length - 1];
 
@@ -187,7 +172,7 @@ class SparkAPI {
         this.dispatch(
           setInitial({
             config: sparkConfiguration,
-            appId: this.appId,
+            appId: currentApplication.id,
             attempt: currentAttempt,
             epocCurrentTime: Date.now(),
           }),

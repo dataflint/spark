@@ -42,13 +42,13 @@ export function extractRunMetadata(
   attempt: Attempt,
 ): RunMetadataStore {
   const endTime =
-    attempt.endTimeEpoch === -1 ? undefined : attempt.endTimeEpoch;
+    attempt.endTime === '1969-12-31T23:59:59Z' ? undefined : new Date(attempt.endTime).getTime();
 
   return {
     appId: appId,
     sparkVersion: attempt.appSparkVersion,
     appName: name,
-    startTime: attempt.startTimeEpoch,
+    startTime: new Date(attempt.startTime).getTime(),
     endTime: endTime,
   };
 }
@@ -344,7 +344,7 @@ export function extractConfig(
       key: "spark.dynamicAllocation.sustainedSchedulerBacklogTimeout",
       value:
         sparkPropertiesObj[
-          "spark.dynamicAllocation.sustainedSchedulerBacklogTimeout"
+        "spark.dynamicAllocation.sustainedSchedulerBacklogTimeout"
         ],
       default: "infinity",
       documentation:

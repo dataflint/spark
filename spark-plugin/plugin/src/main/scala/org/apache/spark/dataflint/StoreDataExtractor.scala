@@ -10,7 +10,7 @@ import scala.reflect.{ClassTag, classTag}
 class StoreDataExtractor(store: AppStatusStore) {
   private val kvStore = store.store.asInstanceOf[ElementTrackingStore]
 
-  def extractAllData(): SparkRunStore = {
+  def extract(): SparkRunStore = {
     SparkRunStore(
       applicationInfos = readAll[ApplicationInfoWrapper],
       applicationEnvironmentInfo = readAll[ApplicationEnvironmentInfoWrapper],

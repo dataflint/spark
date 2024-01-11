@@ -16,6 +16,8 @@
  */
 package org.apache.spark.dataflint
 
+import org.apache.spark.status.api.v1.ApplicationInfo
+
 case class NodeMetric(name: String, value: Option[String])
 
 case class NodeMetrics(id: Long, name: String, metrics: Seq[NodeMetric])
@@ -23,3 +25,5 @@ case class NodeMetrics(id: Long, name: String, metrics: Seq[NodeMetric])
 case class SqlEnrichedData(executionId: Long, numOfNodes:Int, rddScopesToStages: Option[Map[String, Set[Object]]], nodesPlan: Seq[NodePlan])
 
 case class NodePlan(id: Long, planDescription: String, rddScopeId: Option[String])
+
+case class DataFlintApplicationInfo(runId: Option[String], info: ApplicationInfo)

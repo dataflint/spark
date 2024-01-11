@@ -17,10 +17,14 @@ class DataflintListener(context: SparkContext) extends SparkListener with Loggin
     logInfo("DataFlint run exporter started")
     val startTimeMillis = System.currentTimeMillis()
     try {
-        val data = new StoreDataExtractor(context.statusStore).extractAllData()
-        // local mode is for local development and testing purposes
+      def runId = context.conf.get("spark.dataflint.runId")
+
+      val data = new StoreDataExtractor(context.statusStore).extract()
+      val metadata = new StoreMetadataExtractor(context.statusStore, context.getConf).extract(runId, applicationEnd.time)
+      // local mode is for local development and testing purposes
         if(context.getConf.get("spark.dataflint.localMode", "false") == "true") {
-          SparkRunSerializer.serializeAndSave(data, "/tmp/dataflint-export/sparkjob.json")
+          SparkRunSerializer.serializeAndSave(data, s"/tmp/dataflint-export/${runId}.data.json")
+          SparkMetadataSerializer.serializeAndSave(metadata, s"/tmp/dataflint-export/${runId}.meta.json")
         } else {
           // TODO: add SaaS S3 export code
         }
