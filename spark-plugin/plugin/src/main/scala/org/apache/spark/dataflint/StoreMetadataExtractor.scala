@@ -1,18 +1,21 @@
 package org.apache.spark.dataflint
 
-import org.apache.spark.SparkConf
+import org.apache.spark.{JobExecutionStatus, SparkConf}
 import org.apache.spark.executor.ExecutorMetrics
 import org.apache.spark.internal.config.{DRIVER_MEMORY, EXECUTOR_MEMORY, EXECUTOR_MEMORY_OVERHEAD, EXECUTOR_MEMORY_OVERHEAD_FACTOR}
+import org.apache.spark.sql.execution.ui.SQLAppStatusStore
 import org.apache.spark.status.AppStatusStore
 import org.apache.spark.status.api.v1.{ApplicationAttemptInfo, ApplicationInfo}
 import org.apache.spark.util.Utils
 
 import java.util.Date
 
-class StoreMetadataExtractor(store: AppStatusStore, conf: SparkConf) {
-  def extract(runId: String, eventEndTime: Long): SparkMetadataStore = {
+class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore, conf: SparkConf) {
+  private val version: String = "1"
 
+  def extract(runId: String, eventEndTime: Long): SparkMetadataStore = {
     SparkMetadataStore(
+      version = version,
       runId = runId,
       applicationInfo = getUpdatedAppInfo(eventEndTime),
       metrics = calculateMetrics(),
@@ -52,6 +55,8 @@ class StoreMetadataExtractor(store: AppStatusStore, conf: SparkConf) {
     val allExecutors = store.executorList(false)
     val onlyExecutors = store.executorList(false).filter(_.id != "driver")
     val driver = store.executorList(false).find(_.id == "driver").head
+    val sqlQueries = sqlStore.executionsList()
+    val stages = store.stageList(null)
 
     val totalInputBytes = allExecutors.map(_.totalInputBytes).sum
     val peakExecutorsMemory = onlyExecutors
@@ -70,14 +75,36 @@ class StoreMetadataExtractor(store: AppStatusStore, conf: SparkConf) {
     val coreHourUsage = allExecutors.map(exec => (exec.totalDuration.toDouble / 1000 / 60 / 60) * exec.totalCores).sum
     val memoryGbHour = onlyExecutors.map(exec => (exec.totalDuration.toDouble / 1000 / 60 / 60).toDouble * containerMemoryGb).sum + ((driver.totalDuration.toDouble / 1000 / 60 / 60) * driverMemoryGb)
     val totalDCU = (memoryGbHour * 0.005) + (coreHourUsage * 0.05)
+    val totalSpillBytes = stages.map(stage => stage.diskBytesSpilled).sum
+    val totalOutputBytes = stages.map(stage => stage.outputBytes).sum
+
+    val totalTasks = stages.map(stage => stage.numTasks).sum
+    val failedTasks = stages.map(stage => stage.numFailedTasks).sum
+    val taskErrorRate = if(totalTasks != 0) (failedTasks.toDouble / totalTasks.toDouble) * 100 else 0.0
+
+    val totalTasksSlotsMs = allExecutors.map(exec => (exec.totalDuration.toDouble) * exec.totalTasks).sum
+    val totalTaskTime = stages.map(stage => stage.executorRunTime).sum
+    val CoresWastedRatio = if(totalTasksSlotsMs != 0) (1 - (totalTaskTime.toDouble / totalTasksSlotsMs.toDouble)) * 100 else 0.0
+
+    val totalShuffleWriteBytes = onlyExecutors.map(exec => exec.totalShuffleWrite).sum
+    val totalShuffleReadBytes = onlyExecutors.map(exec => exec.totalShuffleRead).sum
+
+    val isAnySqlQueryFailed = sqlQueries.exists(query => query.jobs.exists { case (_, status) => status == JobExecutionStatus.FAILED })
 
     SparkMetadataMetrics(
       containerMemoryGb = containerMemoryGb,
       totalInputBytes = totalInputBytes,
+      totalOutputBytes = totalOutputBytes,
+      totalSpillBytes = totalSpillBytes,
+      totalShuffleWriteBytes = totalShuffleWriteBytes,
+      totalShuffleReadBytes = totalShuffleReadBytes,
       executorPeakMemoryBytes = executorPeakMemoryBytes,
       coreHourUsage = coreHourUsage,
       memoryGbHour = memoryGbHour,
-      totalDCU = totalDCU
+      totalDCU = totalDCU,
+      isAnySqlQueryFailed = isAnySqlQueryFailed,
+      taskErrorRate = taskErrorRate,
+      CoresWastedRatio = CoresWastedRatio
     )
   }
 }

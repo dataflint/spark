@@ -28,6 +28,7 @@ lazy val plugin = (project in file("plugin"))
     }),
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.4.1" % "provided",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.4.1"  % "provided",
+    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
     publishTo := sonatypePublishToBundle.value
   )
 
@@ -80,6 +81,7 @@ lazy val example_3_5_0 = (project in file("example_3_5_0"))
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.0",
     libraryDependencies += "org.apache.spark" %% "spark-streaming" % "3.5.0",
     libraryDependencies += "org.apache.spark" %% "spark-sql-kafka-0-10" % "3.5.0",
+    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.0.0",
     publish / skip := true
   ).dependsOn(plugin)

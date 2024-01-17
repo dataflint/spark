@@ -8,10 +8,12 @@ import scala.collection.convert.ImplicitConversions.`iterator asScala`
 import scala.reflect.{ClassTag, classTag}
 
 class StoreDataExtractor(store: AppStatusStore) {
+  private val version: String = "1"
   private val kvStore = store.store.asInstanceOf[ElementTrackingStore]
 
   def extract(): SparkRunStore = {
     SparkRunStore(
+      version = version,
       applicationInfos = readAll[ApplicationInfoWrapper],
       applicationEnvironmentInfo = readAll[ApplicationEnvironmentInfoWrapper],
       resourceProfiles = readAll[ResourceProfileWrapper],

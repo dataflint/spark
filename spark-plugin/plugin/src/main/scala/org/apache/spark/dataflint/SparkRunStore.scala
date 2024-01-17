@@ -6,6 +6,7 @@ import org.apache.spark.status.api.v1
 import org.apache.spark.util.kvstore.KVIndex
 
 case class SparkRunStore(
+                          version: String,
                           applicationInfos: Seq[ApplicationInfoWrapper],
                           applicationEnvironmentInfo: Seq[ApplicationEnvironmentInfoWrapper],
                           resourceProfiles: Seq[ResourceProfileWrapper],
