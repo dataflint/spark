@@ -49,6 +49,7 @@ lazy val example_3_2_4 = (project in file("example_3_2_4"))
     scalaVersion := "2.12.18",
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.2.4",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.2.4",
+    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
     publish / skip := true
   ).dependsOn(plugin)
 
@@ -59,6 +60,7 @@ lazy val example_3_3_3 = (project in file("example_3_3_3"))
     scalaVersion := "2.12.18",
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.3.3",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.3.3",
+    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
     publish / skip := true
   ).dependsOn(plugin)
 
@@ -69,6 +71,7 @@ lazy val example_3_4_1 = (project in file("example_3_4_1"))
     scalaVersion := "2.12.18",
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.4.1",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.4.1",
+    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
     publish / skip := true
   ).dependsOn(plugin)
 

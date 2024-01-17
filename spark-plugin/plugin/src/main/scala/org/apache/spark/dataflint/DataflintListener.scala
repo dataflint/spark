@@ -19,11 +19,14 @@ class DataflintListener(context: SparkContext) extends SparkListener with Loggin
     }
     logInfo("DataFlint run exporter started")
     val startTimeMillis = System.currentTimeMillis()
+
+    def runId = context.conf.get("spark.dataflint.runId")
+
+    val tokenParts = context.conf.get("spark.dataflint.token").split("-")
+    val accessKey = tokenParts(0)
+    val secretAccessKey = tokenParts(1)
+
     try {
-      def runId = context.conf.get("spark.dataflint.runId")
-      val tokenParts = context.conf.get("spark.dataflint.token").split("-")
-      val accessKey = tokenParts(0)
-      val secretAccessKey = tokenParts(1)
       val baseFilePath = s"$accessKey/$runId"
 
       val sqlStore = new SQLAppStatusStore(context.statusStore.store, None)
@@ -55,7 +58,7 @@ class DataflintListener(context: SparkContext) extends SparkListener with Loggin
 
     val endTimeMillis = System.currentTimeMillis()
     val durationMs = endTimeMillis - startTimeMillis
-    logInfo(s"Exported run to dataflint SaaS successfully! exporting took ${durationMs}ms")
+    logInfo(s"Exported run to dataflint SaaS successfully! exporting took ${durationMs}ms, link to job: http://localhost:18081/history/${accessKey}-${runId}")
   }
 
   def doesAWSCredentialsClassExist(): Boolean = {
