@@ -290,7 +290,7 @@ export interface SparkExecutorsStatus {
   totalExecutorMemoryGibHour: number;
   totalMemoryGibHour: number;
   totalDCU: number;
-  activityRate: number;
+  wastedCoresRate: number;
   maxExecutorMemoryPercentage: number;
   maxExecutorMemoryBytesString: string;
   maxExecutorMemoryBytes: number;
@@ -311,7 +311,7 @@ export interface SparkMetricsStore {
 
 export interface SparkSQLResourceUsageStore {
   coreHourUsage: number;
-  activityRate: number;
+  wastedCoresRate: number;
   dcuPercentage: number;
   durationPercentage: number;
   memoryGbHourUsage: number;

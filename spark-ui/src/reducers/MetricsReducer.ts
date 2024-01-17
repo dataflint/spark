@@ -217,18 +217,18 @@ export function calculateSqlQueryLevelMetricsReducer(
             executors.filter((executor) => !executor.isDriver),
           );
       const totalTasksTime = sql.stageMetrics?.executorRunTime as number;
-      const activityRate =
+      const wastedCoresRate =
         resourceUsageExecutorsOnly.coreUsageMs !== 0
           ? Math.min(
             100,
-            (totalTasksTime / resourceUsageExecutorsOnly.coreUsageMs) * 100,
+            (1 - (totalTasksTime / resourceUsageExecutorsOnly.coreUsageMs)) * 100,
           )
           : 0;
       const resourceUsageStore: SparkSQLResourceUsageStore = {
         coreHourUsage: resourceUsageWithDriver.coreHour,
         memoryGbHourUsage: resourceUsageWithDriver.memoryHour,
         dcu: resourceUsageWithDriver.totalDCU,
-        activityRate: activityRate,
+        wastedCoresRate: wastedCoresRate,
         dcuPercentage:
           statusStore.executors?.totalDCU === undefined
             ? 0

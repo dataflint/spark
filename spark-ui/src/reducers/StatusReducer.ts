@@ -116,7 +116,7 @@ export function calculateSparkExecutorsStatus(
   const totalMemoryGibHour =
     totalExecutorMemoryGibHour + totalDriverMemoryGibHour;
 
-  const activityRate =
+  const wastedCoresRate =
     totalPotentialTaskTimeMs !== 0 && totalTaskTimeMs !== undefined
       ? Math.min(100, (totalTaskTimeMs / totalPotentialTaskTimeMs) * 100)
       : 0;
@@ -161,7 +161,7 @@ export function calculateSparkExecutorsStatus(
     totalExecutorMemoryGibHour,
     totalMemoryGibHour,
     totalDCU,
-    activityRate,
+    wastedCoresRate,
     maxExecutorMemoryPercentage,
     maxExecutorMemoryBytesString,
     maxExecutorMemoryBytes,

@@ -17,7 +17,7 @@ export interface Data {
   durationPercentage: number;
   dcu: number;
   dcuPercentage: number;
-  activityRate: number;
+  wastedCoresRate: number;
   input: number;
   output: number;
   failureReason: string;

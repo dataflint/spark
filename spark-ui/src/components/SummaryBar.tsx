@@ -174,18 +174,18 @@ const SummaryBar: FC = (): JSX.Element => {
           }
         ></InfoBox>
         <InfoBox
-          title="Activity Rate"
-          text={status.executors.activityRate.toFixed(2) + "%"}
+          title="Wasted Cores Rate"
+          text={status.executors.wastedCoresRate.toFixed(2) + "%"}
           color="#618833"
           icon={DirectionsRunIcon}
           tooltipContent={
             <React.Fragment>
               <Typography variant="h6" color="inherit">
-                What is Activity Rate?
+                What is Wasted Cores Rate?
               </Typography>
               <Typography variant="subtitle2">
-                Activity rate is the percentage of time that your executors
-                cores are not idle.
+                Wasted Cores Rate is the percentage of time that your executors
+                cores are idle.
               </Typography>
               <Typography variant="subtitle2">
                 Core Idle Time is defined by an executor core without a
@@ -193,7 +193,7 @@ const SummaryBar: FC = (): JSX.Element => {
               </Typography>
               <Typography variant="subtitle2">
                 For example: if you have 400 cores and 200 tasks scheduled your
-                activity rate is 50%.
+                cores wasted rate is 50%.
               </Typography>
             </React.Fragment>
           }
