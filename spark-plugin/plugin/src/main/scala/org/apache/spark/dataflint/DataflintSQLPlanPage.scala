@@ -55,7 +55,7 @@ class DataflintSQLPlanPage(ui: SparkUI, sqlListener: () => Option[SQLAppStatusLi
             }
             else None
             NodePlan(node.id, node.desc, rddScopeId)
-          })
+          }).toSeq
         )
       }
       val jsonValue: JValue = Extraction.decompose(sqlPlans)(org.json4s.DefaultFormats)

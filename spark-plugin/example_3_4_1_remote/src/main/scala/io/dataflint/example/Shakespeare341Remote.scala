@@ -21,7 +21,7 @@ object Shakespeare341Remote {
 
   def main(args: Array[String]): Unit = {
     val spark = SparkSession
-      .builder
+      .builder()
       .appName("Shakespeare Statistics")
       .config("spark.ui.port", "10000")
       .master("local[*]")
