@@ -33,7 +33,7 @@ class DataflintListener(context: SparkContext) extends SparkListener with Loggin
 
       val s3Uploader = new S3Uploader(accessKey, secretAccessKey)
       val data = new StoreDataExtractor(context.statusStore).extract()
-      val metadata = new StoreMetadataExtractor(context.statusStore, sqlStore, context.getConf).extract(runId, applicationEnd.time)
+      val metadata = new StoreMetadataExtractor(context.statusStore, sqlStore, context.getConf).extract(runId, accessKey, applicationEnd.time)
       // local mode is for local development and testing purposes
         if(context.getConf.get("spark.dataflint.localMode", "false") == "true") {
           Files.createDirectories(Paths.get(s"/tmp/dataflint-export/$accessKey"))

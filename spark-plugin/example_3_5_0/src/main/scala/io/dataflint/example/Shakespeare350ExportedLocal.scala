@@ -22,7 +22,6 @@ object Shakespeare350ExportedLocal {
       .appName("Shakespeare Statistics Exported")
       .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
       .config("spark.ui.port", "10000")
-      .config("spark.dataflint.token", "1234-5678")
       .config("spark.dataflint.localMode", "true")
       .config("spark.sql.maxMetadataStringLength", "10000")
       .config("spark.eventLog.enabled", "true")

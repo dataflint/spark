@@ -13,10 +13,11 @@ import java.util.Date
 class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore, conf: SparkConf) {
   private val version: String = "1"
 
-  def extract(runId: String, eventEndTime: Long): SparkMetadataStore = {
+  def extract(runId: String, accessKey: String, eventEndTime: Long): SparkMetadataStore = {
     SparkMetadataStore(
       version = version,
       runId = runId,
+      accessKey = accessKey,
       applicationInfo = getUpdatedAppInfo(eventEndTime),
       metrics = calculateMetrics(),
       conf = filterConf()

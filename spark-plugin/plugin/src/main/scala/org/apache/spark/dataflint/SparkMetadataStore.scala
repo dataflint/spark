@@ -20,6 +20,7 @@ case class SparkMetadataMetrics(
 
 case class SparkMetadataStore(version: String,
                               runId: String,
+                              accessKey: String,
                               applicationInfo: v1.ApplicationInfo,
                               metrics: SparkMetadataMetrics,
                               conf: Map[String, String])
