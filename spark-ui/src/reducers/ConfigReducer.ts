@@ -42,7 +42,7 @@ export function extractRunMetadata(
   attempt: Attempt,
 ): RunMetadataStore {
   const endTime =
-    attempt.endTime === '1969-12-31T23:59:59Z' ? undefined : new Date(attempt.endTime).getTime();
+    attempt.endTime.startsWith('1969-12-31') ? undefined : new Date(attempt.endTime.replaceAll("GMT", "Z")).getTime();
 
   return {
     appId: appId,
