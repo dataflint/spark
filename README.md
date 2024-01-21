@@ -43,9 +43,11 @@ See [Our Features](https://dataflint.gitbook.io/dataflint-for-spark/overview/our
 
 ## Installation
 
+### Scala
+
 Install DataFlint via sbt:
 ```sbt
-libraryDependencies += "io.dataflint" %% "spark_2.12" % "0.1.2"
+libraryDependencies += "io.dataflint" %% "spark" % "0.1.2"
 ```
 
 Then instruct spark to load the DataFlint plugin:
@@ -57,6 +59,19 @@ val spark = SparkSession
     .getOrCreate()
 ```
 
+### PySpark
+Add these 2 configs to your pyspark session builder:
+
+```python
+builder = pyspark.sql.SparkSession.builder
+    ...
+    .config("spark.jars.packages", "io.dataflint:spark_2.12:0.1.2") \
+    .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin") \
+    ...
+```
+
+### Spark Submit
+
 Alternatively, install DataFlint with **no code change** as a spark ivy package by adding these 2 lines to your spark-submit command:
 
 ```bash
@@ -66,11 +81,15 @@ spark-submit
 ...
 ```
 
+### Usage
+
 After the installations you will see a "DataFlint" button in Spark UI, click on it to start using DataFlint
 
 <img alt="Logo" src="documentation/resources/usage.png">
 
+### Additional installation options
 
+* There is also support for scala 2.13, if your spark cluster is using scala 2.13 change package name to io.dataflint:spark_**2.13**:0.1.2
 * For more installation options, including for **python** and **k8s spark-operator**, see [Install on Spark docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark)
 * For installing DataFlint in **spark history server** for observability on completed runs see [install on spark history server docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark-history-server)
 * For installing DataFlint on **DataBricks** see [install on databricks docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-databricks)
@@ -91,7 +110,7 @@ For more information, see [how it works docs](https://dataflint.gitbook.io/dataf
 
 ## Compatibility Matrix
 
-DataFlint require spark version 3.2 and up, and scala version 2.12. 
+DataFlint require spark version 3.2 and up, and supports both scala versions 2.12 or 2.13. 
 
 | Platforms                 | Spark | History Server |
 |---------------------------|-------|----------------|
