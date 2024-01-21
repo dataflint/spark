@@ -5,7 +5,7 @@ import org.apache.spark.sql.{SaveMode, SparkSession}
 object SalesFiltererFixed {
   def main(args: Array[String]): Unit = {
     val spark = SparkSession
-      .builder
+      .builder()
       .appName("Sales Filterer Fixed")
       .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
       .config("spark.ui.port", "10000")

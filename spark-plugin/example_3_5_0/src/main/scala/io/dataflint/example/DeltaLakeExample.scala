@@ -7,7 +7,7 @@ import java.sql.Timestamp
 object DeltaLakeExample {
     def main(args: Array[String]): Unit = {
       val spark = SparkSession
-        .builder
+        .builder()
         .appName("DeltaLakeExample")
         .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
         .config("spark.ui.port", "10000")

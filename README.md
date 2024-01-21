@@ -51,7 +51,7 @@ libraryDependencies += "io.dataflint" %% "spark_2.12" % "0.1.1"
 Then instruct spark to load the DataFlint plugin:
 ```scala
 val spark = SparkSession
-    .builder
+    .builder()
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
     ...
     .getOrCreate()

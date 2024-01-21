@@ -35,7 +35,7 @@ class DataflintSQLMetricsPage(ui: SparkUI, sqlListener: () => Option[SQLAppStatu
         sqlStore.planGraph(executionIdLong)
       val nodesMetrics = graph.allNodes.map(node => NodeMetrics(node.id, node.name, node.metrics.map(metric => {
           NodeMetric(metric.name, metrics.get(metric.accumulatorId))
-        })))
+        }).toSeq))
         // filter nodes without metrics
         .filter(nodeMetrics => !nodeMetrics.metrics.forall(_.value.isEmpty))
       val jValue: JValue = Extraction.decompose(nodesMetrics)(org.json4s.DefaultFormats)
