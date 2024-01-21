@@ -10,6 +10,7 @@ object SalesFiltererFixed extends App {
     .config("spark.ui.port", "10000")
     .config("spark.eventLog.enabled", true)
     .config("spark.sql.maxMetadataStringLength", "10000")
+    .config("spark.dataflint.telemetry.enabled", false)
     .master("local[1]")
     .getOrCreate()
 

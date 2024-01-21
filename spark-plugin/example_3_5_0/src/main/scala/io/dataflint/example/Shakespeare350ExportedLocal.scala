@@ -17,6 +17,7 @@ object Shakespeare350ExportedLocal extends App {
     .builder
     .appName("Shakespeare Statistics Exported")
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
+    .config("spark.dataflint.telemetry.enabled", false)
     .config("spark.ui.port", "10000")
     .config("spark.dataflint.localMode", "true")
     .config("spark.sql.maxMetadataStringLength", "10000")

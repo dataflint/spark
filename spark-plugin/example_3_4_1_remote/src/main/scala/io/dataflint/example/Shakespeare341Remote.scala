@@ -19,6 +19,7 @@ object Shakespeare341Remote extends App {
   val spark = SparkSession
     .builder()
     .appName("Shakespeare Statistics")
+    .config("spark.dataflint.telemetry.enabled", false)
     .config("spark.ui.port", "10000")
     .master("local[*]")
     .getOrCreate()

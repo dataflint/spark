@@ -10,6 +10,7 @@ object SimpleStreaming extends App {
     .builder()
     .appName("Simple Streaming")
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
+    .config("spark.dataflint.telemetry.enabled", false)
     .config("spark.ui.port", "10000")
     .config("spark.sql.maxMetadataStringLength", "10000")
     .master("local[*]")

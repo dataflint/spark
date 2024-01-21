@@ -125,7 +125,7 @@ const ResourceBar: FC = (): JSX.Element => {
           }
         ></InfoBox>
         <InfoBox
-          title="Wasted Cores Rate"
+          title="Wasted Cores"
           text={status.executors.wastedCoresRate.toFixed(2) + "%"}
           color="#618833"
           icon={DirectionsRunIcon}

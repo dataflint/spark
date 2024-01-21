@@ -169,6 +169,22 @@ class SparkAPI {
         );
         this.initialized = true; // should happen after fetching app and env succesfully
         this.isConnected = true;
+
+        const masterConfig = sparkConfiguration.sparkProperties.find(
+          (conf) => conf.length > 1 && conf[0] === "spark.dataflint.telemetry.enabled",
+        );
+
+        if (masterConfig !== undefined && masterConfig[1] === "false") {
+          MixpanelService.setMixpanelTelemetryConfigDisabled();
+          console.log("skipping mixpanel telemetry, spark.dataflint.telemetry.enabled is set to false")
+        } else {
+          MixpanelService.InitMixpanel();
+          MixpanelService.Track(MixpanelEvents.SparkAppInitilized, {
+            sparkVersion: currentAttempt?.appSparkVersion,
+            duration: currentAttempt?.duration,
+            platform: this.getPlatform(sparkConfiguration),
+          });
+        }
         this.dispatch(
           setInitial({
             config: sparkConfiguration,
@@ -178,11 +194,6 @@ class SparkAPI {
           }),
         );
 
-        MixpanelService.Track(MixpanelEvents.SparkAppInitilized, {
-          sparkVersion: currentAttempt?.appSparkVersion,
-          duration: currentAttempt?.duration,
-          platform: this.getPlatform(sparkConfiguration),
-        });
       } else {
         this.dispatch(updateDuration({ epocCurrentTime: Date.now() }));
       }

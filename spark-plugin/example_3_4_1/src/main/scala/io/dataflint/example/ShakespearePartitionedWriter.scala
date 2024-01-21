@@ -9,6 +9,7 @@ object ShakespearePartitionedWriter extends App {
     .builder()
     .appName("Shakespeare Partitioned Writer")
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
+    .config("spark.dataflint.telemetry.enabled", false)
     .config("spark.ui.port", "10000")
     .config("spark.eventLog.enabled", true)
     .config("spark.sql.maxMetadataStringLength", "10000")

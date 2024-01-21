@@ -6,6 +6,12 @@ const KEEP_ALIVE_INTERVAL_MS = 60 * 1000;
 const baseProperties = { dataflintVersion: process.env.REACT_APP_VERSION ?? "unknown-version" };
 
 export class MixpanelService {
+  static mixpanelTelemetryConfigDisabled = false;
+
+  static setMixpanelTelemetryConfigDisabled(): void {
+    MixpanelService.mixpanelTelemetryConfigDisabled = true;
+  }
+
   static InitMixpanel(): void {
     if (!this.ShouldTrack()) return;
 
@@ -57,7 +63,8 @@ export class MixpanelService {
   static ShouldTrack(): boolean {
     return (
       process.env.NODE_ENV !== "development" &&
-      localStorage.getItem("SKIP_MIXPANEL") !== "true"
+      localStorage.getItem("SKIP_MIXPANEL") !== "true" &&
+      !MixpanelService.mixpanelTelemetryConfigDisabled
     );
   }
 }
