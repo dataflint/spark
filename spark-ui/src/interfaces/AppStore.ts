@@ -36,7 +36,7 @@ export interface SQLAlertSourceData {
 
 export interface StatusAlertSourceData {
   type: "status";
-  metric: "memory";
+  metric: "memory" | "wastedCores";
 }
 
 export interface Alert {

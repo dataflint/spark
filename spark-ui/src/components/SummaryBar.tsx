@@ -23,6 +23,10 @@ const SummaryBar: FC = (): JSX.Element => {
     (alert) =>
       alert.source.type === "status" && alert.source.metric === "memory",
   );
+  const wastedCoresAlert = alerts?.alerts.find(
+    (alert) =>
+      alert.source.type === "status" && alert.source.metric === "wastedCores",
+  );
   const executorMemoryBytesString = useAppSelector(
     (state) => state.spark.config?.executorMemoryBytesString,
   );
@@ -176,6 +180,7 @@ const SummaryBar: FC = (): JSX.Element => {
         <InfoBox
           title="Wasted Cores"
           text={status.executors.wastedCoresRate.toFixed(2) + "%"}
+          alert={wastedCoresAlert}
           color="#618833"
           icon={DirectionsRunIcon}
           tooltipContent={
