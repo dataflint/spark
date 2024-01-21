@@ -7,43 +7,38 @@ import org.apache.spark.sql.functions._
 
 import java.nio.file.Paths
 
-object Shakespeare341Remote {
-    def fsPath(resource: String): String =
-    "/Users/menishmueli/Documents/GitHub/dataflint/spark/spark-plugin/example_3_4_1_remote/src/main/resources/io/dataflint/example/will_play_text.csv"
-
+object Shakespeare341Remote extends App {
   def df(spark: SparkSession): DataFrame = spark.read
     .format("csv")
     .option("sep", ";")
     .option("inferSchema", true)
-    .load(fsPath("will_play_text.csv"))
+    .load("./test_data/will_play_text.csv")
     .toDF("line_id", "play_name", "speech_number", "line_number", "speaker", "text_entry")
     .repartition(1000)
 
-  def main(args: Array[String]): Unit = {
-    val spark = SparkSession
-      .builder()
-      .appName("Shakespeare Statistics")
-      .config("spark.ui.port", "10000")
-      .master("local[*]")
-      .getOrCreate()
+  val spark = SparkSession
+    .builder()
+    .appName("Shakespeare Statistics")
+    .config("spark.ui.port", "10000")
+    .master("local[*]")
+    .getOrCreate()
 
-    import spark.implicits._
+  import spark.implicits._
 
-    val shakespeareText = df(spark)
+  val shakespeareText = df(spark)
 
-    shakespeareText.printSchema()
+  shakespeareText.printSchema()
 
-    val count = shakespeareText.count()
-    println(s"number of records : $count")
+  val count = shakespeareText.count()
+  println(s"number of records : $count")
 
-    val uniqueSpeakers = shakespeareText.select($"speaker").distinct().count()
-    println(s"number of unique speakers : $uniqueSpeakers")
+  val uniqueSpeakers = shakespeareText.select($"speaker").distinct().count()
+  println(s"number of unique speakers : $uniqueSpeakers")
 
-    val uniqueWords = shakespeareText.select(explode(split($"text_entry", " "))).distinct().count()
+  val uniqueWords = shakespeareText.select(explode(split($"text_entry", " "))).distinct().count()
 
-    println(s"number of unique words : $uniqueWords")
+  println(s"number of unique words : $uniqueWords")
 
-    scala.io.StdIn.readLine()
-    spark.stop()
-  }
+  scala.io.StdIn.readLine()
+  spark.stop()
 }

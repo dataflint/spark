@@ -3,13 +3,13 @@ package org.apache.spark.dataflint
 import org.apache.spark.JobExecutionStatus
 import org.apache.spark.rdd.DeterministicLevel
 import org.apache.spark.status.api.v1.StageStatus
-import org.json4s.NoTypeHints
+import org.json4s.{Formats, NoTypeHints}
 import org.json4s.jackson.{JsonMethods, Serialization}
 
 import java.io.{File, PrintWriter}
 
 object SparkRunSerializer {
-  implicit val formats = Serialization.formats(NoTypeHints) + new JavaEnumNameSerializer[JobExecutionStatus]() + new JavaEnumNameSerializer[StageStatus]() + new EnumSerializer(DeterministicLevel)
+  implicit val formats: Formats = Serialization.formats(NoTypeHints) + new JavaEnumNameSerializer[JobExecutionStatus]() + new JavaEnumNameSerializer[StageStatus]() + new EnumSerializer(DeterministicLevel)
 
   def serialize(data: SparkRunStore): String = {
     Serialization.write(data)
