@@ -7,6 +7,9 @@ export const isProxyMode = (): boolean =>
     window.location.pathname === "/dataflint/"
   );
 
+export const isDataFlintSaaSUI = (): boolean =>
+  window.location.href.includes("dataflint-spark-ui");
+
 export function hrefWithoutEndSlash(): string {
   const href = window.location.href;
   let fixedUrl = href.split("/#/")[0];

@@ -2,9 +2,7 @@ package io.dataflint.example
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-import java.nio.file.Paths
-
-object Shakespeare350ExportedLocal extends App {
+object Shakespeare350ExportedLocal2 extends App {
   def df(spark: SparkSession): DataFrame = spark.read
     .format("csv")
     .option("sep", ";")
@@ -15,12 +13,12 @@ object Shakespeare350ExportedLocal extends App {
 
   val spark = SparkSession
     .builder
-    .appName("Shakespeare Statistics Exported")
+    .appName("Shakespeare Statistics Exported General")
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
     .config("spark.dataflint.telemetry.enabled", false)
     .config("spark.ui.port", "10000")
     .config("spark.dataflint.localMode", "true")
-    .config("spark.dataflint.token", "AKIAZEUOHHYMKVUKYYZB-1234")
+    .config("spark.dataflint.token", "CKIAZEUOHHYMKVUKYYZC-1234")
     .config("spark.sql.maxMetadataStringLength", "10000")
     .config("spark.eventLog.enabled", "true")
     .master("local[*]")

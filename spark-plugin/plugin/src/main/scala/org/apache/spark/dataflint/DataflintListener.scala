@@ -12,21 +12,24 @@ import java.util.concurrent.atomic.AtomicBoolean
 class DataflintListener(context: SparkContext) extends SparkListener with Logging {
   private val applicationEnded = new AtomicBoolean(false);
   private val dataflintBucketName = "dataflint-uploads-test"
+
   override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
-    if(applicationEnded.getAndSet(true)) {
+    if (applicationEnded.getAndSet(true)) {
       // onApplicationEnd could be called multiple times, and this is a defence against that case
       return;
     }
-    logInfo("DataFlint run exporter started")
-    val startTimeMillis = System.currentTimeMillis()
-
-    def runId = context.conf.get("spark.dataflint.runId")
-
-    val tokenParts = context.conf.get("spark.dataflint.token").split("-")
-    val accessKey = tokenParts(0)
-    val secretAccessKey = tokenParts(1)
-
     try {
+      logInfo("DataFlint run exporter started")
+      val startTimeMillis = System.currentTimeMillis()
+
+      def runId = context.conf.get("spark.dataflint.runId")
+
+      val isLocalMode = context.getConf.get("spark.dataflint.localMode", "false") == "true"
+
+      val tokenParts = context.conf.get("spark.dataflint.token").split("-")
+      val accessKey = tokenParts(0)
+      val secretAccessKey = tokenParts(1)
+
       val baseFilePath = s"$accessKey/$runId"
 
       val sqlStore = new SQLAppStatusStore(context.statusStore.store, None)
@@ -35,38 +38,42 @@ class DataflintListener(context: SparkContext) extends SparkListener with Loggin
       val data = new StoreDataExtractor(context.statusStore).extract()
       val metadata = new StoreMetadataExtractor(context.statusStore, sqlStore, context.getConf).extract(runId, accessKey, applicationEnd.time)
       // local mode is for local development and testing purposes
-        if(context.getConf.get("spark.dataflint.localMode", "false") == "true") {
-          Files.createDirectories(Paths.get(s"/tmp/dataflint-export/$accessKey"))
-          SparkRunSerializer.serializeAndSave(data, s"/tmp/dataflint-export/${baseFilePath}.data.json")
-          SparkMetadataSerializer.serializeAndSave(metadata, s"/tmp/dataflint-export/${baseFilePath}.meta.json")
-        } else {
-          if(!doesAWSCredentialsClassExist()) {
-            logError("Failed to export run to dataflint SaaS, please make sure you have the aws-java-sdk-s3 dependency installed in your project")
-            return;
-          }
-
-          val dataJson = SparkRunSerializer.serialize(data)
-          s3Uploader.uploadToS3(dataJson, dataflintBucketName, baseFilePath + ".data.json.gz", shouldGzip = true)
-
-          val metaJson = SparkMetadataSerializer.serialize(metadata)
-          s3Uploader.uploadToS3(metaJson, dataflintBucketName, baseFilePath + ".meta.json", shouldGzip = false)
+      if (isLocalMode) {
+        Files.createDirectories(Paths.get(s"/tmp/dataflint-export/$accessKey"))
+        SparkRunSerializer.serializeAndSave(data, s"/tmp/dataflint-export/${baseFilePath}.data.json")
+        SparkMetadataSerializer.serializeAndSave(metadata, s"/tmp/dataflint-export/${baseFilePath}.meta.json")
+      } else {
+        if (!doesAWSCredentialsClassExist()) {
+          logError("Failed to export run to dataflint SaaS, please make sure you have the aws-java-sdk-s3 dependency installed in your project")
+          return;
         }
-     } catch {
-       case exception: Throwable => logError("Failed to export run to dataflint SaaS", exception)
-       return;
-     }
 
-    val endTimeMillis = System.currentTimeMillis()
-    val durationMs = endTimeMillis - startTimeMillis
-    logInfo(s"Exported run to dataflint SaaS successfully! exporting took ${durationMs}ms, link to job: http://localhost:18081/history/${accessKey}-${runId}")
-  }
+        val dataJson = SparkRunSerializer.serialize(data)
+        s3Uploader.uploadToS3(dataJson, dataflintBucketName, baseFilePath + ".data.json.gz", shouldGzip = true)
 
-  def doesAWSCredentialsClassExist(): Boolean = {
-    try {
-      Class.forName("com.amazonaws.auth.AWSCredentials")
-      true
+        val metaJson = SparkMetadataSerializer.serialize(metadata)
+        s3Uploader.uploadToS3(metaJson, dataflintBucketName, baseFilePath + ".meta.json", shouldGzip = false)
+      }
+
+      val endTimeMillis = System.currentTimeMillis()
+      val durationMs = endTimeMillis - startTimeMillis
+      if (isLocalMode) {
+        logInfo(s"Exported run to dataflint SaaS successfully! exporting took ${durationMs}ms, link to job: http://localhost:8000/dataflint-spark-ui/history/${accessKey}-${runId}/dataflint/")
+      } else {
+        logInfo(s"Exported run to dataflint SaaS successfully! exporting took ${durationMs}ms, link to job: http://sparkui.dataflint,io/history/${accessKey}-${runId}/dataflint/")
+      }
     } catch {
-      case _: ClassNotFoundException => false
+      case exception: Throwable => logError("Failed to export run to dataflint SaaS", exception)
+        return;
+    }
+
+    def doesAWSCredentialsClassExist(): Boolean = {
+      try {
+        Class.forName("com.amazonaws.auth.AWSCredentials")
+        true
+      } catch {
+        case _: ClassNotFoundException => false
+      }
     }
   }
 }
