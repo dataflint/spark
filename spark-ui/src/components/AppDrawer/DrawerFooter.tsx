@@ -4,11 +4,11 @@ import {
   BASE_CURRENT_PAGE,
   IS_HISTORY_SERVER_MODE,
 } from "../../utils/UrlConsts";
-import { getBaseAppUrl } from "../../utils/UrlUtils";
+import { getBaseAppUrl, isDataFlintSaaSUI } from "../../utils/UrlUtils";
 
 export default function DrawerFooter({ version }: { version?: string }) {
   const onSparkUiClick = (): void => {
-    window.location.href = `${getBaseAppUrl(BASE_CURRENT_PAGE)}/jobs`;
+    window.location.href = `${getBaseAppUrl(BASE_CURRENT_PAGE)}/jobs/`;
   };
 
   const onHistoryServerClick = (): void => {
@@ -28,7 +28,7 @@ export default function DrawerFooter({ version }: { version?: string }) {
       <Button onClick={onSparkUiClick} color="inherit">
         To Spark UI
       </Button>
-      {IS_HISTORY_SERVER_MODE ? (
+      {IS_HISTORY_SERVER_MODE && !isDataFlintSaaSUI() ? (
         <Button onClick={onHistoryServerClick} color="inherit">
           To History Server
         </Button>

@@ -18,9 +18,6 @@ export function hrefWithoutEndSlash(): string {
   if (fixedUrl.endsWith("index.html")) {
     fixedUrl = fixedUrl.substring(0, fixedUrl.length - "index.html".length);
   }
-  if (fixedUrl.endsWith("index2.html")) {
-    fixedUrl = fixedUrl.substring(0, fixedUrl.length - "index2.html".length);
-  }
   if (fixedUrl.includes("?o=")) {
     fixedUrl = fixedUrl.split("dataflint")[0] + "dataflint";
   }
@@ -50,5 +47,8 @@ export function getHistoryServerCurrentAppId(): string {
 }
 
 export const getBaseAppUrl = (appPath: string): string => {
-  return appPath.split("/dataflint")[0];
+  return appPath.substring(
+    0,
+    hrefWithoutEndSlash().lastIndexOf("/dataflint"),
+  );
 };
