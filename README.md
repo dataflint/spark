@@ -112,14 +112,15 @@ For more information, see [how it works docs](https://dataflint.gitbook.io/dataf
 
 DataFlint require spark version 3.2 and up, and supports both scala versions 2.12 or 2.13. 
 
-| Platforms                 | Spark | History Server |
-|---------------------------|-------|----------------|
-| Local                     |   ✅   |       ✅       |
-| Standalone                |   ✅   |       ✅       |
-| Kubernetes Spark Operator |   ✅   |       ✅       |
-| EMR                       |   ✅   |       ✅       |
-| Dataproc                  |   ✅   |       ❓       |
-| HDInsights                |   ✅   |       ❓       |
-| Databricks                |   ✅   |       ❌       |
+
+| Spark Platforms           | DataFint Realtime  | Dataflint History server |
+|---------------------------|--------------------|--------------------------|
+| Local                     |       ✅           |           ✅             |
+| Standalone                |       ✅           |           ✅             |
+| Kubernetes Spark Operator |       ✅           |           ✅             |
+| EMR                       |       ✅           |           ✅             |
+| Dataproc                  |       ✅           |           ❓             |
+| HDInsights                |       ✅           |           ❓             |
+| Databricks                |       ✅           |           ❌             |
 
 For more information, see [supported versions docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/supported-versions)
