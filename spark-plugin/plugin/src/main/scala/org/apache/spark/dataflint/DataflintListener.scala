@@ -2,7 +2,7 @@ package org.apache.spark.dataflint
 
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
-import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
+import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd, SparkListenerApplicationStart}
 import org.apache.spark.sql.execution.ui.SQLAppStatusStore
 import org.apache.spark.status.ElementTrackingStore
 
@@ -34,26 +34,20 @@ class DataflintListener(context: SparkContext) extends SparkListener with Loggin
 
       val sqlStore = new SQLAppStatusStore(context.statusStore.store, None)
 
-      val s3Uploader = new S3Uploader(accessKey, secretAccessKey)
+      val s3Uploader = new S3Uploader(accessKey, secretAccessKey, isLocalMode)
       val data = new StoreDataExtractor(context.statusStore).extract()
       val metadata = new StoreMetadataExtractor(context.statusStore, sqlStore, context.getConf).extract(runId, accessKey, applicationEnd.time)
       // local mode is for local development and testing purposes
-      if (isLocalMode) {
-        Files.createDirectories(Paths.get(s"/tmp/dataflint-export/$accessKey"))
-        SparkRunSerializer.serializeAndSave(data, s"/tmp/dataflint-export/${baseFilePath}.data.json")
-        SparkMetadataSerializer.serializeAndSave(metadata, s"/tmp/dataflint-export/${baseFilePath}.meta.json")
-      } else {
-        if (!doesAWSCredentialsClassExist()) {
-          logError("Failed to export run to dataflint SaaS, please make sure you have the aws-java-sdk-s3 dependency installed in your project")
-          return;
-        }
-
-        val dataJson = SparkRunSerializer.serialize(data)
-        s3Uploader.uploadToS3(dataJson, dataflintBucketName, baseFilePath + ".data.json.gz", shouldGzip = true)
-
-        val metaJson = SparkMetadataSerializer.serialize(metadata)
-        s3Uploader.uploadToS3(metaJson, dataflintBucketName, baseFilePath + ".meta.json", shouldGzip = false)
+      if (!doesAWSCredentialsClassExist()) {
+        logError("Failed to export run to dataflint SaaS, please make sure you have the aws-java-sdk-s3 dependency installed in your project")
+        return;
       }
+
+      val dataJson = SparkRunSerializer.serialize(data)
+      s3Uploader.uploadToS3(dataJson, dataflintBucketName, baseFilePath + ".data.json.gz", shouldGzip = true)
+
+      val metaJson = SparkMetadataSerializer.serialize(metadata)
+      s3Uploader.uploadToS3(metaJson, dataflintBucketName, baseFilePath + ".meta.json", shouldGzip = false)
 
       val endTimeMillis = System.currentTimeMillis()
       val durationMs = endTimeMillis - startTimeMillis
