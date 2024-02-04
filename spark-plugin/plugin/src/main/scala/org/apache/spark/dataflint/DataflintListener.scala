@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class DataflintListener(context: SparkContext) extends SparkListener with Logging {
   private val applicationEnded = new AtomicBoolean(false);
-  private val dataflintBucketName = "dataflint-uploads-test"
 
   override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
     if (applicationEnded.getAndSet(true)) {
@@ -24,7 +23,11 @@ class DataflintListener(context: SparkContext) extends SparkListener with Loggin
 
       def runId = context.conf.get("spark.dataflint.runId")
 
-      val isLocalMode = context.getConf.get("spark.dataflint.localMode", "false") == "true"
+      val mode = context.getConf.get("spark.dataflint.mode", "prod")
+      if(mode != "prod" && mode != "staging" && mode != "dev" && mode != "local") {
+        logInfo("DataFlint run exporter is disabled in unknown mode")
+      return
+      }
 
       val tokenParts = context.conf.get("spark.dataflint.token").split("-")
       val accessKey = tokenParts(0)
@@ -34,7 +37,7 @@ class DataflintListener(context: SparkContext) extends SparkListener with Loggin
 
       val sqlStore = new SQLAppStatusStore(context.statusStore.store, None)
 
-      val s3Uploader = new S3Uploader(accessKey, secretAccessKey, isLocalMode)
+      val s3Uploader = new S3Uploader(accessKey, secretAccessKey, mode)
       val data = new StoreDataExtractor(context.statusStore).extract()
       val metadata = new StoreMetadataExtractor(context.statusStore, sqlStore, context.getConf).extract(runId, accessKey, applicationEnd.time)
       // local mode is for local development and testing purposes
@@ -44,18 +47,20 @@ class DataflintListener(context: SparkContext) extends SparkListener with Loggin
       }
 
       val dataJson = SparkRunSerializer.serialize(data)
-      s3Uploader.uploadToS3(dataJson, dataflintBucketName, baseFilePath + ".data.json.gz", shouldGzip = true)
+      s3Uploader.uploadToS3(dataJson, baseFilePath + ".data.json.gz", shouldGzip = true)
 
       val metaJson = SparkMetadataSerializer.serialize(metadata)
-      s3Uploader.uploadToS3(metaJson, dataflintBucketName, baseFilePath + ".meta.json", shouldGzip = false)
+      s3Uploader.uploadToS3(metaJson, baseFilePath + ".meta.json", shouldGzip = false)
 
       val endTimeMillis = System.currentTimeMillis()
       val durationMs = endTimeMillis - startTimeMillis
-      if (isLocalMode) {
-        logInfo(s"Exported run to dataflint SaaS successfully! exporting took ${durationMs}ms, link to job: http://localhost:8000/dataflint-spark-ui/history/${accessKey}-${runId}/dataflint/")
-      } else {
-        logInfo(s"Exported run to dataflint SaaS successfully! exporting took ${durationMs}ms, link to job: http://sparkui.dataflint,io/history/${accessKey}-${runId}/dataflint/")
+      val urlPrefix = mode match {
+        case "local" => "http://localhost:8000/"
+        case "staging" => "https://staging.app.dataflint.io/"
+        case "dev" => "https://dev.app.dataflint.io/"
+        case _ => "https://app.dataflint.io/"
       }
+      logInfo(s"Exported run to dataflint SaaS successfully! exporting took ${durationMs}ms, link to job: ${urlPrefix}/dataflint-spark-ui/history/${accessKey}-${runId}/dataflint/")
     } catch {
       case exception: Throwable => logError("Failed to export run to dataflint SaaS", exception)
         return;

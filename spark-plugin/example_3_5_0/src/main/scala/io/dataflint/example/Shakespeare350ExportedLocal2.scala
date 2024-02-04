@@ -17,7 +17,7 @@ object Shakespeare350ExportedLocal2 extends App {
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
     .config("spark.dataflint.telemetry.enabled", false)
     .config("spark.ui.port", "10000")
-    .config("spark.dataflint.localMode", "true")
+    .config("spark.dataflint.mode", "local")
     .config("spark.dataflint.token", "CKIAZEUOHHYMKVUKYYZC-1234")
     .config("spark.sql.maxMetadataStringLength", "10000")
     .config("spark.eventLog.enabled", "true")

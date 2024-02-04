@@ -11,14 +11,15 @@ import org.apache.spark.internal.Logging
 
 import java.io.ByteArrayInputStream
 
-class S3Uploader(accessKeyId: String, secretAccessKey: String, isLocalMode: Boolean = false) extends Logging {
+class S3Uploader(accessKeyId: String, secretAccessKey: String, mode: String) extends Logging {
   val credentials = new BasicAWSCredentials(accessKeyId, secretAccessKey)
+  private val bucketName = "dataflint-upload-" + mode
 
   val s3client: AmazonS3 = {
     var builder = AmazonS3ClientBuilder.standard()
       .withCredentials(new AWSStaticCredentialsProvider(credentials))
 
-    if(isLocalMode) {
+    if(mode == "local") {
       logInfo(s"Uploading to S3 with localstack")
       builder = builder.withEndpointConfiguration(new EndpointConfiguration("s3.localhost.localstack.cloud:4566", Regions.US_EAST_1.getName))
     } else {
@@ -29,7 +30,7 @@ class S3Uploader(accessKeyId: String, secretAccessKey: String, isLocalMode: Bool
     builder.build()
   }
 
-  def uploadToS3(jsonContent: String, bucketName: String, fileKey: String, shouldGzip: Boolean): Unit = {
+  def uploadToS3(jsonContent: String, fileKey: String, shouldGzip: Boolean): Unit = {
     try {
       val startTimeMillis = System.currentTimeMillis()
 
