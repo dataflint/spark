@@ -104,7 +104,10 @@ class SparkAPI {
   }
 
   private getPlatform(config: SparkConfiguration): string {
-    if (IS_HISTORY_SERVER_MODE) {
+    if (isDataFlintSaaSUI()) {
+      return "dataflint_saas";
+    }
+    else if (IS_HISTORY_SERVER_MODE) {
       return "history_server";
     }
     const databricksConf = config.sparkProperties.find(
