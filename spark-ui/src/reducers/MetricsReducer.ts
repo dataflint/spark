@@ -14,12 +14,15 @@ import {
 } from "../interfaces/AppStore";
 import { SparkJobs } from "../interfaces/SparkJobs";
 import { SqlStatus } from "../interfaces/SparkSQLs";
-import { SparkStages } from "../interfaces/SparkStages";
+import { SparkStage, SparkStages } from "../interfaces/SparkStages";
 import { StagesRdd } from "../interfaces/StagesRdd";
 import { msToHours } from "../utils/FormatUtils";
 import { calculateSqlStage } from "./SQLNodeStageReducer";
 
 const moment = extendMoment(Moment);
+
+const MAX_TASK_DURATION_THRESHOLD_MS = 5000
+const PARTITION_SKEW_RATIO = 10
 
 interface ResourceUsage {
   coreUsageMs: number;
@@ -38,6 +41,8 @@ export function calculateStagesStore(
   const stagesStore: SparkStagesStore = stages
     .filter((stage) => stage.status !== "SKIPPED")
     .map((stage) => {
+      const partitionSkew = calculatePartitionSkew(stage)
+
       return {
         stageId: stage.stageId,
         name: stage.name,
@@ -45,6 +50,9 @@ export function calculateStagesStore(
         numTasks: stage.numTasks,
         failureReason: stage.failureReason,
         stagesRdd: stagesRdd[stage.stageId],
+        hasPartitionSkew: partitionSkew === undefined ? undefined : partitionSkew.hasPartitionSkew,
+        mediumTaskDuration: partitionSkew === undefined ? undefined : partitionSkew.medianTaskDuration,
+        maxTaskDuration: partitionSkew === undefined ? undefined : partitionSkew.maxTaskDuration,
         metrics: {
           executorRunTime: stage.executorRunTime,
           diskBytesSpilled: stage.diskBytesSpilled,
@@ -53,10 +61,25 @@ export function calculateStagesStore(
           shuffleReadBytes: stage.shuffleReadBytes,
           shuffleWriteBytes: stage.shuffleWriteBytes,
           totalTasks: stage.numTasks,
-        },
+        }
       };
     });
   return stagesStore;
+}
+
+export function calculatePartitionSkew(stage: SparkStage) {
+  if (stage.taskMetricsDistributions === undefined) {
+    return undefined
+  }
+
+  const medianTaskDuration = stage.taskMetricsDistributions.executorRunTime[2]
+  const maxTaskDuration = stage.taskMetricsDistributions.executorRunTime[4]
+
+  if (maxTaskDuration > MAX_TASK_DURATION_THRESHOLD_MS && medianTaskDuration !== 0 && maxTaskDuration / medianTaskDuration > PARTITION_SKEW_RATIO) {
+    return { hasPartitionSkew: true, medianTaskDuration, maxTaskDuration }
+  }
+  return { hasPartitionSkew: false }
+
 }
 
 function sumMetricStores(metrics: SparkMetricsStore[]): SparkMetricsStore {

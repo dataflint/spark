@@ -9,7 +9,7 @@ import { SparkStages } from "../interfaces/SparkStages";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { SQLPlans } from "../interfaces/SQLPlan";
 import { StagesRdd } from "../interfaces/StagesRdd";
-import { reduceAlers as reduceAlerts } from "./AlertsReducer";
+import { reduceAlerts } from "./AlertsReducer";
 import { extractConfig, extractRunMetadata } from "./ConfigReducer";
 import {
   calculateSparkExecutorsStore,
@@ -249,7 +249,7 @@ const sparkSlice = createSlice({
           state.stages,
           state.executors,
         );
-        state.alerts = reduceAlerts(state.sql, state.status, state.config!);
+        state.alerts = reduceAlerts(state.sql, state.status, state.stages, state.config!);
       }
     },
   },

@@ -339,6 +339,9 @@ export interface SparkStageStore {
   name: string;
   stagesRdd: Record<string, string> | undefined;
   failureReason: string | undefined;
+  hasPartitionSkew: boolean | undefined;
+  mediumTaskDuration: number | undefined
+  maxTaskDuration: number | undefined
   metrics: SparkMetricsStore;
 }
 

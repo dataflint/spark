@@ -49,7 +49,7 @@ class SparkAPI {
   }
 
   private get stagesPath(): string {
-    return `${this.applicationPath}/stages`;
+    return `${this.applicationPath}/stages?withSummaries=true`;
   }
 
   private getSqlMetricsPath(sqlId: string): string {

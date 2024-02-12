@@ -59,9 +59,10 @@ export interface SparkStage {
   isShufflePushEnabled: boolean;
   shuffleMergersCount: number;
   failureReason: string | undefined;
+  taskMetricsDistributions: TaskMetricsDistributions | undefined
 }
 
-export interface KilledTasksSummary {}
+export interface KilledTasksSummary { }
 
 export interface PeakExecutorMetrics {
   JVMHeapMemory: number;
@@ -85,4 +86,59 @@ export interface PeakExecutorMetrics {
   MajorGCCount: number;
   MajorGCTime: number;
   TotalGCTime: number;
+}
+
+export interface TaskMetricsDistributions {
+  quantiles: number[]
+  duration: number[]
+  executorDeserializeTime: number[]
+  executorDeserializeCpuTime: number[]
+  executorRunTime: number[]
+  executorCpuTime: number[]
+  resultSize: number[]
+  jvmGcTime: number[]
+  resultSerializationTime: number[]
+  gettingResultTime: number[]
+  schedulerDelay: number[]
+  peakExecutionMemory: number[]
+  memoryBytesSpilled: number[]
+  diskBytesSpilled: number[]
+  inputMetrics: InputMetrics
+  outputMetrics: OutputMetrics
+  shuffleReadMetrics: ShuffleReadMetrics
+}
+
+export interface InputMetrics {
+  bytesRead: number[]
+  recordsRead: number[]
+}
+
+export interface OutputMetrics {
+  bytesWritten: number[]
+  recordsWritten: number[]
+}
+
+export interface ShuffleReadMetrics {
+  readBytes: number[]
+  readRecords: number[]
+  remoteBlocksFetched: number[]
+  localBlocksFetched: number[]
+  fetchWaitTime: number[]
+  remoteBytesRead: number[]
+  remoteBytesReadToDisk: number[]
+  totalBlocksFetched: number[]
+  remoteReqsDuration: number[]
+  shufflePushReadMetricsDist: ShufflePushReadMetricsDist
+}
+
+export interface ShufflePushReadMetricsDist {
+  corruptMergedBlockChunks: number[]
+  mergedFetchFallbackCount: number[]
+  remoteMergedBlocksFetched: number[]
+  localMergedBlocksFetched: number[]
+  remoteMergedChunksFetched: number[]
+  localMergedChunksFetched: number[]
+  remoteMergedBytesRead: number[]
+  localMergedBytesRead: number[]
+  remoteMergedReqsDuration: number[]
 }
