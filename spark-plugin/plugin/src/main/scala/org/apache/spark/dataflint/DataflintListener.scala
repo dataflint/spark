@@ -56,9 +56,9 @@ class DataflintListener(context: SparkContext) extends SparkListener with Loggin
       val durationMs = endTimeMillis - startTimeMillis
       val urlPrefix = mode match {
         case "local" => "http://localhost:8000/"
-        case "staging" => "https://staging.app.dataflint.io/"
-        case "dev" => "https://dev.app.dataflint.io/"
-        case _ => "https://app.dataflint.io/"
+        case "staging" => "https://sparkui.staging.app.dataflint.io/"
+        case "dev" => "https://sparkui.dev.app.dataflint.io/"
+        case _ => "https://sparkui.dataflint.io/"
       }
       logInfo(s"Exported run to dataflint SaaS successfully! exporting took ${durationMs}ms, link to job: ${urlPrefix}/dataflint-spark-ui/history/${accessKey}-${runId}/dataflint/")
     } catch {
