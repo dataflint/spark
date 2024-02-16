@@ -1,18 +1,25 @@
 package org.apache.spark.dataflint
 
 import org.apache.spark.SparkContext
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.ui.SQLAppStatusListener
 import org.apache.spark.ui.SparkUI
 
-object DataflintSparkUILoader {
+class DataflintSparkUIInstaller extends Logging {
   def install(context: SparkContext): String = {
     val sqlListener = () => context.listenerBus.listeners.toArray().find(_.isInstanceOf[SQLAppStatusListener]).asInstanceOf[Option[SQLAppStatusListener]]
-    // this code that adds a listener that export the spark run is only activated if we are in SaaS mode (meaning spark.dataflint.token has value)
-    // so in the default open-source mode nobody is going to export your spark data anywhere :)
     val tokenConf = context.conf.getOption("spark.dataflint.token")
-    if(tokenConf.isDefined && tokenConf.get.contains("-")) {
-      context.conf.set("spark.dataflint.runId", java.util.UUID.randomUUID.toString.replaceAll("-", ""))
-      context.listenerBus.addToQueue(new DataflintListener(context), "dataflint")
+    val dataflintEnabled = context.conf.getBoolean("spark.dataflint.enabled", true)
+    if(tokenConf.isDefined) {
+      if (!tokenConf.get.contains("-")) {
+        logWarning("Dataflint token is not valid, please check your configuration")
+      } else if (!dataflintEnabled) {
+        logWarning("Dataflint is explicitly disabled although token is defined, if you which to re-enable it please set spark.dataflint.enabled to true")
+      }
+      else {
+        context.conf.set("spark.dataflint.runId", java.util.UUID.randomUUID.toString.replaceAll("-", ""))
+        context.listenerBus.addToQueue(new DataflintListener(context), "dataflint")
+      }
     }
     loadUI(context.ui.get, sqlListener)
   }
@@ -26,5 +33,11 @@ object DataflintSparkUILoader {
     tab.attachPage(new DataflintApplicationInfoPage(ui))
     ui.attachTab(tab)
     ui.webUrl
+  }
+
+}
+object DataflintSparkUILoader {
+  def install(context: SparkContext): String = {
+    new DataflintSparkUIInstaller().install(context)
   }
 }
