@@ -40,4 +40,8 @@ object DataflintSparkUILoader {
   def install(context: SparkContext): String = {
     new DataflintSparkUIInstaller().install(context)
   }
+
+  def loadUI(ui: SparkUI): String = {
+    new DataflintSparkUIInstaller().loadUI(ui)
+  }
 }
