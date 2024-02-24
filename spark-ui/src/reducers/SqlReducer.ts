@@ -9,23 +9,23 @@ import {
   ParsedNodePlan,
   SparkSQLStore,
 } from "../interfaces/AppStore";
+import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
-import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import {
-  timeStringToMilliseconds,
   timeStrToEpocTime,
+  timeStringToMilliseconds,
 } from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
 import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
-import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import { parseJoin } from "./PlanParsers/JoinParser";
 import { parseProject } from "./PlanParsers/ProjectParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
+import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import {
   calcNodeMetrics,
   calcNodeType,
@@ -412,7 +412,9 @@ export function updateSqlNodeMetrics(
     codegenNodes: codegenNodes,
     metricUpdateId: uuidv4(),
   };
-  return { ...currentStore, sqls: [...notEffectedSqls, updatedSql] };
+  const notEffectedSqlsBefore = currentStore.sqls.filter((sql) => sql.id < sqlId);
+  const notEffectedSqlsAfter = currentStore.sqls.filter((sql) => sql.id > sqlId);
+  return { ...currentStore, sqls: [...notEffectedSqlsBefore, updatedSql, ...notEffectedSqlsAfter] };
 }
 function calcCodegenDuration(metrics: EnrichedSqlMetric[]): number | undefined {
   return getMetricDuration("duration", metrics);

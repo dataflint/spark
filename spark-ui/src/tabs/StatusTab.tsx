@@ -1,8 +1,8 @@
 import * as React from "react";
+import { useAppSelector } from "../Hooks";
 import NoQuery from "../components/NoQuery/NoQuery";
 import SqlContainer from "../components/SqlContainer";
 import StatusBar from "../components/StatusBar";
-import { useAppSelector } from "../Hooks";
 import { MixpanelService } from "../services/MixpanelService";
 
 export default function StatusTab() {
@@ -41,7 +41,7 @@ export default function StatusTab() {
               margin: "2px 0 5px 0",
             }}
           >
-            {sql.sqls[sql.sqls.length - 1].description}
+            {sql.sqls.slice(-1)[0].description}
           </div>
           <SqlContainer />
         </div>

@@ -244,7 +244,7 @@ class SparkAPI {
           .filter((sql) => sql.status === SqlStatus.Running)
           .map((sql) => sql.id);
         if (runningSqlIds.length !== 0) {
-          const sqlId = runningSqlIds[0];
+          const sqlId = runningSqlIds.slice(-1)[0];
           const nodesMetrics: NodesMetrics = await this.queryData(
             this.getSqlMetricsPath(sqlId),
           );
