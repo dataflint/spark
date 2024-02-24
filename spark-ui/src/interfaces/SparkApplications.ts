@@ -7,6 +7,7 @@ export interface SparkApplication {
 }
 
 export interface Attempt {
+  attemptId?: string;
   startTime: string;
   endTime: string;
   lastUpdated: string;

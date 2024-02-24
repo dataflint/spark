@@ -33,6 +33,7 @@ class SparkAPI {
   initialized: boolean = false;
   isConnected: boolean = false;
   appId: string = "";
+  attemptId: string | undefined = undefined;
   apiPath: string;
   applicationsPath: string;
   dispatch: AppDispatch;
@@ -41,7 +42,7 @@ class SparkAPI {
   historyServerMode: boolean = false;
 
   private get applicationPath(): string {
-    return `${this.apiPath}/applications/${this.appId}`;
+    return `${this.apiPath}/applications/${this.appId}` + (this.attemptId !== undefined ? `/${this.attemptId}` : "");
   }
 
   private get environmentPath(): string {
@@ -167,7 +168,7 @@ class SparkAPI {
         this.appId = isDataFlintSaaSUI() && appInfo.runId ? appInfo.runId : currentApplication.id;
         const currentAttempt =
           currentApplication.attempts[currentApplication.attempts.length - 1];
-
+        this.attemptId = isDataFlintSaaSUI() ? undefined : (currentAttempt?.attemptId !== undefined ? currentAttempt.attemptId : undefined);
         const sparkConfiguration: SparkConfiguration = await this.queryData(
           this.environmentPath,
         );
