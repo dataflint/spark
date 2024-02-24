@@ -95,7 +95,7 @@ export function calculateSparkExecutorsStatus(
     numOfExecutors === 0
       ? driver.duration * driver.maxTasks
       : executors
-        .map((executor) => executor.duration * executor.maxTasks)
+        .map((executor) => executor.potentialTaskTimeMs)
         .reduce((a, b) => a + b, 0);
   const totalCoreHour = sparkExecutors
     .map((executor) => executor.totalCores * msToHours(executor.duration))
@@ -118,7 +118,7 @@ export function calculateSparkExecutorsStatus(
 
   const wastedCoresRate =
     totalPotentialTaskTimeMs !== 0 && totalTaskTimeMs !== undefined
-      ? Math.min(100, (totalTaskTimeMs / totalPotentialTaskTimeMs) * 100)
+      ? Math.min(100, (1 - (totalTaskTimeMs / totalPotentialTaskTimeMs)) * 100)
       : 0;
   const maxExecutorMemoryPercentage =
     executors.length > 0

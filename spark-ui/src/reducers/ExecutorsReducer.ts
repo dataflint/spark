@@ -27,12 +27,20 @@ export function calculateSparkExecutorsStore(
       executorMemoryBytes !== 0
         ? (memoryUsageBytes / executorMemoryBytes) * 100
         : 0;
+    const duration = endTimeEpoc - addTimeEpoc;
+    const totalTaskDuration = executor.totalDuration;
+    const potentialTaskTimeMs = duration * executor.maxTasks;
+    const wastedCoresRate = potentialTaskTimeMs !== 0 ? (Math.min(
+      100,
+      (1 - (totalTaskDuration / potentialTaskTimeMs)) * 100)) : 0;
     return {
       id: executor.id,
       isActive: executor.isActive,
       isDriver: isDriver,
-      duration: endTimeEpoc - addTimeEpoc,
-      totalTaskDuration: executor.totalDuration,
+      duration: duration,
+      totalTaskDuration: totalTaskDuration,
+      potentialTaskTimeMs: potentialTaskTimeMs,
+      wastedCoresRate: wastedCoresRate,
       addTimeEpoc: addTimeEpoc,
       endTimeEpoc: endTimeEpoc,
       totalCores: executor.totalCores,

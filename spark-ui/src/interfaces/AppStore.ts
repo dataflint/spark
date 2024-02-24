@@ -360,6 +360,8 @@ export interface SparkExecutorStore {
   isDriver: boolean;
   duration: number;
   totalTaskDuration: number;
+  potentialTaskTimeMs: number;
+  wastedCoresRate: number;
   addTimeEpoc: number;
   endTimeEpoc: number;
   totalCores: number;
