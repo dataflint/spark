@@ -1,6 +1,6 @@
 import xerial.sbt.Sonatype._
 
-lazy val versionNum: String = "0.1.4"
+lazy val versionNum: String = "0.1.5"
 lazy val scala212 = "2.12.18"
 lazy val scala213 = "2.13.12"
 lazy val supportedScalaVersions = List(scala212, scala213)
@@ -89,7 +89,8 @@ lazy val example_3_5_0 = (project in file("example_3_5_0"))
     libraryDependencies += "org.apache.spark" %% "spark-streaming" % "3.5.0",
     libraryDependencies += "org.apache.spark" %% "spark-sql-kafka-0-10" % "3.5.0",
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
-    libraryDependencies += "io.delta" %% "delta-spark" % "3.0.0",
+    libraryDependencies += "io.delta" %% "delta-spark" % "3.1.0",
+    libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.4.3",
     publish / skip := true
   ).dependsOn(plugin)
 
