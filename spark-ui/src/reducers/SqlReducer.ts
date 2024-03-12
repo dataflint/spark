@@ -210,7 +210,7 @@ function calculateSql(
 
   if (onlyGraphNodes.filter((node) => node.type === "output").length === 0) {
     const aqeFilteredNodes = onlyGraphNodes.filter(
-      (node) => node.nodeName !== "AdaptiveSparkPlan",
+      (node) => node.nodeName !== "AdaptiveSparkPlan" && node.nodeName !== "ResultQueryStage",
     );
     const lastNode = aqeFilteredNodes[aqeFilteredNodes.length - 1];
     lastNode.type = "output";
