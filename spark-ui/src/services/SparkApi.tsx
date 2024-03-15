@@ -21,7 +21,7 @@ import {
 } from "../reducers/SparkSlice";
 import { AppDispatch } from "../Store";
 import { IS_HISTORY_SERVER_MODE } from "../utils/UrlConsts";
-import { isDataFlintSaaSUI } from "../utils/UrlUtils";
+import { isDataFlintSaaSUI, isYarnMode } from "../utils/UrlUtils";
 import { MixpanelService } from "./MixpanelService";
 
 const POLL_TIME = 1000;
@@ -169,6 +169,7 @@ class SparkAPI {
         const currentAttempt =
           currentApplication.attempts[currentApplication.attempts.length - 1];
         this.attemptId = isDataFlintSaaSUI() ? undefined : (currentAttempt?.attemptId !== undefined ? currentAttempt.attemptId : undefined);
+        this.attemptId = isYarnMode() ? undefined : this.attemptId;
         const sparkConfiguration: SparkConfiguration = await this.queryData(
           this.environmentPath,
         );

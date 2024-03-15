@@ -10,7 +10,10 @@ export const isProxyMode = (): boolean =>
 export const isDataFlintSaaSUI = (): boolean =>
   window.location.href.includes("dataflint-spark-ui");
 
-export function hrefWithoutEndSlash(): string {
+export const isYarnMode = (): boolean =>
+  window.location.pathname.includes("/proxy/application_");
+
+  export function hrefWithoutEndSlash(): string {
   const href = window.location.href;
   let fixedUrl = href.split("/#/")[0];
 

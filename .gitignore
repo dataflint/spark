@@ -1,2 +1,8 @@
 .idea
 .DS_Store
+**/target
+**/.bloop
+**/.metals
+**/project
+**/.vscode
+**/.bsp
