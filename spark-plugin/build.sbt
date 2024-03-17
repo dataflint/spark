@@ -91,6 +91,7 @@ lazy val example_3_5_0 = (project in file("example_3_5_0"))
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.1.0",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.4.3",
+    libraryDependencies += "org.scala-lang.modules" %% "scala-collection-compat" % "2.11.0",
     publish / skip := true
   ).dependsOn(plugin)
 

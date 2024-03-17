@@ -18,21 +18,28 @@ object DeltaLakeExample extends App {
     .getOrCreate()
 
   import spark.implicits._
-
+  spark.sparkContext.setJobDescription("Create Table")
   spark.sql("CREATE TABLE IF NOT EXISTS delta.`/tmp/delta-table` USING DELTA AS SELECT col1 as id FROM VALUES 0,1,2,3,4;")
 
+  spark.sparkContext.setJobDescription("Insert data to table")
   spark.sql("INSERT OVERWRITE delta.`/tmp/delta-table` SELECT col1 as id FROM VALUES 5,6,7,8,9;")
 
+  spark.sparkContext.setJobDescription("Select data from table")
   spark.sql("SELECT * FROM delta.`/tmp/delta-table`;").show()
 
+  spark.sparkContext.setJobDescription("Insert overwrite data to table")
   spark.sql("INSERT OVERWRITE delta.`/tmp/delta-table` SELECT col1 as id FROM VALUES 5,6,7,8,9;")
 
+  spark.sparkContext.setJobDescription("Update data from table")
   spark.sql("UPDATE delta.`/tmp/delta-table` SET id = id + 100 WHERE id % 2 == 0;")
 
+  spark.sparkContext.setJobDescription("Delete data from table")
   spark.sql("DELETE FROM delta.`/tmp/delta-table` WHERE id % 2 == 0;")
 
+  spark.sparkContext.setJobDescription("Create view from table")
   spark.sql("CREATE TEMP VIEW newData AS SELECT col1 AS id FROM VALUES 1,3,5,7,9,11,13,15,17,19;")
 
+  spark.sparkContext.setJobDescription("Merge data to table")
   spark.sql(
     """MERGE INTO delta.`/tmp/delta-table` AS oldData
       |USING newData
@@ -43,8 +50,10 @@ object DeltaLakeExample extends App {
       |  THEN INSERT (id) VALUES (newData.id);
       |""".stripMargin)
 
+  spark.sparkContext.setJobDescription("Select data from table")
   spark.sql("SELECT * FROM delta.`/tmp/delta-table`;").show()
 
+  spark.sparkContext.setJobDescription("Select data from table by version")
   spark.sql("SELECT * FROM delta.`/tmp/delta-table` VERSION AS OF 0;").show()
 
   scala.io.StdIn.readLine()
