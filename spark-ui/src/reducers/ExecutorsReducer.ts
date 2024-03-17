@@ -4,7 +4,7 @@ import {
   SparkExecutorsStore,
 } from "../interfaces/AppStore";
 import { SparkExecutors } from "../interfaces/SparkExecutors";
-import { timeStrToEpocTime } from "../utils/FormatUtils";
+import { calculatePercentage, timeStrToEpocTime } from "../utils/FormatUtils";
 import { IS_HISTORY_SERVER_MODE } from "../utils/UrlConsts";
 
 export function calculateSparkExecutorsStore(
@@ -23,16 +23,11 @@ export function calculateSparkExecutorsStore(
     const memoryUsageBytes =
       (executor.peakMemoryMetrics?.JVMHeapMemory ?? 0) +
       (executor.peakMemoryMetrics?.JVMOffHeapMemory ?? 0);
-    const memoryUsagePercentage =
-      executorMemoryBytes !== 0
-        ? (memoryUsageBytes / executorMemoryBytes) * 100
-        : 0;
+    const memoryUsagePercentage = calculatePercentage(memoryUsageBytes, executorMemoryBytes)
     const duration = endTimeEpoc - addTimeEpoc;
     const totalTaskDuration = executor.totalDuration;
     const potentialTaskTimeMs = duration * executor.maxTasks;
-    const wastedCoresRate = potentialTaskTimeMs !== 0 ? (Math.min(
-      100,
-      (1 - (totalTaskDuration / potentialTaskTimeMs)) * 100)) : 0;
+    const wastedCoresRate = 100 - calculatePercentage(totalTaskDuration, potentialTaskTimeMs)
     return {
       id: executor.id,
       isActive: executor.isActive,

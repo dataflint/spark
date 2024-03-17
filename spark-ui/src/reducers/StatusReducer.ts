@@ -8,7 +8,7 @@ import {
   StatusStore,
 } from "../interfaces/AppStore";
 import { SparkStages } from "../interfaces/SparkStages";
-import { humanFileSize, msToHours } from "../utils/FormatUtils";
+import { calculatePercentage, humanFileSize, msToHours } from "../utils/FormatUtils";
 
 export function calculateStageStatus(
   existingStore: StagesSummeryStore | undefined,
@@ -52,8 +52,7 @@ export function calculateStageStatus(
     .map((stage) => stage.numFailedTasks)
     .reduce((a, b) => a + b, 0);
 
-  const taskErrorRate =
-    totalTasks !== 0 ? (totalFailedTasks / totalTasks) * 100 : 0;
+  const taskErrorRate = calculatePercentage(totalFailedTasks, totalTasks)
   const status = totalActiveTasks == 0 ? "idle" : "working";
 
   const state: StagesSummeryStore = {
@@ -116,10 +115,7 @@ export function calculateSparkExecutorsStatus(
   const totalMemoryGibHour =
     totalExecutorMemoryGibHour + totalDriverMemoryGibHour;
 
-  const wastedCoresRate =
-    totalPotentialTaskTimeMs !== 0 && totalTaskTimeMs !== undefined
-      ? Math.min(100, (1 - (totalTaskTimeMs / totalPotentialTaskTimeMs)) * 100)
-      : 0;
+  const wastedCoresRate = 100 - calculatePercentage(totalTaskTimeMs, totalPotentialTaskTimeMs)
   const maxExecutorMemoryPercentage =
     executors.length > 0
       ? Math.max(...executors.map((executor) => executor.memoryUsagePercentage))

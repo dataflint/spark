@@ -84,3 +84,11 @@ export function timeStringToMilliseconds(
       throw new Error(`Unsupported time unit: ${unit}`);
   }
 }
+
+export function calculatePercentage(value: number, total: number): number {
+  if (total === undefined || value === undefined || total === 0) {
+    return 0;
+  }
+  const percentage = (value / total) * 100;
+  return Math.min(Math.max(percentage, 0), 100);
+}

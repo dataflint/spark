@@ -16,7 +16,7 @@ import { SparkJobs } from "../interfaces/SparkJobs";
 import { SqlStatus } from "../interfaces/SparkSQLs";
 import { SparkStage, SparkStages } from "../interfaces/SparkStages";
 import { StagesRdd } from "../interfaces/StagesRdd";
-import { msToHours } from "../utils/FormatUtils";
+import { calculatePercentage, msToHours } from "../utils/FormatUtils";
 import { calculateSqlStage } from "./SQLNodeStageReducer";
 
 const moment = extendMoment(Moment);
@@ -240,13 +240,7 @@ export function calculateSqlQueryLevelMetricsReducer(
             executors.filter((executor) => !executor.isDriver),
           );
       const totalTasksTime = sql.stageMetrics?.executorRunTime as number;
-      const wastedCoresRate =
-        resourceUsageExecutorsOnly.coreUsageMs !== 0
-          ? Math.min(
-            100,
-            (1 - (totalTasksTime / resourceUsageExecutorsOnly.coreUsageMs)) * 100,
-          )
-          : 0;
+      const wastedCoresRate = calculatePercentage(totalTasksTime, resourceUsageExecutorsOnly.coreUsageMs)
       const resourceUsageStore: SparkSQLResourceUsageStore = {
         coreHourUsage: resourceUsageWithDriver.coreHour,
         memoryGbHourUsage: resourceUsageWithDriver.memoryHour,
@@ -261,10 +255,7 @@ export function calculateSqlQueryLevelMetricsReducer(
                 statusStore.executors.totalDCU) *
               100,
             ),
-        durationPercentage:
-          statusStore.duration === undefined
-            ? 0
-            : Math.min(100, (sql.duration / statusStore.duration) * 100),
+        durationPercentage: calculatePercentage(sql.duration, statusStore.duration)
       };
       return { ...sql, resourceMetrics: resourceUsageStore };
     })
