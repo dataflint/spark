@@ -52,6 +52,11 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
     Utils.redact(conf, store.environmentInfo().sparkProperties).sortBy(_._1).toMap
   }
 
+  def calculatePercentage(base: Double, divider: Double): Double = {
+    val percentage = if(divider != 0) (base / divider) * 100 else 0.0
+    Math.max(Math.min(percentage, 100), 0)
+  }
+
   def calculateMetrics(): SparkMetadataMetrics = {
     val allExecutors = store.executorList(false)
     val onlyExecutors = store.executorList(false).filter(_.id != "driver")
@@ -81,11 +86,11 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
 
     val totalTasks = stages.map(stage => stage.numTasks).sum
     val failedTasks = stages.map(stage => stage.numFailedTasks).sum
-    val taskErrorRate = if(totalTasks != 0) (failedTasks.toDouble / totalTasks.toDouble) * 100 else 0.0
+    val taskErrorRate = calculatePercentage(failedTasks.toDouble, totalTasks.toDouble)
 
     val totalTasksSlotsMs = allExecutors.map(exec => (exec.totalDuration.toDouble) * exec.totalTasks).sum
     val totalTaskTime = stages.map(stage => stage.executorRunTime).sum
-    val CoresWastedRatio = if(totalTasksSlotsMs != 0) (1 - (totalTaskTime.toDouble / totalTasksSlotsMs.toDouble)) * 100 else 0.0
+    val CoresWastedRatio = calculatePercentage(totalTaskTime, totalTasksSlotsMs)
 
     val totalShuffleWriteBytes = onlyExecutors.map(exec => exec.totalShuffleWrite).sum
     val totalShuffleReadBytes = onlyExecutors.map(exec => exec.totalShuffleRead).sum
