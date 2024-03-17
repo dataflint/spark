@@ -47,8 +47,5 @@ export function getHistoryServerCurrentAppId(): string {
 }
 
 export const getBaseAppUrl = (appPath: string): string => {
-  return appPath.substring(
-    0,
-    hrefWithoutEndSlash().lastIndexOf("/dataflint"),
-  );
+  return appPath.substring(0, hrefWithoutEndSlash().lastIndexOf("/dataflint"));
 };

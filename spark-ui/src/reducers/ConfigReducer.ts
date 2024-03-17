@@ -41,8 +41,9 @@ export function extractRunMetadata(
   appId: string,
   attempt: Attempt,
 ): RunMetadataStore {
-  const endTime =
-    attempt.endTime.startsWith('1969-12-31') ? undefined : new Date(attempt.endTime.replaceAll("GMT", "Z")).getTime();
+  const endTime = attempt.endTime.startsWith("1969-12-31")
+    ? undefined
+    : new Date(attempt.endTime.replaceAll("GMT", "Z")).getTime();
 
   return {
     appId: appId,
@@ -344,7 +345,7 @@ export function extractConfig(
       key: "spark.dynamicAllocation.sustainedSchedulerBacklogTimeout",
       value:
         sparkPropertiesObj[
-        "spark.dynamicAllocation.sustainedSchedulerBacklogTimeout"
+          "spark.dynamicAllocation.sustainedSchedulerBacklogTimeout"
         ],
       default: "infinity",
       documentation:

@@ -1,8 +1,8 @@
 import * as React from "react";
-import { useAppSelector } from "../Hooks";
 import NoQuery from "../components/NoQuery/NoQuery";
 import SqlContainer from "../components/SqlContainer";
 import StatusBar from "../components/StatusBar";
+import { useAppSelector } from "../Hooks";
 import { MixpanelService } from "../services/MixpanelService";
 
 export default function StatusTab() {

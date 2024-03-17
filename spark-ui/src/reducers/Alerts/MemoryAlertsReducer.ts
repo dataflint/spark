@@ -35,9 +35,12 @@ export function reduceMemoryAlerts(
         message: `Max Executor Memory usage is ${maxExecutorMemoryPercentage.toFixed(
           2,
         )}% which is too high, and can cause spills and OOMs`,
-        suggestion:
-          `
-    1. Increase executor memory provisioning by changing "spark.executor.memory" to that value ${suggestedMemory} (the current usage is ${maxExecutorMemoryPercentage.toFixed(2)} but set to higher as it needs some buffer) from current value "${config.executorMemoryBytesSparkFormatString}"`,
+        suggestion: `
+    1. Increase executor memory provisioning by changing "spark.executor.memory" to that value ${suggestedMemory} (the current usage is ${maxExecutorMemoryPercentage.toFixed(
+      2,
+    )} but set to higher as it needs some buffer) from current value "${
+      config.executorMemoryBytesSparkFormatString
+    }"`,
         type: "error",
         source: {
           type: "status",
@@ -60,7 +63,11 @@ export function reduceMemoryAlerts(
         )}%, which means you can provision less memory for each executor and save $$$`,
         location: "In: Summery Page -> Memory Utilization",
         suggestion: `
-    1. Decrease each executor memory provisioning by changing "spark.executor.memory" to ${suggestedMemory} (the current usage is ${maxExecutorMemoryPercentage.toFixed(2)} but set to higher as it needs some buffer) from current "${config.executorMemoryBytesSparkFormatString}`,
+    1. Decrease each executor memory provisioning by changing "spark.executor.memory" to ${suggestedMemory} (the current usage is ${maxExecutorMemoryPercentage.toFixed(
+      2,
+    )} but set to higher as it needs some buffer) from current "${
+      config.executorMemoryBytesSparkFormatString
+    }`,
         type: "warning",
         source: {
           type: "status",

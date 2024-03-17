@@ -3,7 +3,9 @@ import { MixpanelEvents } from "../interfaces/Mixpanel";
 
 const KEEP_ALIVE_INTERVAL_MS = 60 * 1000;
 
-const baseProperties = { dataflintVersion: process.env.REACT_APP_VERSION ?? "unknown-version" };
+const baseProperties = {
+  dataflintVersion: process.env.REACT_APP_VERSION ?? "unknown-version",
+};
 
 export class MixpanelService {
   static mixpanelTelemetryConfigDisabled = false;

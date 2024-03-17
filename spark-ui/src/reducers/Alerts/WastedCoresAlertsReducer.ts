@@ -11,11 +11,12 @@ export function reduceWastedCoresAlerts(
     statusStore.executors !== undefined &&
     statusStore.executors.wastedCoresRate > WASTED_CORES_RATIO_THRESHOLD
   ) {
-    const wastedCores = statusStore.executors.wastedCoresRate
+    const wastedCores = statusStore.executors.wastedCoresRate;
 
-    let suggestionMessage = "decrease amount of cores or executors"
+    let suggestionMessage = "decrease amount of cores or executors";
     if (config.resourceControlType === "databricks") {
-      suggestionMessage = "Reduce your cluster size or machine type via databricks cluster UI";
+      suggestionMessage =
+        "Reduce your cluster size or machine type via databricks cluster UI";
     } else if (config.resourceControlType === "static") {
       suggestionMessage = `1. decrease amount of cores per executor by lowering spark.executor.cores
       2. decrease amount of executors by lowering spark.executor.instances OR if using dynamic allocation by tuning  .`;

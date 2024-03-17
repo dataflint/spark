@@ -9,23 +9,23 @@ import {
   ParsedNodePlan,
   SparkSQLStore,
 } from "../interfaces/AppStore";
-import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
+import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import {
-  timeStrToEpocTime,
   timeStringToMilliseconds,
+  timeStrToEpocTime,
 } from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
 import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
+import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import { parseJoin } from "./PlanParsers/JoinParser";
 import { parseProject } from "./PlanParsers/ProjectParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
-import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import {
   calcNodeMetrics,
   calcNodeType,
@@ -210,7 +210,9 @@ function calculateSql(
 
   if (onlyGraphNodes.filter((node) => node.type === "output").length === 0) {
     const aqeFilteredNodes = onlyGraphNodes.filter(
-      (node) => node.nodeName !== "AdaptiveSparkPlan" && node.nodeName !== "ResultQueryStage",
+      (node) =>
+        node.nodeName !== "AdaptiveSparkPlan" &&
+        node.nodeName !== "ResultQueryStage",
     );
     const lastNode = aqeFilteredNodes[aqeFilteredNodes.length - 1];
     lastNode.type = "output";
@@ -412,9 +414,16 @@ export function updateSqlNodeMetrics(
     codegenNodes: codegenNodes,
     metricUpdateId: uuidv4(),
   };
-  const notEffectedSqlsBefore = currentStore.sqls.filter((sql) => sql.id < sqlId);
-  const notEffectedSqlsAfter = currentStore.sqls.filter((sql) => sql.id > sqlId);
-  return { ...currentStore, sqls: [...notEffectedSqlsBefore, updatedSql, ...notEffectedSqlsAfter] };
+  const notEffectedSqlsBefore = currentStore.sqls.filter(
+    (sql) => sql.id < sqlId,
+  );
+  const notEffectedSqlsAfter = currentStore.sqls.filter(
+    (sql) => sql.id > sqlId,
+  );
+  return {
+    ...currentStore,
+    sqls: [...notEffectedSqlsBefore, updatedSql, ...notEffectedSqlsAfter],
+  };
 }
 function calcCodegenDuration(metrics: EnrichedSqlMetric[]): number | undefined {
   return getMetricDuration("duration", metrics);

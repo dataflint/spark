@@ -21,8 +21,8 @@ import { calculateSqlStage } from "./SQLNodeStageReducer";
 
 const moment = extendMoment(Moment);
 
-const MAX_TASK_DURATION_THRESHOLD_MS = 5000
-const PARTITION_SKEW_RATIO = 10
+const MAX_TASK_DURATION_THRESHOLD_MS = 5000;
+const PARTITION_SKEW_RATIO = 10;
 
 interface ResourceUsage {
   coreUsageMs: number;
@@ -41,7 +41,7 @@ export function calculateStagesStore(
   const stagesStore: SparkStagesStore = stages
     .filter((stage) => stage.status !== "SKIPPED")
     .map((stage) => {
-      const partitionSkew = calculatePartitionSkew(stage)
+      const partitionSkew = calculatePartitionSkew(stage);
 
       return {
         stageId: stage.stageId,
@@ -50,9 +50,18 @@ export function calculateStagesStore(
         numTasks: stage.numTasks,
         failureReason: stage.failureReason,
         stagesRdd: stagesRdd[stage.stageId],
-        hasPartitionSkew: partitionSkew === undefined ? undefined : partitionSkew.hasPartitionSkew,
-        mediumTaskDuration: partitionSkew === undefined ? undefined : partitionSkew.medianTaskDuration,
-        maxTaskDuration: partitionSkew === undefined ? undefined : partitionSkew.maxTaskDuration,
+        hasPartitionSkew:
+          partitionSkew === undefined
+            ? undefined
+            : partitionSkew.hasPartitionSkew,
+        mediumTaskDuration:
+          partitionSkew === undefined
+            ? undefined
+            : partitionSkew.medianTaskDuration,
+        maxTaskDuration:
+          partitionSkew === undefined
+            ? undefined
+            : partitionSkew.maxTaskDuration,
         metrics: {
           executorRunTime: stage.executorRunTime,
           diskBytesSpilled: stage.diskBytesSpilled,
@@ -61,7 +70,7 @@ export function calculateStagesStore(
           shuffleReadBytes: stage.shuffleReadBytes,
           shuffleWriteBytes: stage.shuffleWriteBytes,
           totalTasks: stage.numTasks,
-        }
+        },
       };
     });
   return stagesStore;
@@ -69,17 +78,20 @@ export function calculateStagesStore(
 
 export function calculatePartitionSkew(stage: SparkStage) {
   if (stage.taskMetricsDistributions === undefined) {
-    return undefined
+    return undefined;
   }
 
-  const medianTaskDuration = stage.taskMetricsDistributions.executorRunTime[2]
-  const maxTaskDuration = stage.taskMetricsDistributions.executorRunTime[4]
+  const medianTaskDuration = stage.taskMetricsDistributions.executorRunTime[2];
+  const maxTaskDuration = stage.taskMetricsDistributions.executorRunTime[4];
 
-  if (maxTaskDuration > MAX_TASK_DURATION_THRESHOLD_MS && medianTaskDuration !== 0 && maxTaskDuration / medianTaskDuration > PARTITION_SKEW_RATIO) {
-    return { hasPartitionSkew: true, medianTaskDuration, maxTaskDuration }
+  if (
+    maxTaskDuration > MAX_TASK_DURATION_THRESHOLD_MS &&
+    medianTaskDuration !== 0 &&
+    maxTaskDuration / medianTaskDuration > PARTITION_SKEW_RATIO
+  ) {
+    return { hasPartitionSkew: true, medianTaskDuration, maxTaskDuration };
   }
-  return { hasPartitionSkew: false }
-
+  return { hasPartitionSkew: false };
 }
 
 function sumMetricStores(metrics: SparkMetricsStore[]): SparkMetricsStore {
@@ -235,12 +247,15 @@ export function calculateSqlQueryLevelMetricsReducer(
         executors.length === 1
           ? resourceUsageWithDriver
           : calculateSqlQueryResourceUsage(
-            configStore,
-            sql,
-            executors.filter((executor) => !executor.isDriver),
-          );
+              configStore,
+              sql,
+              executors.filter((executor) => !executor.isDriver),
+            );
       const totalTasksTime = sql.stageMetrics?.executorRunTime as number;
-      const wastedCoresRate = calculatePercentage(totalTasksTime, resourceUsageExecutorsOnly.coreUsageMs)
+      const wastedCoresRate = calculatePercentage(
+        totalTasksTime,
+        resourceUsageExecutorsOnly.coreUsageMs,
+      );
       const resourceUsageStore: SparkSQLResourceUsageStore = {
         coreHourUsage: resourceUsageWithDriver.coreHour,
         memoryGbHourUsage: resourceUsageWithDriver.memoryHour,
@@ -250,12 +265,15 @@ export function calculateSqlQueryLevelMetricsReducer(
           statusStore.executors?.totalDCU === undefined
             ? 0
             : Math.min(
-              100,
-              (resourceUsageWithDriver.totalDCU /
-                statusStore.executors.totalDCU) *
-              100,
-            ),
-        durationPercentage: calculatePercentage(sql.duration, statusStore.duration)
+                100,
+                (resourceUsageWithDriver.totalDCU /
+                  statusStore.executors.totalDCU) *
+                  100,
+              ),
+        durationPercentage: calculatePercentage(
+          sql.duration,
+          statusStore.duration,
+        ),
       };
       return { ...sql, resourceMetrics: resourceUsageStore };
     })

@@ -8,7 +8,11 @@ import {
   StatusStore,
 } from "../interfaces/AppStore";
 import { SparkStages } from "../interfaces/SparkStages";
-import { calculatePercentage, humanFileSize, msToHours } from "../utils/FormatUtils";
+import {
+  calculatePercentage,
+  humanFileSize,
+  msToHours,
+} from "../utils/FormatUtils";
 
 export function calculateStageStatus(
   existingStore: StagesSummeryStore | undefined,
@@ -52,7 +56,7 @@ export function calculateStageStatus(
     .map((stage) => stage.numFailedTasks)
     .reduce((a, b) => a + b, 0);
 
-  const taskErrorRate = calculatePercentage(totalFailedTasks, totalTasks)
+  const taskErrorRate = calculatePercentage(totalFailedTasks, totalTasks);
   const status = totalActiveTasks == 0 ? "idle" : "working";
 
   const state: StagesSummeryStore = {
@@ -88,14 +92,14 @@ export function calculateSparkExecutorsStatus(
     numOfExecutors === 0
       ? driver.totalTaskDuration
       : executors
-        .map((executor) => executor.totalTaskDuration)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.totalTaskDuration)
+          .reduce((a, b) => a + b, 0);
   const totalPotentialTaskTimeMs =
     numOfExecutors === 0
       ? driver.duration * driver.maxTasks
       : executors
-        .map((executor) => executor.potentialTaskTimeMs)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.potentialTaskTimeMs)
+          .reduce((a, b) => a + b, 0);
   const totalCoreHour = sparkExecutors
     .map((executor) => executor.totalCores * msToHours(executor.duration))
     .reduce((a, b) => a + b, 0);
@@ -115,7 +119,8 @@ export function calculateSparkExecutorsStatus(
   const totalMemoryGibHour =
     totalExecutorMemoryGibHour + totalDriverMemoryGibHour;
 
-  const wastedCoresRate = 100 - calculatePercentage(totalTaskTimeMs, totalPotentialTaskTimeMs)
+  const wastedCoresRate =
+    100 - calculatePercentage(totalTaskTimeMs, totalPotentialTaskTimeMs);
   const maxExecutorMemoryPercentage =
     executors.length > 0
       ? Math.max(...executors.map((executor) => executor.memoryUsagePercentage))
@@ -130,22 +135,22 @@ export function calculateSparkExecutorsStatus(
     numOfExecutors === 0
       ? driver.totalInputBytes
       : executors
-        .map((executor) => executor.totalInputBytes)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.totalInputBytes)
+          .reduce((a, b) => a + b, 0);
 
   const totalShuffleRead =
     numOfExecutors === 0
       ? driver.totalShuffleRead
       : executors
-        .map((executor) => executor.totalShuffleRead)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.totalShuffleRead)
+          .reduce((a, b) => a + b, 0);
 
   const totalShuffleWrite =
     numOfExecutors === 0
       ? driver.totalShuffleWrite
       : executors
-        .map((executor) => executor.totalShuffleWrite)
-        .reduce((a, b) => a + b, 0);
+          .map((executor) => executor.totalShuffleWrite)
+          .reduce((a, b) => a + b, 0);
 
   // see documentation about DCU calculation
   const totalDCU = totalCoreHour * 0.05 + totalMemoryGibHour * 0.005;

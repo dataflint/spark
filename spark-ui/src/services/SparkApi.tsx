@@ -42,7 +42,10 @@ class SparkAPI {
   historyServerMode: boolean = false;
 
   private get applicationPath(): string {
-    return `${this.apiPath}/applications/${this.appId}` + (this.attemptId !== undefined ? `/${this.attemptId}` : "");
+    return (
+      `${this.apiPath}/applications/${this.appId}` +
+      (this.attemptId !== undefined ? `/${this.attemptId}` : "")
+    );
   }
 
   private get environmentPath(): string {
@@ -107,8 +110,7 @@ class SparkAPI {
   private getPlatform(config: SparkConfiguration): string {
     if (isDataFlintSaaSUI()) {
       return "dataflint_saas";
-    }
-    else if (IS_HISTORY_SERVER_MODE) {
+    } else if (IS_HISTORY_SERVER_MODE) {
       return "history_server";
     }
     const databricksConf = config.sparkProperties.find(
@@ -164,11 +166,18 @@ class SparkAPI {
           this.applicationinfoPath(),
         );
 
-        const currentApplication = appInfo.info
-        this.appId = isDataFlintSaaSUI() && appInfo.runId ? appInfo.runId : currentApplication.id;
+        const currentApplication = appInfo.info;
+        this.appId =
+          isDataFlintSaaSUI() && appInfo.runId
+            ? appInfo.runId
+            : currentApplication.id;
         const currentAttempt =
           currentApplication.attempts[currentApplication.attempts.length - 1];
-        this.attemptId = isDataFlintSaaSUI() ? undefined : (currentAttempt?.attemptId !== undefined ? currentAttempt.attemptId : undefined);
+        this.attemptId = isDataFlintSaaSUI()
+          ? undefined
+          : currentAttempt?.attemptId !== undefined
+          ? currentAttempt.attemptId
+          : undefined;
         const sparkConfiguration: SparkConfiguration = await this.queryData(
           this.environmentPath,
         );
@@ -176,12 +185,15 @@ class SparkAPI {
         this.isConnected = true;
 
         const masterConfig = sparkConfiguration.sparkProperties.find(
-          (conf) => conf.length > 1 && conf[0] === "spark.dataflint.telemetry.enabled",
+          (conf) =>
+            conf.length > 1 && conf[0] === "spark.dataflint.telemetry.enabled",
         );
 
         if (masterConfig !== undefined && masterConfig[1] === "false") {
           MixpanelService.setMixpanelTelemetryConfigDisabled();
-          console.log("skipping mixpanel telemetry, spark.dataflint.telemetry.enabled is set to false")
+          console.log(
+            "skipping mixpanel telemetry, spark.dataflint.telemetry.enabled is set to false",
+          );
         } else {
           MixpanelService.InitMixpanel();
           MixpanelService.Track(MixpanelEvents.SparkAppInitilized, {
@@ -198,7 +210,6 @@ class SparkAPI {
             epocCurrentTime: Date.now(),
           }),
         );
-
       } else {
         this.dispatch(updateDuration({ epocCurrentTime: Date.now() }));
       }

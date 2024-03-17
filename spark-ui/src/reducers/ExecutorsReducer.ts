@@ -23,11 +23,15 @@ export function calculateSparkExecutorsStore(
     const memoryUsageBytes =
       (executor.peakMemoryMetrics?.JVMHeapMemory ?? 0) +
       (executor.peakMemoryMetrics?.JVMOffHeapMemory ?? 0);
-    const memoryUsagePercentage = calculatePercentage(memoryUsageBytes, executorMemoryBytes)
+    const memoryUsagePercentage = calculatePercentage(
+      memoryUsageBytes,
+      executorMemoryBytes,
+    );
     const duration = endTimeEpoc - addTimeEpoc;
     const totalTaskDuration = executor.totalDuration;
     const potentialTaskTimeMs = duration * executor.maxTasks;
-    const wastedCoresRate = 100 - calculatePercentage(totalTaskDuration, potentialTaskTimeMs)
+    const wastedCoresRate =
+      100 - calculatePercentage(totalTaskDuration, potentialTaskTimeMs);
     return {
       id: executor.id,
       isActive: executor.isActive,

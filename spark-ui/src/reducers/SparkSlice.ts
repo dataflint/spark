@@ -249,7 +249,12 @@ const sparkSlice = createSlice({
           state.stages,
           state.executors,
         );
-        state.alerts = reduceAlerts(state.sql, state.status, state.stages, state.config!);
+        state.alerts = reduceAlerts(
+          state.sql,
+          state.status,
+          state.stages,
+          state.config!,
+        );
       }
     },
   },
