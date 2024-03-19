@@ -3,15 +3,19 @@ import {
   NodeType,
   ParsedNodePlan,
 } from "../interfaces/AppStore";
+import { humanFileSize } from "../utils/FormatUtils";
 
 const metricAllowlist: Record<NodeType, Array<string>> = {
   input: [
     "number of output rows",
+    "total data file size (bytes)",
     "number of files read",
     "size of files read",
     "number of partitions read",
     "estimated number of fetched offsets out of range",
     "number of data loss error",
+    "total data manifests",
+    "number of file splits read",
   ],
   output: [
     "number of written files",
@@ -38,6 +42,7 @@ const metricsValueTransformer: Record<
   "size of files read": extractTotalFromStatisticsMetric,
   "shuffle bytes written": extractTotalFromStatisticsMetric,
   "spill size": extractTotalFromStatisticsMetric,
+  "total data file size (bytes)": extractTotalFromStatisticsMetric,
   "number of dynamic part": (value: string) => {
     // if dynamic part is 0 we want to remove it from metrics
     if (value === "0") {
@@ -61,6 +66,8 @@ const metricsRenamer: Record<string, string> = {
   "estimated number of fetched offsets out of range":
     "fetched offsets out of range",
   "number of data loss error": "data loss error",
+  "total data file size (bytes)": "bytes read",
+  "total data manifests": "data manifests read"
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -82,6 +89,8 @@ const nodeTypeDict: Record<string, NodeType> = {
   Sort: "sort",
   Project: "transformation",
   Window: "transformation",
+  AppendData: "output",
+  ReplaceData: "output"
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -105,6 +114,10 @@ const nodeRenamerDict: Record<string, string> = {
   Project: "Select",
   MicroBatchScan: "Read Micro batch",
   ShuffleHashJoin: "Join (Shuffle Hash)",
+  DropTable: "Drop table",
+  CreateTable: "Create table",
+  AppendData: "Iceberg - Append data",
+  ReplaceData: "Iceberg - Replace data",
 };
 
 export function extractTotalFromStatisticsMetric(
@@ -123,6 +136,21 @@ export function extractTotalFromStatisticsMetric(
   }
 
   return bracetSplit[0].trim();
+}
+
+export function bytesToHumanReadableSize(
+  value: string | undefined,
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  try {
+    return humanFileSize(parseInt(value, 10));
+  } catch (e) {
+    console.log(`failed to parse ${value} to a number`) // shouldn't happen
+    return value;
+  }
+
 }
 
 export function nodeEnrichedNameBuilder(
@@ -156,12 +184,13 @@ export function nodeEnrichedNameBuilder(
     return renamedNodeName;
   }
   if (name.includes("Scan")) {
-    const scanRenamed = name.replace("Scan", "Read");
+    const scanRenamed = name.includes("BatchScan") ? name.replace("BatchScan", "Read") : name.replace("Scan", "Read");
     const scanNameSliced = scanRenamed.split(" ");
     if (scanNameSliced.length > 2) {
       return scanNameSliced.slice(0, 2).join(" ");
     }
-    return scanRenamed;
+    const scanNameTrancated = scanRenamed.length > 30 ? scanRenamed.slice(0, 30) + "..." : scanRenamed;
+    return scanNameTrancated;
   }
   return name;
 }

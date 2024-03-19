@@ -1,7 +1,10 @@
 package io.dataflint.example
 
+import org.apache.iceberg.Table
 import org.apache.iceberg.metrics.{MetricsReport, MetricsReporter}
+import org.apache.iceberg.spark.actions.SparkActions
 import org.apache.spark.sql.SparkSession
+import org.apache.iceberg.actions.Action
 
 class InMemoryMetricsReporter extends MetricsReporter {
   def report(report: MetricsReport): Unit = {
@@ -54,6 +57,13 @@ object IcebergExample extends App{
       |VALUES (1, 1000371, 1.8, 15.32, 'N'), (2, 1000372, 2.5, 22.15, 'N'), (2, 1000373, 0.9, 9.01, 'N'), (1, 1000374, 8.4, 42.13, 'Y');
       |""".stripMargin)
 
+  spark.sparkContext.setJobDescription("Insert to table 2")
+  spark.sql(
+    """
+      |INSERT INTO demo.nyc.taxis
+      |VALUES (1, 1000375, 1.8, 15.32, 'N'), (2, 1000376, 2.5, 22.15, 'N'), (2, 1000377, 0.9, 9.01, 'N'), (1, 1000378, 8.4, 42.13, 'Y');
+      |""".stripMargin)
+
   spark.sparkContext.setJobDescription("Select from table")
   spark.sql("SELECT * FROM demo.nyc.taxis").show()
 
@@ -84,16 +94,20 @@ object IcebergExample extends App{
       |  strategy => 'sort',
       |  sort_order => 'trip_id ASC NULLS LAST',
       |  options => map(
-      |    'rewrite-job-order','bytes-asc',
-      |    'target-file-size-bytes','1073741824', -- 1GB
-      |    'max-file-group-size-bytes','10737418240' -- 10GB
+      |  'rewrite-all','true',
+      |  'min-input-files','1',
+      |  'rewrite-job-order','bytes-asc',
+      |  'target-file-size-bytes','1073741824', -- 1GB
+      |  'max-file-group-size-bytes','10737418240' -- 10GB
       |  )
       |)
       |""".stripMargin)
 
+
+  val currentTimeISO = java.time.format.DateTimeFormatter.ISO_INSTANT.format(java.time.Instant.now())
   spark.sparkContext.setJobDescription("Expire snapshots")
-  spark.sql("""
-    CALL local.system.expire_snapshots('demo.nyc.taxis', TIMESTAMP '2021-06-30 00:00:00.000', 2)
+  spark.sql(s"""
+    CALL local.system.expire_snapshots('demo.nyc.taxis', TIMESTAMP '${currentTimeISO}', 1)
    """)
 
   scala.io.StdIn.readLine()
