@@ -13,7 +13,7 @@ lazy val dataflint = project
     example_3_2_4,
     example_3_3_3,
     example_3_4_1,
-    example_3_5_0,
+    example_3_5_1,
     example_3_4_1_remote
   ).settings(
     crossScalaVersions := Nil, // Aggregate project version must be Nil, see docs: https://www.scala-sbt.org/1.x/docs/Cross-Build.html
@@ -30,9 +30,10 @@ lazy val plugin = (project in file("plugin"))
     } else {
       versionNum + "-SNAPSHOT"
     }),
-    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.4.1" % "provided",
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.4.1"  % "provided",
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.5.1" % "provided",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.1"  % "provided",
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
+    libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
     publishTo := sonatypePublishToBundle.value
   )
 
@@ -79,15 +80,15 @@ lazy val example_3_4_1 = (project in file("example_3_4_1"))
     publish / skip := true
   ).dependsOn(plugin)
 
-lazy val example_3_5_0 = (project in file("example_3_5_0"))
+lazy val example_3_5_1 = (project in file("example_3_5_1"))
   .settings(
-    name := "DataflintSparkExample350",
+    name := "DataflintSparkExample351",
     organization := "io.dataflint",
     crossScalaVersions := supportedScalaVersions,
-    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.5.0",
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.0",
-    libraryDependencies += "org.apache.spark" %% "spark-streaming" % "3.5.0",
-    libraryDependencies += "org.apache.spark" %% "spark-sql-kafka-0-10" % "3.5.0",
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.5.1",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.1",
+    libraryDependencies += "org.apache.spark" %% "spark-streaming" % "3.5.1",
+    libraryDependencies += "org.apache.spark" %% "spark-sql-kafka-0-10" % "3.5.1",
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.1.0",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0",

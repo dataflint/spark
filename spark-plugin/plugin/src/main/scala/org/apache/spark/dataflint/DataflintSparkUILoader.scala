@@ -1,6 +1,9 @@
 package org.apache.spark.dataflint
 
 import org.apache.spark.SparkContext
+import org.apache.spark.dataflint.api.{DataFlintTab, DataflintApplicationInfoPage, DataflintIcebergPage, DataflintJettyUtils, DataflintSQLMetricsPage, DataflintSQLPlanPage, DataflintSQLStagesRddPage}
+import org.apache.spark.dataflint.listener.{DataflintListener, DataflintStore}
+import org.apache.spark.dataflint.saas.DataflintRunExporterListener
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.ui.SQLAppStatusListener
 import org.apache.spark.ui.SparkUI
@@ -18,19 +21,26 @@ class DataflintSparkUIInstaller extends Logging {
       }
       else {
         context.conf.set("spark.dataflint.runId", java.util.UUID.randomUUID.toString.replaceAll("-", ""))
-        context.listenerBus.addToQueue(new DataflintListener(context), "dataflint")
+        context.listenerBus.addToQueue(new DataflintRunExporterListener(context), "dataflint")
       }
+    }
+
+    // DataflintListener currently only relevant for iceberg support, so no need to add the listener if iceberg support is off
+    if(context.conf.getBoolean("spark.dataflint.iceberg.enabled", defaultValue = false)) {
+      context.listenerBus.addToQueue(new DataflintListener(context), "dataflint")
     }
     loadUI(context.ui.get, sqlListener)
   }
 
   def loadUI(ui: SparkUI, sqlListener: () => Option[SQLAppStatusListener] = () => None): String = {
     DataflintJettyUtils.addStaticHandler(ui, "io/dataflint/spark/static/ui", ui.basePath + "/dataflint")
-    val tab = new DataflintTab(ui)
+    val dataflintStore = new DataflintStore(store = ui.store.store)
+    val tab = new DataFlintTab(ui)
     tab.attachPage(new DataflintSQLPlanPage(ui, sqlListener))
     tab.attachPage(new DataflintSQLMetricsPage(ui, sqlListener))
     tab.attachPage(new DataflintSQLStagesRddPage(ui))
     tab.attachPage(new DataflintApplicationInfoPage(ui))
+    tab.attachPage(new DataflintIcebergPage(ui, dataflintStore))
     ui.attachTab(tab)
     ui.webUrl
   }
