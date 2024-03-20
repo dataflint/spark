@@ -1,4 +1,5 @@
 import { ApplicationInfo } from "../interfaces/ApplicationInfo";
+import { IcebergInfo } from "../interfaces/IcebergInfo";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
 import { SparkExecutors } from "../interfaces/SparkExecutors";
@@ -40,6 +41,7 @@ class SparkAPI {
   lastCompletedSqlId: number = -1;
   pollingStopped: boolean = false;
   historyServerMode: boolean = false;
+  icebergEnabled: boolean = false;
 
   private get applicationPath(): string {
     return (
@@ -66,6 +68,10 @@ class SparkAPI {
 
   private buildSqlPlanPath(offset: number): string {
     return `${this.baseCurrentPage}/sqlplan/json/?offset=${offset}&length=${SQL_QUERY_LENGTH}`;
+  }
+
+  private buildIcebergPath(offset: number): string {
+    return `${this.baseCurrentPage}/iceberg/json/?offset=${offset}&length=${SQL_QUERY_LENGTH}`;
   }
 
   private buildStageRdd(): string {
@@ -176,20 +182,29 @@ class SparkAPI {
         this.attemptId = isDataFlintSaaSUI()
           ? undefined
           : currentAttempt?.attemptId !== undefined
-          ? currentAttempt.attemptId
-          : undefined;
+            ? currentAttempt.attemptId
+            : undefined;
         const sparkConfiguration: SparkConfiguration = await this.queryData(
           this.environmentPath,
         );
         this.initialized = true; // should happen after fetching app and env succesfully
         this.isConnected = true;
 
-        const masterConfig = sparkConfiguration.sparkProperties.find(
+        const extensionsConfig = sparkConfiguration.sparkProperties.find(
+          (conf) =>
+            conf.length > 1 && conf[0] === "spark.sql.extensions",
+        );
+
+        if (extensionsConfig !== undefined && extensionsConfig[1].includes("org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")) {
+          this.icebergEnabled = true;
+        }
+
+        const telemetryConfig = sparkConfiguration.sparkProperties.find(
           (conf) =>
             conf.length > 1 && conf[0] === "spark.dataflint.telemetry.enabled",
         );
 
-        if (masterConfig !== undefined && masterConfig[1] === "false") {
+        if (telemetryConfig !== undefined && telemetryConfig[1] === "false") {
           MixpanelService.setMixpanelTelemetryConfigDisabled();
           console.log(
             "skipping mixpanel telemetry, spark.dataflint.telemetry.enabled is set to false",
@@ -232,9 +247,13 @@ class SparkAPI {
       const sparkPlans: SQLPlans = await this.queryData(
         this.buildSqlPlanPath(this.lastCompletedSqlId + 1),
       );
+      let icebergInfo: IcebergInfo = { commitsInfo: [] };
+      if (this.icebergEnabled) {
+        icebergInfo = await this.queryData(this.buildIcebergPath(this.lastCompletedSqlId + 1));
+      }
 
       if (sparkSQLs.length !== 0) {
-        this.dispatch(setSQL({ sqls: sparkSQLs, plans: sparkPlans }));
+        this.dispatch(setSQL({ sqls: sparkSQLs, plans: sparkPlans, icebergInfo: icebergInfo }));
 
         const finishedSqls = sparkSQLs.filter(
           (sql) =>

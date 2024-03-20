@@ -42,7 +42,7 @@
     "uuid": "^9.0.1"
   },
   "scripts": {
-    "start": "REACT_APP_BASE_PATH=http://localhost:8010/proxy react-scripts start",
+    "start": "REACT_APP_BASE_PATH=http://localhost:8010/proxy PORT=4000 react-scripts start",
     "start-history": "REACT_APP_BASE_PATH=http://localhost:8011/proxy react-scripts start",
     "start-tpch": "REACT_APP_BASE_PATH=http://localhost:8012/proxy react-scripts start",
     "start-win": "set \"REACT_APP_BASE_PATH=http://localhost:10000\" && react-scripts start",

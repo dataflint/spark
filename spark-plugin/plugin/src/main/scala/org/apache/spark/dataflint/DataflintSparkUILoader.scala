@@ -6,6 +6,7 @@ import org.apache.spark.dataflint.listener.{DataflintListener, DataflintStore}
 import org.apache.spark.dataflint.saas.DataflintRunExporterListener
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.ui.SQLAppStatusListener
+import org.apache.spark.status.ElementTrackingStore
 import org.apache.spark.ui.SparkUI
 
 class DataflintSparkUIInstaller extends Logging {
@@ -26,8 +27,10 @@ class DataflintSparkUIInstaller extends Logging {
     }
 
     // DataflintListener currently only relevant for iceberg support, so no need to add the listener if iceberg support is off
-    if(context.conf.getBoolean("spark.dataflint.iceberg.enabled", defaultValue = false)) {
-      context.listenerBus.addToQueue(new DataflintListener(context), "dataflint")
+    val icebergInstalled = context.conf.get("spark.sql.extensions", "").contains("org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
+    val icebergEnabled = context.conf.getBoolean("spark.dataflint.iceberg.enabled", defaultValue = true)
+    if(icebergInstalled && icebergEnabled) {
+      context.listenerBus.addToQueue(new DataflintListener(context.statusStore.store.asInstanceOf[ElementTrackingStore]), "dataflint")
     }
     loadUI(context.ui.get, sqlListener)
   }

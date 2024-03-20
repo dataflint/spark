@@ -1,3 +1,5 @@
+import { IcebergCommitsInfo } from "./IcebergInfo";
+
 export type NodeType =
   | "input"
   | "output"
@@ -256,6 +258,7 @@ export interface EnrichedSqlNode {
   parsedPlan: ParsedNodePlan | undefined;
   exchangeMetrics: ExchangeMetrics | undefined;
   rddScopeId: string | undefined;
+  icebergCommit: IcebergCommitsInfo | undefined
 }
 
 export interface SQLNodeExchangeStageData {

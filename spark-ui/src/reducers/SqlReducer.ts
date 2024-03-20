@@ -9,23 +9,24 @@ import {
   ParsedNodePlan,
   SparkSQLStore,
 } from "../interfaces/AppStore";
+import { IcebergCommitsInfo, IcebergInfo } from "../interfaces/IcebergInfo";
+import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
-import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import {
-  timeStringToMilliseconds,
   timeStrToEpocTime,
+  timeStringToMilliseconds,
 } from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
 import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
-import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import { parseJoin } from "./PlanParsers/JoinParser";
 import { parseProject } from "./PlanParsers/ProjectParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
+import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import {
   calcNodeMetrics,
   calcNodeType,
@@ -167,6 +168,7 @@ export function getMetricDuration(
 function calculateSql(
   sql: SparkSQL,
   plan: SQLPlan | undefined,
+  icebergCommit: IcebergCommitsInfo | undefined
 ): EnrichedSparkSQL {
   const enrichedSql = sql as EnrichedSparkSQL;
   const originalNumOfNodes = enrichedSql.nodes.length;
@@ -178,6 +180,7 @@ function calculateSql(
     const parsedPlan =
       nodePlan !== undefined ? parseNodePlan(node, nodePlan) : undefined;
     const isCodegenNode = node.nodeName.includes("WholeStageCodegen");
+
     return {
       ...node,
       rddScopeId: nodePlan?.rddScopeId,
@@ -188,6 +191,7 @@ function calculateSql(
       wholeStageCodegenId: isCodegenNode
         ? extractCodegenId()
         : node.wholeStageCodegenId,
+      icebergCommit: type === "output" || enrichedSql.nodes.length === 1 ? icebergCommit : undefined,
     };
 
     function extractCodegenId(): number | undefined {
@@ -297,10 +301,11 @@ function calculateSql(
   };
 }
 
-function calculateSqls(sqls: SparkSQLs, plans: SQLPlans): EnrichedSparkSQL[] {
+function calculateSqls(sqls: SparkSQLs, plans: SQLPlans, icebergInfo: IcebergInfo): EnrichedSparkSQL[] {
   return sqls.map((sql) => {
     const plan = plans.find((plan) => plan.executionId === parseInt(sql.id));
-    return calculateSql(sql, plan);
+    const icebergCommit = icebergInfo.commitsInfo.find((plan) => plan.executionId === parseInt(sql.id));
+    return calculateSql(sql, plan, icebergCommit);
   });
 }
 
@@ -308,9 +313,10 @@ export function calculateSqlStore(
   currentStore: SparkSQLStore | undefined,
   sqls: SparkSQLs,
   plans: SQLPlans,
+  icebergInfo: IcebergInfo
 ): SparkSQLStore {
   if (currentStore === undefined) {
-    return { sqls: calculateSqls(sqls, plans) };
+    return { sqls: calculateSqls(sqls, plans, icebergInfo) };
   }
 
   const sqlIds = sqls.map((sql) => parseInt(sql.id));
@@ -329,21 +335,22 @@ export function calculateSqlStore(
       (existingSql) => parseInt(existingSql.id) === id,
     );
     const plan = plans.find((plan) => plan.executionId === id);
+    const icebergCommit = icebergInfo.commitsInfo.find((plan) => plan.executionId === id);
 
     // case 1: SQL does not exist, we add it
     if (currentSql === undefined) {
-      updatedSqls.push(calculateSql(newSql, plan));
+      updatedSqls.push(calculateSql(newSql, plan, icebergCommit));
       // From here currentSql must not be null, and currentSql can't be COMPLETED as it would not be requested by API
       // case 2: plan status changed from running to completed, so we need to update the SQL
     } else if (
       newSql.status === SqlStatus.Completed.valueOf() ||
       newSql.status === SqlStatus.Failed.valueOf()
     ) {
-      updatedSqls.push(calculateSql(newSql, plan));
+      updatedSqls.push(calculateSql(newSql, plan, icebergCommit));
       // From here newSql.status must be RUNNING
       // case 3: running SQL structure, so we need to update the plan
     } else if (currentSql.originalNumOfNodes !== newSql.nodes.length) {
-      updatedSqls.push(calculateSql(newSql, plan));
+      updatedSqls.push(calculateSql(newSql, plan, icebergCommit));
     } else {
       // case 4: SQL is running, but the structure haven't changed, so we update only relevant fields
       updatedSqls.push({

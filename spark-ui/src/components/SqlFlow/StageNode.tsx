@@ -14,7 +14,7 @@ import {
 } from "../../interfaces/AppStore";
 import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
-import { humanizeTimeDiff } from "../../utils/FormatUtils";
+import { calculatePercentage, humanFileSize, humanizeTimeDiff } from "../../utils/FormatUtils";
 import AlertBadge, { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import ExceptionIcon from "../ExceptionIcon";
 import { ConditionalWrapper } from "../InfoBox/InfoBox";
@@ -117,6 +117,45 @@ const StageIcon: FC<{
   );
 };
 
+function handleAddedRemovedMetrics(name: string, added: number, removed: number, total: number, transformer: (x: number) => string): MetricWithTooltip[] {
+  const previousSnapshotTotal = total - added + removed;
+
+  if (added !== 0 && removed === 0) {
+    const addedPercentage = calculatePercentage(added, previousSnapshotTotal).toFixed(1);
+    return [{
+      name: `Added ${name}`,
+      value: transformer(added) + ` (${addedPercentage}%)`,
+    }];
+  }
+  else if (added === 0 && removed !== 0) {
+    const removedPercentage = calculatePercentage(removed, previousSnapshotTotal).toFixed(1);
+    return [{
+      name: `Removed ${name}`,
+      value: transformer(removed) + ` (${removedPercentage}%)`,
+    }];
+  } else if (added === removed) {
+    const updated = added;
+    const updatedPercentage = calculatePercentage(updated, previousSnapshotTotal).toFixed(1);
+    return [{
+      name: `${name} Updated`,
+      value: transformer(updated) + ` (${updatedPercentage}%)`,
+    }];
+  } else {
+    const addedPercentage = calculatePercentage(added, previousSnapshotTotal).toFixed(1);
+    const removedPercentage = calculatePercentage(removed, previousSnapshotTotal).toFixed(1);
+
+    return [{
+      name: `Added ${name}`,
+      value: transformer(added) + ` (${addedPercentage}%)`,
+    }, {
+      name: `Removed ${name}`,
+      value: transformer(removed) + ` (${removedPercentage}%)`,
+    }
+    ];
+  }
+  return []
+}
+
 export const StageNode: FC<{
   data: { sqlId: string; node: EnrichedSqlNode };
 }> = ({ data }): JSX.Element => {
@@ -131,6 +170,30 @@ export const StageNode: FC<{
   const dataTable = data.node.metrics.filter(
     (metric: SqlMetric) => !!metric.value,
   ) as MetricWithTooltip[];
+
+  if (data.node.icebergCommit !== undefined) {
+    const commit = data.node.icebergCommit;
+    const metrics = commit.metrics
+    addTruncatedSmallTooltip(
+      dataTable,
+      "Table Name",
+      commit.tableName,
+    );
+
+    dataTable.push({
+      name: "Commit id",
+      value: commit.commitId.toString(),
+    });
+
+    dataTable.push({
+      name: "Duration",
+      value: humanizeTimeDiff(duration(metrics.durationMS)),
+    });
+
+    dataTable.push(...handleAddedRemovedMetrics("Records", metrics.addedRecords, metrics.removedRecords, metrics.totalRecords, (x) => x.toString()));
+    dataTable.push(...handleAddedRemovedMetrics("Files", metrics.addedDataFiles, metrics.removedDataFiles, metrics.totalDataFiles, (x) => x.toString()));
+    dataTable.push(...handleAddedRemovedMetrics("Bytes", metrics.addedFilesSizeInBytes, metrics.removedFilesSizeInBytes, metrics.totalFilesSizeInBytes, humanFileSize));
+  }
   if (data.node.parsedPlan !== undefined) {
     const parsedPlan = data.node.parsedPlan;
     switch (parsedPlan.type) {
@@ -204,8 +267,8 @@ export const StageNode: FC<{
                 ? "hashed field"
                 : "hashed fields"
               : parsedPlan.plan.fields.length === 1
-              ? "ranged field"
-              : "ranged fields",
+                ? "ranged field"
+                : "ranged fields",
             parsedPlan.plan.fields,
           );
         }

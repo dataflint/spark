@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { AppStore, StatusStore } from "../interfaces/AppStore";
+import { IcebergInfo } from "../interfaces/IcebergInfo";
 import { Attempt } from "../interfaces/SparkApplications";
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
 import { SparkExecutors } from "../interfaces/SparkExecutors";
@@ -199,7 +200,7 @@ const sparkSlice = createSlice({
     },
     setSQL: (
       state,
-      action: PayloadAction<{ sqls: SparkSQLs; plans: SQLPlans }>,
+      action: PayloadAction<{ sqls: SparkSQLs; plans: SQLPlans, icebergInfo: IcebergInfo }>,
     ) => {
       if (state.status === undefined) {
         return;
@@ -209,6 +210,7 @@ const sparkSlice = createSlice({
         state.sql,
         action.payload.sqls,
         action.payload.plans,
+        action.payload.icebergInfo
       );
       if (state.config && state.jobs && state.executors && state.stages) {
         state.sql = calculateSqlQueryLevelMetricsReducer(

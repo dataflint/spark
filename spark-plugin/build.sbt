@@ -77,6 +77,7 @@ lazy val example_3_4_1 = (project in file("example_3_4_1"))
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.4.1",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.4.1",
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
+    libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.4" % "1.5.0",
     publish / skip := true
   ).dependsOn(plugin)
 
