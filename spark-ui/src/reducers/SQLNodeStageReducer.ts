@@ -90,7 +90,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
     return node;
   });
   nodes = nodes.map((node) => {
-    if (node.nodeName === "Execute InsertIntoHadoopFsRelationCommand") {
+    if (node.nodeName === "Execute InsertIntoHadoopFsRelationCommand" || node.nodeName == "ReplaceData" || node.nodeName == "AppendData") {
       const previousNode = findPreviousNode(node.nodeId);
       if (previousNode === undefined) {
         return node;

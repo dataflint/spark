@@ -9,7 +9,6 @@ class DataflintListener(store: ElementTrackingStore) extends SparkListener with 
     try {
       event match {
         case icebergCommitEvent: IcebergCommitEvent => {
-          logInfo(s"Received IcebergCommitEvent for execution id ${icebergCommitEvent.icebergCommit.executionId} table ${icebergCommitEvent.icebergCommit.tableName}")
           val commitInfo = new IcebergCommitWrapper(icebergCommitEvent.icebergCommit)
             store.write(commitInfo)
         }
@@ -17,7 +16,6 @@ class DataflintListener(store: ElementTrackingStore) extends SparkListener with 
       }
     } catch {
       case e: Exception => logError("Error while processing events in DataflintListener", e)
-
     }
   }
 }

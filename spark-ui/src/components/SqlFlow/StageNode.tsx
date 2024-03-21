@@ -119,9 +119,10 @@ const StageIcon: FC<{
 
 function handleAddedRemovedMetrics(name: string, added: number, removed: number, total: number, transformer: (x: number) => string): MetricWithTooltip[] {
   const previousSnapshotTotal = total - added + removed;
+  const currentSnapshot = total;
 
   if (added !== 0 && removed === 0) {
-    const addedPercentage = calculatePercentage(added, previousSnapshotTotal).toFixed(1);
+    const addedPercentage = calculatePercentage(added, currentSnapshot).toFixed(1);
     return [{
       name: `Added ${name}`,
       value: transformer(added) + ` (${addedPercentage}%)`,

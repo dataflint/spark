@@ -6,6 +6,7 @@ import {
   SparkStagesStore,
   StatusStore,
 } from "../interfaces/AppStore";
+import { reduceIcebergReplaces } from "./Alerts/IcebergReplacesReducer";
 import { reduceMemoryAlerts } from "./Alerts/MemoryAlertsReducer";
 import { reduceSQLInputOutputAlerts } from "./Alerts/MemorySQLInputOutputAlerts";
 import { reducePartitionSkewAlert } from "./Alerts/PartitionSkewAlert";
@@ -22,6 +23,7 @@ export function reduceAlerts(
   reduceWastedCoresAlerts(statusStore, config, alerts);
   reduceSQLInputOutputAlerts(sqlStore, alerts);
   reducePartitionSkewAlert(sqlStore, stageStore, alerts);
+  reduceIcebergReplaces(sqlStore, alerts);
   return {
     alerts: alerts,
   };

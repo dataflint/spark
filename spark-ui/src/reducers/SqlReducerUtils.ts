@@ -67,7 +67,8 @@ const metricsRenamer: Record<string, string> = {
     "fetched offsets out of range",
   "number of data loss error": "data loss error",
   "total data file size (bytes)": "bytes read",
-  "total data manifests": "data manifests read"
+  "total data manifests": "data manifests read",
+  "number of file splits read": "files read"
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -90,7 +91,9 @@ const nodeTypeDict: Record<string, NodeType> = {
   Project: "transformation",
   Window: "transformation",
   AppendData: "output",
-  ReplaceData: "output"
+  ReplaceData: "output",
+  WriteDelta: "output",
+  DeleteFromTable: "output",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -118,6 +121,8 @@ const nodeRenamerDict: Record<string, string> = {
   CreateTable: "Create table",
   AppendData: "Iceberg - Append data",
   ReplaceData: "Iceberg - Replace data",
+  WriteDelta: "Iceberg - Write Delta",
+  DeleteFromTable: "Iceberg - Delete from table",
 };
 
 export function extractTotalFromStatisticsMetric(

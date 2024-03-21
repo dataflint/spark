@@ -24,8 +24,9 @@ object IcebergExample extends App{
 
   spark.sparkContext.setJobDescription("Drop table if exists")
   spark.sql("DROP TABLE IF EXISTS demo.nyc.taxis PURGE")
+  spark.sql("DROP TABLE IF EXISTS demo.nyc.taxis_unpartitoned PURGE")
 
-  spark.sparkContext.setJobDescription("Create table")
+  spark.sparkContext.setJobDescription("Create taxis table")
   spark.sql(
     """
       |CREATE TABLE demo.nyc.taxis
@@ -39,14 +40,14 @@ object IcebergExample extends App{
       |PARTITIONED BY (vendor_id);
       |""".stripMargin)
 
-  spark.sparkContext.setJobDescription("Insert 4 records to table")
+  spark.sparkContext.setJobDescription("Insert 2 records to taxis table")
   spark.sql(
     """
       |INSERT INTO demo.nyc.taxis
       |VALUES (1, 1000371, 1.8, 15.32, 'N'), (2, 1000372, 2.5, 22.15, 'N');
       |""".stripMargin)
 
-  spark.sparkContext.setJobDescription("Insert 4 records to table (2)")
+  spark.sparkContext.setJobDescription("Insert 2 records to taxis table (2)")
   spark.sql(
     """
       |INSERT INTO demo.nyc.taxis
@@ -106,6 +107,65 @@ object IcebergExample extends App{
     CALL local.system.expire_snapshots('demo.nyc.taxis', TIMESTAMP '${currentTimeISO}', 1)
    """)
 
+  spark.sparkContext.setJobDescription("Create taxis unpartitioned table")
+  spark.sql(
+    """
+      |CREATE TABLE demo.nyc.taxis_unpartitoned
+      |(
+      |  vendor_id bigint,
+      |  trip_id bigint,
+      |  trip_distance float,
+      |  fare_amount double,
+      |  store_and_fwd_flag string
+      |)
+      |TBLPROPERTIES (
+      |'write.distribution.mode'='range'
+      |)
+      |""".stripMargin)
+
+  spark.sparkContext.setJobDescription("Set table sorting order")
+  spark.sql("ALTER TABLE demo.nyc.taxis_unpartitoned WRITE ORDERED BY vendor_id, trip_id")
+  spark.sparkContext.setJobDescription("Insert 100 records to taxis unpartitioned table")
+  spark.sql(
+    """
+      |SELECT
+      |    id as vendor_id,
+      |    1000370 + id as trip_id,
+      |    1.5 + (id % 100) * 0.1 as trip_distance,
+      |    15.0 + (id % 100) * 0.7 as fare_amount,
+      |    'N' as store_and_fwd_flag
+      |FROM (
+      |    SELECT id FROM range(1, 101)
+      |) t
+      |""".stripMargin)
+      .writeTo("demo.nyc.taxis_unpartitoned")
+      .append()
+
+  spark.sparkContext.setJobDescription("Delete record from unpartitioned table")
+  spark.sql(
+    """
+      |DELETE FROM demo.nyc.taxis_unpartitoned
+      |WHERE trip_id = 1000371
+      |""".stripMargin)
+
+  spark.sparkContext.setJobDescription("Merge 20% of records to table")
+  spark.sql(
+    """
+      MERGE INTO demo.nyc.taxis_unpartitoned t USING(
+      SELECT
+        id as vendor_id,
+        1000370 + id as trip_id,
+        1.5 + (id % 100) * 0.1 as trip_distance,
+        15.0 + (id % 100) * 0.7 as fare_amount,
+        'N' as store_and_fwd_flag
+    FROM (
+        SELECT id FROM range(90, 110)
+    ) t
+      ) u ON t.trip_id = u.trip_id
+      WHEN MATCHED THEN UPDATE SET
+      t.fare_amount = t.fare_amount + u.fare_amount
+      WHEN NOT MATCHED THEN INSERT *;
+    """)
+
   scala.io.StdIn.readLine()
 }
-
