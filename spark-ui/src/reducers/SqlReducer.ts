@@ -340,7 +340,7 @@ export function calculateSqlStore(
     // case 1: SQL does not exist, we add it
     if (currentSql === undefined) {
       updatedSqls.push(calculateSql(newSql, plan, icebergCommit));
-      // From here currentSql must not be null, and currentSql can't be COMPLETED as it would not be requested by API
+      // From here currentSql must not be null
       // case 2: plan status changed from running to completed, so we need to update the SQL
     } else if (
       newSql.status === SqlStatus.Completed.valueOf() ||
