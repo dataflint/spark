@@ -25,8 +25,8 @@ export function reduceIcebergReplaces(sql: SparkSQLStore, alerts: Alerts) {
                     location: `In: SQL query "${sql.description}" (id: ${sql.id}) and node "${node.nodeName}"`,
                     message: `${tableChangedPercentage.toFixed(1)}% of table ${node.icebergCommit.tableName} files were replaced, while only ${recordsChangedPercentage.toFixed(1)}% of records were changed`,
                     suggestion: `
-    1. Switch to merge-on-read mode to avoid the need to write the entire table data
-    2. Partition the table in such a way that use of update/merge/delete operation to update only the required partitions
+    1. Switch write mode merge-on-read mode, so instead of re-writing the entire file, only the changed records will be written
+    2. Partition the table in such a way that usage of update/merge/delete operation to update only the required partitions
                         `,
                     type: "warning",
                     source: {
@@ -44,10 +44,9 @@ export function reduceIcebergReplaces(sql: SparkSQLStore, alerts: Alerts) {
                     name: "replacedMostOfIcebergTable",
                     title: "Replaced Most Of Iceberg Table",
                     location: `In: SQL query "${sql.description}" (id: ${sql.id}) and node "${node.nodeName}"`,
-                    message: `${tableChangedPercentage.toFixed(1)}% of table ${node.icebergCommit.tableName} files were replaced, which is a mis-use of iceberg update/merge/delete operations `,
+                    message: `${tableChangedPercentage.toFixed(1)}% of table ${node.icebergCommit.tableName} files were replaced, which is potential mis-use of iceberg`,
                     suggestion: `
-    1. Partition the table in such a way that use of update/merge/delete operation to update only the required partitions
-    2. Switch to merge-on-read mode to avoid the need to write the entire table data
+    1. Partition the table in such a way that usage of update/merge/delete operation to update as little files as possible
                         `,
                     type: "warning",
                     source: {

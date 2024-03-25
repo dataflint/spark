@@ -2,9 +2,12 @@ package org.apache.spark.dataflint
 
 import org.apache.spark.SparkContext
 import org.apache.spark.dataflint.api.{DataFlintTab, DataflintApplicationInfoPage, DataflintIcebergPage, DataflintJettyUtils, DataflintSQLMetricsPage, DataflintSQLPlanPage, DataflintSQLStagesRddPage}
+import org.apache.spark.dataflint.iceberg.ClassLoaderChecker
+import org.apache.spark.dataflint.iceberg.ClassLoaderChecker.isMetricLoaderInRightClassLoader
 import org.apache.spark.dataflint.listener.{DataflintListener, DataflintStore}
 import org.apache.spark.dataflint.saas.DataflintRunExporterListener
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.ui.SQLAppStatusListener
 import org.apache.spark.status.ElementTrackingStore
 import org.apache.spark.ui.SparkUI
@@ -26,10 +29,33 @@ class DataflintSparkUIInstaller extends Logging {
       }
     }
 
-    // DataflintListener currently only relevant for iceberg support, so no need to add the listener if iceberg support is off
     val icebergInstalled = context.conf.get("spark.sql.extensions", "").contains("org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
     val icebergEnabled = context.conf.getBoolean("spark.dataflint.iceberg.enabled", defaultValue = true)
+    val icebergAuthCatalogDiscovery = context.conf.getBoolean("spark.dataflint.iceberg.autoCatalogDiscovery", defaultValue = false)
     if(icebergInstalled && icebergEnabled) {
+      if(icebergAuthCatalogDiscovery && isMetricLoaderInRightClassLoader()) {
+        context.conf.getAll.filter(_._1.startsWith("spark.sql.catalog")).filter(keyValue => keyValue._2 == "org.apache.iceberg.spark.SparkCatalog" || keyValue._2 == "org.apache.iceberg.spark.SparkSessionCatalog").foreach(keyValue => {
+          val configName = s"${keyValue._1}.metrics-reporter-impl"
+          context.conf.getOption(configName) match {
+            case Some(currentConfig) => {
+              if(currentConfig == "org.apache.spark.dataflint.iceberg.DataflintIcebergMetricsReporter") {
+                logInfo(s"Metric reporter already exist in config: ${configName}, no need to set it with dataflint iceberg auto discovery")
+              } else {
+                logWarning(s"Different metric reporter already exist in config: ${configName}, cannot set metric reporter to DataflintIcebergMetricsReporter")
+              }
+            }
+            case None => {
+              if(icebergAuthCatalogDiscovery) {
+                context.conf.set(configName, "org.apache.spark.dataflint.iceberg.DataflintIcebergMetricsReporter")
+                logInfo(s"set ${configName} reporter to DataflintIcebergMetricsReporter")
+              } else {
+                logWarning(s"DataflintIcebergMetricsReporter is missing for iceberg catalog ${configName}, for dataflint iceberg observability set spark.dataflint.iceberg.autoCatalogDiscovery to true or set the metric reporter manually to org.apache.spark.dataflint.iceberg.DataflintIcebergMetricsReporter")
+              }
+            }
+          }
+        })
+      }
+    // DataflintListener currently only relevant for iceberg support, so no need to add the listener if iceberg support is off
       context.listenerBus.addToQueue(new DataflintListener(context.statusStore.store.asInstanceOf[ElementTrackingStore]), "dataflint")
     }
     loadUI(context.ui.get, sqlListener)

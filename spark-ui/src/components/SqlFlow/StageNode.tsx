@@ -121,7 +121,10 @@ function handleAddedRemovedMetrics(name: string, added: number, removed: number,
   const previousSnapshotTotal = total - added + removed;
   const currentSnapshot = total;
 
-  if (added !== 0 && removed === 0) {
+  if (added === 0 && removed === 0) {
+    return []
+  }
+  else if (added !== 0 && removed === 0) {
     const addedPercentage = calculatePercentage(added, currentSnapshot).toFixed(1);
     return [{
       name: `Added ${name}`,
@@ -154,7 +157,6 @@ function handleAddedRemovedMetrics(name: string, added: number, removed: number,
     }
     ];
   }
-  return []
 }
 
 export const StageNode: FC<{
@@ -180,6 +182,19 @@ export const StageNode: FC<{
       "Table Name",
       commit.tableName,
     );
+    let modeName: string | undefined = undefined
+    if (data.node.nodeName !== "ReplaceData") {
+      modeName = "copy on write"
+    }
+    if (data.node.nodeName === "WriteDelta") {
+      modeName = "merge on read"
+    }
+    if (modeName !== undefined) {
+      dataTable.push({
+        name: "Mode",
+        value: modeName,
+      });
+    }
 
     dataTable.push({
       name: "Commit id",
@@ -193,7 +208,11 @@ export const StageNode: FC<{
 
     dataTable.push(...handleAddedRemovedMetrics("Records", metrics.addedRecords, metrics.removedRecords, metrics.totalRecords, (x) => x.toString()));
     dataTable.push(...handleAddedRemovedMetrics("Files", metrics.addedDataFiles, metrics.removedDataFiles, metrics.totalDataFiles, (x) => x.toString()));
+    dataTable.push(...handleAddedRemovedMetrics("Delete Files", metrics.addedPositionalDeletes, metrics.removedPositionalDeletes, metrics.totalPositionalDeletes, (x) => x.toString()));
     dataTable.push(...handleAddedRemovedMetrics("Bytes", metrics.addedFilesSizeInBytes, metrics.removedFilesSizeInBytes, metrics.totalFilesSizeInBytes, humanFileSize));
+    dataTable.push(...handleAddedRemovedMetrics("Positional Deletes", metrics.addedPositionalDeletes, metrics.removedPositionalDeletes, metrics.totalPositionalDeletes, (x) => x.toString()));
+    dataTable.push(...handleAddedRemovedMetrics("Positional Deletes", metrics.addedEqualityDeletes, metrics.removedEqualityDeletes, metrics.totalEqualityDeletes, (x) => x.toString()));
+
   }
   if (data.node.parsedPlan !== undefined) {
     const parsedPlan = data.node.parsedPlan;
