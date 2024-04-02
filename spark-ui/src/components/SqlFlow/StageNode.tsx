@@ -14,7 +14,7 @@ import {
 } from "../../interfaces/AppStore";
 import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
-import { calculatePercentage, humanFileSize, humanizeTimeDiff } from "../../utils/FormatUtils";
+import { calculatePercentage, humanFileSize, humanizeTimeDiff, parseBytesString } from "../../utils/FormatUtils";
 import AlertBadge, { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import ExceptionIcon from "../ExceptionIcon";
 import { ConditionalWrapper } from "../InfoBox/InfoBox";
@@ -183,7 +183,7 @@ export const StageNode: FC<{
       commit.tableName,
     );
     let modeName: string | undefined = undefined
-    if (data.node.nodeName !== "ReplaceData") {
+    if (data.node.nodeName === "ReplaceData") {
       modeName = "copy on write"
     }
     if (data.node.nodeName === "WriteDelta") {
@@ -208,11 +208,17 @@ export const StageNode: FC<{
 
     dataTable.push(...handleAddedRemovedMetrics("Records", metrics.addedRecords, metrics.removedRecords, metrics.totalRecords, (x) => x.toString()));
     dataTable.push(...handleAddedRemovedMetrics("Files", metrics.addedDataFiles, metrics.removedDataFiles, metrics.totalDataFiles, (x) => x.toString()));
+    const avgAddedFileSize = metrics.addedDataFiles !== 0 ? metrics.addedFilesSizeInBytes / metrics.addedDataFiles : 0;
+    if (avgAddedFileSize !== 0) {
+      dataTable.push({
+        name: "Average Added File Size",
+        value: humanFileSize(avgAddedFileSize),
+      });
+    }
     dataTable.push(...handleAddedRemovedMetrics("Delete Files", metrics.addedPositionalDeletes, metrics.removedPositionalDeletes, metrics.totalPositionalDeletes, (x) => x.toString()));
     dataTable.push(...handleAddedRemovedMetrics("Bytes", metrics.addedFilesSizeInBytes, metrics.removedFilesSizeInBytes, metrics.totalFilesSizeInBytes, humanFileSize));
     dataTable.push(...handleAddedRemovedMetrics("Positional Deletes", metrics.addedPositionalDeletes, metrics.removedPositionalDeletes, metrics.totalPositionalDeletes, (x) => x.toString()));
-    dataTable.push(...handleAddedRemovedMetrics("Positional Deletes", metrics.addedEqualityDeletes, metrics.removedEqualityDeletes, metrics.totalEqualityDeletes, (x) => x.toString()));
-
+    dataTable.push(...handleAddedRemovedMetrics("Equality Deletes", metrics.addedEqualityDeletes, metrics.removedEqualityDeletes, metrics.totalEqualityDeletes, (x) => x.toString()));
   }
   if (data.node.parsedPlan !== undefined) {
     const parsedPlan = data.node.parsedPlan;
@@ -386,6 +392,50 @@ export const StageNode: FC<{
         }
         break;
     }
+  }
+
+  if (data.node.type === "input") {
+    const filesReadMetric = parseFloat(
+      data.node.metrics
+        .find((metric) => metric.name === "files read")
+        ?.value?.replaceAll(",", "") ?? "0",
+    );
+    const bytesReadMetric = parseBytesString(
+      data.node.metrics.find((metric) => metric.name === "bytes read")?.value ??
+      "0",
+    );
+
+    if (filesReadMetric && bytesReadMetric) {
+      const avgFileSize = bytesReadMetric / filesReadMetric;
+      const avgFileSizeString = humanFileSize(avgFileSize);
+      dataTable.push({
+        name: "Average File Size",
+        value: avgFileSizeString,
+      });
+    }
+  }
+  const fileWrittenMetric = parseFloat(
+    data.node.metrics
+      .find((metric) => metric.name === "files written")
+      ?.value?.replaceAll(",", "") ?? "0",
+  );
+  const bytesWrittenMetric = parseBytesString(
+    data.node.metrics.find((metric) => metric.name === "bytes written")?.value ??
+    "0",
+  );
+
+  if (
+    data.node.type === "output" &&
+    data.node.parsedPlan?.type === "WriteToHDFS" &&
+    fileWrittenMetric &&
+    bytesWrittenMetric
+  ) {
+    const avgFileSize = bytesWrittenMetric / fileWrittenMetric;
+    const avgFileSizeString = humanFileSize(avgFileSize);
+    dataTable.push({
+      name: "Average File Size",
+      value: avgFileSizeString,
+    });
   }
 
   return (

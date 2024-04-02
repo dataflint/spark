@@ -11,17 +11,19 @@ export function reduceIcebergReplaces(sql: SparkSQLStore, alerts: Alerts) {
                 return;
             }
             const metrics = node.icebergCommit.metrics;
+            const previousSnapshotTotal = metrics.totalRecords - metrics.addedRecords + metrics.removedRecords
             const tableChangedPercentage = calculatePercentage(metrics.removedDataFiles, metrics.totalDataFiles);
             const recordsChangedPercentage = metrics.removedRecords === metrics.totalRecords ? calculatePercentage(metrics.removedRecords, metrics.totalRecords) : calculatePercentage(Math.abs(metrics.addedRecords - metrics.removedRecords), metrics.totalRecords);
-
+            const isMergeChangedLessThanExisting = metrics.addedRecords + metrics.removedRecords <= previousSnapshotTotal * 2; // if 2X the records was added/removed, it might mean the merge is justified because we don't know how many were kept
             if (
                 tableChangedPercentage > REPLACED_MORE_FILES_THAN_RECORDS_PERCENTAGE_THRESHOLD &&
-                recordsChangedPercentage < REPLACED_MORE_FILES_THAN_RECORDS_PERCENTAGE_THRESHOLD
+                recordsChangedPercentage < REPLACED_MORE_FILES_THAN_RECORDS_PERCENTAGE_THRESHOLD &&
+                isMergeChangedLessThanExisting
             ) {
                 alerts.push({
-                    id: `inneficiantIcebergReplaceTable_${sql.id}_${node.nodeId}`,
-                    name: "inneficiantIcebergReplaceTable",
-                    title: "Inneficiant Replace Of Data In Iceberg Table",
+                    id: `inefficientIcebergReplaceTable_${sql.id}_${node.nodeId}`,
+                    name: "inefficientIcebergReplaceTable",
+                    title: "Inefficient Replace Of Data In Iceberg Table",
                     location: `In: SQL query "${sql.description}" (id: ${sql.id}) and node "${node.nodeName}"`,
                     message: `${tableChangedPercentage.toFixed(1)}% of table ${node.icebergCommit.tableName} files were replaced, while only ${recordsChangedPercentage.toFixed(1)}% of records were changed`,
                     suggestion: `

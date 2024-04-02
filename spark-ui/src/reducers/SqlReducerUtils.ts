@@ -42,7 +42,7 @@ const metricsValueTransformer: Record<
   "size of files read": extractTotalFromStatisticsMetric,
   "shuffle bytes written": extractTotalFromStatisticsMetric,
   "spill size": extractTotalFromStatisticsMetric,
-  "total data file size (bytes)": extractTotalFromStatisticsMetric,
+  "total data file size (bytes)": bytesToHumanReadableSize,
   "number of dynamic part": (value: string) => {
     // if dynamic part is 0 we want to remove it from metrics
     if (value === "0") {
