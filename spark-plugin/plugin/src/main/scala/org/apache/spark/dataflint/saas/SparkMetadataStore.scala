@@ -15,7 +15,9 @@ case class SparkMetadataMetrics(
                                  memoryGbHour: Double,
                                  isAnySqlQueryFailed: Boolean,
                                  taskErrorRate: Double,
-                                 CoresWastedRatio: Double
+                                 CoresWastedRatio: Double,
+                                 executorsDurationMs: Long,
+                                 driverDurationMs: Long
                                )
 
 case class SparkMetadataStore(version: String,

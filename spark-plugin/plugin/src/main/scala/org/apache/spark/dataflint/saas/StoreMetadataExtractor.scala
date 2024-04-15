@@ -1,9 +1,10 @@
 package org.apache.spark.dataflint.saas
 
 import org.apache.spark.internal.config.{DRIVER_MEMORY, EXECUTOR_MEMORY, EXECUTOR_MEMORY_OVERHEAD, EXECUTOR_MEMORY_OVERHEAD_FACTOR}
+import org.apache.spark.scheduler.cluster.ExecutorInfo
 import org.apache.spark.sql.execution.ui.SQLAppStatusStore
 import org.apache.spark.status.AppStatusStore
-import org.apache.spark.status.api.v1.{ApplicationAttemptInfo, ApplicationInfo}
+import org.apache.spark.status.api.v1.{ApplicationAttemptInfo, ApplicationInfo, ExecutorSummary}
 import org.apache.spark.util.Utils
 import org.apache.spark.{JobExecutionStatus, SparkConf}
 
@@ -18,7 +19,7 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
       runId = runId,
       accessKey = accessKey,
       applicationInfo = getUpdatedAppInfo(eventEndTime),
-      metrics = calculateMetrics(),
+      metrics = calculateMetrics(eventEndTime),
       conf = filterConf()
     )
   }
@@ -56,7 +57,11 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
     Math.max(Math.min(percentage, 100), 0)
   }
 
-  def calculateMetrics(): SparkMetadataMetrics = {
+  def calculateMetrics(eventEndTime: Long): SparkMetadataMetrics = {
+    def executorDurationMs(executor: ExecutorSummary): Long = {
+      executor.removeTime.map(_.getTime).getOrElse(eventEndTime) - executor.addTime.getTime
+    }
+
     val allExecutors = store.executorList(false)
     val onlyExecutors = store.executorList(false).filter(_.id != "driver")
     val driver = store.executorList(false).find(_.id == "driver").head
@@ -77,8 +82,10 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
     val containerMemoryGb = (executorMemoryConf + memoryOverhead).toDouble / 1024
     val driverMemoryGb = conf.get(DRIVER_MEMORY).toDouble / 1024
 
-    val coreHourUsage = allExecutors.map(exec => (exec.totalDuration.toDouble / 1000 / 60 / 60) * exec.totalCores).sum
-    val memoryGbHour = onlyExecutors.map(exec => (exec.totalDuration.toDouble / 1000 / 60 / 60).toDouble * containerMemoryGb).sum + ((driver.totalDuration.toDouble / 1000 / 60 / 60) * driverMemoryGb)
+    val executorsDurationMs = onlyExecutors.map(executorDurationMs).sum
+    val driverDurationMs = executorDurationMs(driver)
+    val coreHourUsage = allExecutors.map(exec => executorDurationMs(exec) * exec.totalCores).sum
+    val memoryGbHour = onlyExecutors.map(exec => (executorDurationMs(exec).toDouble / 1000 / 60 / 60).toDouble * containerMemoryGb).sum + ((executorDurationMs(driver).toDouble / 1000 / 60 / 60) * driverMemoryGb)
     val totalDCU = (memoryGbHour * 0.005) + (coreHourUsage * 0.05)
     val totalSpillBytes = stages.map(stage => stage.diskBytesSpilled).sum
     val totalOutputBytes = stages.map(stage => stage.outputBytes).sum
@@ -87,9 +94,9 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
     val failedTasks = stages.map(stage => stage.numFailedTasks).sum
     val taskErrorRate = calculatePercentage(failedTasks.toDouble, totalTasks.toDouble)
 
-    val totalTasksSlotsMs = allExecutors.map(exec => (exec.totalDuration.toDouble) * exec.totalTasks).sum
+    val totalTasksSlotsMs = allExecutors.map(exec => executorDurationMs(exec).toDouble * exec.totalTasks).sum
     val totalTaskTime = stages.map(stage => stage.executorRunTime).sum
-    val CoresWastedRatio = calculatePercentage(totalTaskTime, totalTasksSlotsMs)
+    val CoresWastedRatio = 100 - calculatePercentage(totalTaskTime, totalTasksSlotsMs)
 
     val totalShuffleWriteBytes = onlyExecutors.map(exec => exec.totalShuffleWrite).sum
     val totalShuffleReadBytes = onlyExecutors.map(exec => exec.totalShuffleRead).sum
@@ -109,7 +116,9 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
       totalDCU = totalDCU,
       isAnySqlQueryFailed = isAnySqlQueryFailed,
       taskErrorRate = taskErrorRate,
-      CoresWastedRatio = CoresWastedRatio
+      CoresWastedRatio = CoresWastedRatio,
+      executorsDurationMs = executorsDurationMs,
+      driverDurationMs = driverDurationMs
     )
   }
 }
