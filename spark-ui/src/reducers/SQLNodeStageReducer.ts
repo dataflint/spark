@@ -90,7 +90,11 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
     return node;
   });
   nodes = nodes.map((node) => {
-    if (node.nodeName === "Execute InsertIntoHadoopFsRelationCommand" || node.nodeName == "ReplaceData" || node.nodeName == "AppendData") {
+    if (
+      node.nodeName === "Execute InsertIntoHadoopFsRelationCommand" ||
+      node.nodeName == "ReplaceData" ||
+      node.nodeName == "AppendData"
+    ) {
       const previousNode = findPreviousNode(node.nodeId);
       if (previousNode === undefined) {
         return node;
@@ -224,10 +228,10 @@ export function calculateSqlStage(
     const restOfStageDuration = Math.max(
       0,
       (stage.metrics.executorRunTime ?? 0) -
-      codegensDuration -
-      exchangeWriteDuration -
-      exchangeReadDuration -
-      broadcastExchangeDuration,
+        codegensDuration -
+        exchangeWriteDuration -
+        exchangeReadDuration -
+        broadcastExchangeDuration,
     );
 
     return { id: id, restOfStageDuration: restOfStageDuration };
@@ -271,10 +275,10 @@ export function calculateSqlStage(
           ? sql.stageMetrics?.executorRunTime === 0
             ? 0
             : Math.max(
-              0,
-              Math.min(100, duration / sql.stageMetrics?.executorRunTime) *
-              100,
-            )
+                0,
+                Math.min(100, duration / sql.stageMetrics?.executorRunTime) *
+                  100,
+              )
           : undefined;
       return {
         ...node,

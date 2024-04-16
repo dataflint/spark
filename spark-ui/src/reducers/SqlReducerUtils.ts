@@ -68,7 +68,7 @@ const metricsRenamer: Record<string, string> = {
   "number of data loss error": "data loss error",
   "total data file size (bytes)": "bytes read",
   "total data manifests": "data manifests read",
-  "number of file splits read": "files read"
+  "number of file splits read": "files read",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -152,10 +152,9 @@ export function bytesToHumanReadableSize(
   try {
     return humanFileSize(parseInt(value, 10));
   } catch (e) {
-    console.log(`failed to parse ${value} to a number`) // shouldn't happen
+    console.log(`failed to parse ${value} to a number`); // shouldn't happen
     return value;
   }
-
 }
 
 export function nodeEnrichedNameBuilder(
@@ -189,12 +188,15 @@ export function nodeEnrichedNameBuilder(
     return renamedNodeName;
   }
   if (name.includes("Scan")) {
-    const scanRenamed = name.includes("BatchScan") ? name.replace("BatchScan", "Read") : name.replace("Scan", "Read");
+    const scanRenamed = name.includes("BatchScan")
+      ? name.replace("BatchScan", "Read")
+      : name.replace("Scan", "Read");
     const scanNameSliced = scanRenamed.split(" ");
     if (scanNameSliced.length > 2) {
       return scanNameSliced.slice(0, 2).join(" ");
     }
-    const scanNameTrancated = scanRenamed.length > 30 ? scanRenamed.slice(0, 30) + "..." : scanRenamed;
+    const scanNameTrancated =
+      scanRenamed.length > 30 ? scanRenamed.slice(0, 30) + "..." : scanRenamed;
     return scanNameTrancated;
   }
   return name;

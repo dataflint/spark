@@ -200,7 +200,11 @@ const sparkSlice = createSlice({
     },
     setSQL: (
       state,
-      action: PayloadAction<{ sqls: SparkSQLs; plans: SQLPlans, icebergInfo: IcebergInfo }>,
+      action: PayloadAction<{
+        sqls: SparkSQLs;
+        plans: SQLPlans;
+        icebergInfo: IcebergInfo;
+      }>,
     ) => {
       if (state.status === undefined) {
         return;
@@ -210,7 +214,7 @@ const sparkSlice = createSlice({
         state.sql,
         action.payload.sqls,
         action.payload.plans,
-        action.payload.icebergInfo
+        action.payload.icebergInfo,
       );
       if (state.config && state.jobs && state.executors && state.stages) {
         state.sql = calculateSqlQueryLevelMetricsReducer(

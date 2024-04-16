@@ -5,16 +5,19 @@ import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { Handle, Position } from "reactflow";
 import { useAppSelector } from "../../Hooks";
-import {
-  EnrichedSqlNode
-} from "../../interfaces/AppStore";
+import { EnrichedSqlNode } from "../../interfaces/AppStore";
 import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
-import { calculatePercentage, humanFileSize, humanizeTimeDiff, parseBytesString } from "../../utils/FormatUtils";
+import {
+  calculatePercentage,
+  humanFileSize,
+  humanizeTimeDiff,
+  parseBytesString,
+} from "../../utils/FormatUtils";
 import AlertBadge, { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import { ConditionalWrapper } from "../InfoBox/InfoBox";
-import StageIconTooltip from "./StageIconTooltip";
 import styles from "./node-style.module.css";
+import StageIconTooltip from "./StageIconTooltip";
 
 export const StageNodeName: string = "stageNode";
 
@@ -57,44 +60,70 @@ function getBucketedColor(percentage: number): string {
   }
 }
 
-function handleAddedRemovedMetrics(name: string, added: number, removed: number, total: number, transformer: (x: number) => string): MetricWithTooltip[] {
+function handleAddedRemovedMetrics(
+  name: string,
+  added: number,
+  removed: number,
+  total: number,
+  transformer: (x: number) => string,
+): MetricWithTooltip[] {
   const previousSnapshotTotal = total - added + removed;
   const currentSnapshot = total;
 
   if (added === 0 && removed === 0) {
-    return []
-  }
-  else if (added !== 0 && removed === 0) {
-    const addedPercentage = calculatePercentage(added, currentSnapshot).toFixed(1);
-    return [{
-      name: `Added ${name}`,
-      value: transformer(added) + ` (${addedPercentage}%)`,
-    }];
-  }
-  else if (added === 0 && removed !== 0) {
-    const removedPercentage = calculatePercentage(removed, previousSnapshotTotal).toFixed(1);
-    return [{
-      name: `Removed ${name}`,
-      value: transformer(removed) + ` (${removedPercentage}%)`,
-    }];
+    return [];
+  } else if (added !== 0 && removed === 0) {
+    const addedPercentage = calculatePercentage(added, currentSnapshot).toFixed(
+      1,
+    );
+    return [
+      {
+        name: `Added ${name}`,
+        value: transformer(added) + ` (${addedPercentage}%)`,
+      },
+    ];
+  } else if (added === 0 && removed !== 0) {
+    const removedPercentage = calculatePercentage(
+      removed,
+      previousSnapshotTotal,
+    ).toFixed(1);
+    return [
+      {
+        name: `Removed ${name}`,
+        value: transformer(removed) + ` (${removedPercentage}%)`,
+      },
+    ];
   } else if (added === removed) {
     const updated = added;
-    const updatedPercentage = calculatePercentage(updated, previousSnapshotTotal).toFixed(1);
-    return [{
-      name: `${name} Updated`,
-      value: transformer(updated) + ` (${updatedPercentage}%)`,
-    }];
+    const updatedPercentage = calculatePercentage(
+      updated,
+      previousSnapshotTotal,
+    ).toFixed(1);
+    return [
+      {
+        name: `${name} Updated`,
+        value: transformer(updated) + ` (${updatedPercentage}%)`,
+      },
+    ];
   } else {
-    const addedPercentage = calculatePercentage(added, previousSnapshotTotal).toFixed(1);
-    const removedPercentage = calculatePercentage(removed, previousSnapshotTotal).toFixed(1);
+    const addedPercentage = calculatePercentage(
+      added,
+      previousSnapshotTotal,
+    ).toFixed(1);
+    const removedPercentage = calculatePercentage(
+      removed,
+      previousSnapshotTotal,
+    ).toFixed(1);
 
-    return [{
-      name: `Added ${name}`,
-      value: transformer(added) + ` (${addedPercentage}%)`,
-    }, {
-      name: `Removed ${name}`,
-      value: transformer(removed) + ` (${removedPercentage}%)`,
-    }
+    return [
+      {
+        name: `Added ${name}`,
+        value: transformer(added) + ` (${addedPercentage}%)`,
+      },
+      {
+        name: `Removed ${name}`,
+        value: transformer(removed) + ` (${removedPercentage}%)`,
+      },
     ];
   }
 }
@@ -116,18 +145,14 @@ export const StageNode: FC<{
 
   if (data.node.icebergCommit !== undefined) {
     const commit = data.node.icebergCommit;
-    const metrics = commit.metrics
-    addTruncatedSmallTooltip(
-      dataTable,
-      "Table Name",
-      commit.tableName,
-    );
-    let modeName: string | undefined = undefined
+    const metrics = commit.metrics;
+    addTruncatedSmallTooltip(dataTable, "Table Name", commit.tableName);
+    let modeName: string | undefined = undefined;
     if (data.node.nodeName === "ReplaceData") {
-      modeName = "copy on write"
+      modeName = "copy on write";
     }
     if (data.node.nodeName === "WriteDelta") {
-      modeName = "merge on read"
+      modeName = "merge on read";
     }
     if (modeName !== undefined) {
       dataTable.push({
@@ -146,19 +171,70 @@ export const StageNode: FC<{
       value: humanizeTimeDiff(duration(metrics.durationMS)),
     });
 
-    dataTable.push(...handleAddedRemovedMetrics("Records", metrics.addedRecords, metrics.removedRecords, metrics.totalRecords, (x) => x.toString()));
-    dataTable.push(...handleAddedRemovedMetrics("Files", metrics.addedDataFiles, metrics.removedDataFiles, metrics.totalDataFiles, (x) => x.toString()));
-    const avgAddedFileSize = metrics.addedDataFiles !== 0 ? metrics.addedFilesSizeInBytes / metrics.addedDataFiles : 0;
+    dataTable.push(
+      ...handleAddedRemovedMetrics(
+        "Records",
+        metrics.addedRecords,
+        metrics.removedRecords,
+        metrics.totalRecords,
+        (x) => x.toString(),
+      ),
+    );
+    dataTable.push(
+      ...handleAddedRemovedMetrics(
+        "Files",
+        metrics.addedDataFiles,
+        metrics.removedDataFiles,
+        metrics.totalDataFiles,
+        (x) => x.toString(),
+      ),
+    );
+    const avgAddedFileSize =
+      metrics.addedDataFiles !== 0
+        ? metrics.addedFilesSizeInBytes / metrics.addedDataFiles
+        : 0;
     if (avgAddedFileSize !== 0) {
       dataTable.push({
         name: "Average Added File Size",
         value: humanFileSize(avgAddedFileSize),
       });
     }
-    dataTable.push(...handleAddedRemovedMetrics("Delete Files", metrics.addedPositionalDeletes, metrics.removedPositionalDeletes, metrics.totalPositionalDeletes, (x) => x.toString()));
-    dataTable.push(...handleAddedRemovedMetrics("Bytes", metrics.addedFilesSizeInBytes, metrics.removedFilesSizeInBytes, metrics.totalFilesSizeInBytes, humanFileSize));
-    dataTable.push(...handleAddedRemovedMetrics("Positional Deletes", metrics.addedPositionalDeletes, metrics.removedPositionalDeletes, metrics.totalPositionalDeletes, (x) => x.toString()));
-    dataTable.push(...handleAddedRemovedMetrics("Equality Deletes", metrics.addedEqualityDeletes, metrics.removedEqualityDeletes, metrics.totalEqualityDeletes, (x) => x.toString()));
+    dataTable.push(
+      ...handleAddedRemovedMetrics(
+        "Delete Files",
+        metrics.addedPositionalDeletes,
+        metrics.removedPositionalDeletes,
+        metrics.totalPositionalDeletes,
+        (x) => x.toString(),
+      ),
+    );
+    dataTable.push(
+      ...handleAddedRemovedMetrics(
+        "Bytes",
+        metrics.addedFilesSizeInBytes,
+        metrics.removedFilesSizeInBytes,
+        metrics.totalFilesSizeInBytes,
+        humanFileSize,
+      ),
+    );
+    dataTable.push(
+      ...handleAddedRemovedMetrics(
+        "Positional Deletes",
+        metrics.addedPositionalDeletes,
+        metrics.removedPositionalDeletes,
+        metrics.totalPositionalDeletes,
+        (x) => x.toString(),
+      ),
+    );
+    dataTable.push(
+      ...handleAddedRemovedMetrics(
+        "Equality Deletes",
+        metrics.addedEqualityDeletes,
+        metrics.removedEqualityDeletes,
+        metrics.totalEqualityDeletes,
+        (x) => x.toString(),
+      ),
+    );
   }
   if (data.node.parsedPlan !== undefined) {
     const parsedPlan = data.node.parsedPlan;
@@ -233,8 +309,8 @@ export const StageNode: FC<{
                 ? "hashed field"
                 : "hashed fields"
               : parsedPlan.plan.fields.length === 1
-                ? "ranged field"
-                : "ranged fields",
+              ? "ranged field"
+              : "ranged fields",
             parsedPlan.plan.fields,
           );
         }
@@ -342,7 +418,7 @@ export const StageNode: FC<{
     );
     const bytesReadMetric = parseBytesString(
       data.node.metrics.find((metric) => metric.name === "bytes read")?.value ??
-      "0",
+        "0",
     );
 
     if (filesReadMetric && bytesReadMetric) {
@@ -360,8 +436,8 @@ export const StageNode: FC<{
       ?.value?.replaceAll(",", "") ?? "0",
   );
   const bytesWrittenMetric = parseBytesString(
-    data.node.metrics.find((metric) => metric.name === "bytes written")?.value ??
-    "0",
+    data.node.metrics.find((metric) => metric.name === "bytes written")
+      ?.value ?? "0",
   );
 
   if (

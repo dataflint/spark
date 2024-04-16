@@ -258,7 +258,7 @@ export interface EnrichedSqlNode {
   parsedPlan: ParsedNodePlan | undefined;
   exchangeMetrics: ExchangeMetrics | undefined;
   rddScopeId: string | undefined;
-  icebergCommit: IcebergCommitsInfo | undefined
+  icebergCommit: IcebergCommitsInfo | undefined;
 }
 
 export interface SQLNodeExchangeStageData {

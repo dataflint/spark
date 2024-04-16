@@ -53,8 +53,13 @@ class SparkAPI {
 
   private findSqlIdToQueryFrom(): number {
     const currentTime = Date.now();
-    const ids = Object.keys(this.sqlIdToFinishTime).map(id => parseInt(id));
-    const lookbackSqls = ids.filter(id => this.sqlIdToFinishTime[id] !== null && this.sqlIdToFinishTime[id].finishTime + SQL_LOOKBACK_QUERY_TIME > currentTime);
+    const ids = Object.keys(this.sqlIdToFinishTime).map((id) => parseInt(id));
+    const lookbackSqls = ids.filter(
+      (id) =>
+        this.sqlIdToFinishTime[id] !== null &&
+        this.sqlIdToFinishTime[id].finishTime + SQL_LOOKBACK_QUERY_TIME >
+          currentTime,
+    );
 
     if (lookbackSqls.length > 0) {
       return Math.min(...lookbackSqls);
@@ -202,8 +207,8 @@ class SparkAPI {
         this.attemptId = isDataFlintSaaSUI()
           ? undefined
           : currentAttempt?.attemptId !== undefined
-            ? currentAttempt.attemptId
-            : undefined;
+          ? currentAttempt.attemptId
+          : undefined;
         const sparkConfiguration: SparkConfiguration = await this.queryData(
           this.environmentPath,
         );
@@ -211,11 +216,15 @@ class SparkAPI {
         this.isConnected = true;
 
         const extensionsConfig = sparkConfiguration.sparkProperties.find(
-          (conf) =>
-            conf.length > 1 && conf[0] === "spark.sql.extensions",
+          (conf) => conf.length > 1 && conf[0] === "spark.sql.extensions",
         );
 
-        if (extensionsConfig !== undefined && extensionsConfig[1].includes("org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")) {
+        if (
+          extensionsConfig !== undefined &&
+          extensionsConfig[1].includes(
+            "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
+          )
+        ) {
           this.icebergEnabled = true;
         }
 
@@ -270,11 +279,19 @@ class SparkAPI {
       );
       let icebergInfo: IcebergInfo = { commitsInfo: [] };
       if (this.icebergEnabled) {
-        icebergInfo = await this.queryData(this.buildIcebergPath(sqlIdToQueryFrom));
+        icebergInfo = await this.queryData(
+          this.buildIcebergPath(sqlIdToQueryFrom),
+        );
       }
 
       if (sparkSQLs.length !== 0) {
-        this.dispatch(setSQL({ sqls: sparkSQLs, plans: sparkPlans, icebergInfo: icebergInfo }));
+        this.dispatch(
+          setSQL({
+            sqls: sparkSQLs,
+            plans: sparkPlans,
+            icebergInfo: icebergInfo,
+          }),
+        );
 
         const finishedSqls = sparkSQLs.filter(
           (sql) =>
@@ -285,12 +302,16 @@ class SparkAPI {
         if (finishedSqls.length > 0) {
           // in cases of SQLs out of order, like id 2 is running and 3 is completed, we will try to ask from id 2 again
           finishedSqls.forEach((sql) => {
-            const idAsNumber = parseInt(sql.id)
+            const idAsNumber = parseInt(sql.id);
             if (idAsNumber === this.lastCompletedSqlId + 1) {
               this.lastCompletedSqlId += 1;
             }
             if (this.sqlIdToFinishTime[idAsNumber] === undefined) {
-              this.sqlIdToFinishTime[idAsNumber] = { id: idAsNumber, finishTime: timeStrToEpocTime(sql.submissionTime) + sql.duration };
+              this.sqlIdToFinishTime[idAsNumber] = {
+                id: idAsNumber,
+                finishTime:
+                  timeStrToEpocTime(sql.submissionTime) + sql.duration,
+              };
             }
           });
         }

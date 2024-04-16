@@ -33,7 +33,7 @@ export function humanFileSizeSparkConfigFormat(bytes: number): string {
 
 export function humanizeTimeDiff(
   duration: Duration,
-  roundSeconds: boolean = false
+  roundSeconds: boolean = false,
 ): string {
   if (duration.asDays() >= 1) {
     return duration.asDays().toFixed(1) + "d";

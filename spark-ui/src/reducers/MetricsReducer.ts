@@ -14,14 +14,16 @@ import {
 } from "../interfaces/AppStore";
 import { SparkJobs } from "../interfaces/SparkJobs";
 import { SqlStatus } from "../interfaces/SparkSQLs";
-import { SparkStage, SparkStages } from '../interfaces/SparkStages';
+import { SparkStage, SparkStages } from "../interfaces/SparkStages";
 import { StagesRdd } from "../interfaces/StagesRdd";
-import { calculatePercentage, msToHours } from '../utils/FormatUtils';
+import { calculatePercentage, msToHours } from "../utils/FormatUtils";
 import { calculateSqlStage } from "./SQLNodeStageReducer";
 
 const moment = extendMoment(Moment);
 
-const EMPTY_DISTRIBUTION = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+const EMPTY_DISTRIBUTION = [
+  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+];
 const MAX_TASK_DURATION_THRESHOLD_MS = 5000;
 const PARTITION_SKEW_RATIO = 10;
 
@@ -52,13 +54,29 @@ export function calculateStagesStore(
         completedTasks: stage.numCompleteTasks,
         failedTasks: stage.numFailedTasks,
         activeTasks: stage.numActiveTasks,
-        pendingTasks: stage.numTasks - stage.numCompleteTasks - stage.numFailedTasks - stage.numActiveTasks,
-        durationDistribution: stage.taskMetricsDistributions?.executorRunTime ?? EMPTY_DISTRIBUTION,
-        outputDistribution: stage.taskMetricsDistributions?.outputMetrics?.bytesWritten ?? EMPTY_DISTRIBUTION,
-        inputDistribution: stage.taskMetricsDistributions?.inputMetrics?.bytesRead ?? EMPTY_DISTRIBUTION,
-        shuffleReadDistribution: stage.taskMetricsDistributions?.shuffleReadMetrics?.readBytes ?? EMPTY_DISTRIBUTION,
-        shuffleWriteDistribution: stage.taskMetricsDistributions?.shuffleWriteMetrics?.writeBytes ?? EMPTY_DISTRIBUTION,
-        stageProgress: calculatePercentage(stage.numCompleteTasks, stage.numTasks),
+        pendingTasks:
+          stage.numTasks -
+          stage.numCompleteTasks -
+          stage.numFailedTasks -
+          stage.numActiveTasks,
+        durationDistribution:
+          stage.taskMetricsDistributions?.executorRunTime ?? EMPTY_DISTRIBUTION,
+        outputDistribution:
+          stage.taskMetricsDistributions?.outputMetrics?.bytesWritten ??
+          EMPTY_DISTRIBUTION,
+        inputDistribution:
+          stage.taskMetricsDistributions?.inputMetrics?.bytesRead ??
+          EMPTY_DISTRIBUTION,
+        shuffleReadDistribution:
+          stage.taskMetricsDistributions?.shuffleReadMetrics?.readBytes ??
+          EMPTY_DISTRIBUTION,
+        shuffleWriteDistribution:
+          stage.taskMetricsDistributions?.shuffleWriteMetrics?.writeBytes ??
+          EMPTY_DISTRIBUTION,
+        stageProgress: calculatePercentage(
+          stage.numCompleteTasks,
+          stage.numTasks,
+        ),
         failureReason: stage.failureReason,
         stagesRdd: stagesRdd[stage.stageId],
         hasPartitionSkew:
@@ -258,10 +276,10 @@ export function calculateSqlQueryLevelMetricsReducer(
         executors.length === 1
           ? resourceUsageWithDriver
           : calculateSqlQueryResourceUsage(
-            configStore,
-            sql,
-            executors.filter((executor) => !executor.isDriver),
-          );
+              configStore,
+              sql,
+              executors.filter((executor) => !executor.isDriver),
+            );
       const totalTasksTime = sql.stageMetrics?.executorRunTime as number;
       const wastedCoresRate = calculatePercentage(
         totalTasksTime,
@@ -276,11 +294,11 @@ export function calculateSqlQueryLevelMetricsReducer(
           statusStore.executors?.totalDCU === undefined
             ? 0
             : Math.min(
-              100,
-              (resourceUsageWithDriver.totalDCU /
-                statusStore.executors.totalDCU) *
-              100,
-            ),
+                100,
+                (resourceUsageWithDriver.totalDCU /
+                  statusStore.executors.totalDCU) *
+                  100,
+              ),
         durationPercentage: calculatePercentage(
           sql.duration,
           statusStore.duration,

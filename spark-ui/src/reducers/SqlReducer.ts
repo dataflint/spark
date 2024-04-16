@@ -10,23 +10,23 @@ import {
   SparkSQLStore,
 } from "../interfaces/AppStore";
 import { IcebergCommitsInfo, IcebergInfo } from "../interfaces/IcebergInfo";
-import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
+import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import {
-  timeStrToEpocTime,
   timeStringToMilliseconds,
+  timeStrToEpocTime,
 } from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
 import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
+import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import { parseJoin } from "./PlanParsers/JoinParser";
 import { parseProject } from "./PlanParsers/ProjectParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
-import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import {
   calcNodeMetrics,
   calcNodeType,
@@ -168,7 +168,7 @@ export function getMetricDuration(
 function calculateSql(
   sql: SparkSQL,
   plan: SQLPlan | undefined,
-  icebergCommit: IcebergCommitsInfo | undefined
+  icebergCommit: IcebergCommitsInfo | undefined,
 ): EnrichedSparkSQL {
   const enrichedSql = sql as EnrichedSparkSQL;
   const originalNumOfNodes = enrichedSql.nodes.length;
@@ -191,7 +191,10 @@ function calculateSql(
       wholeStageCodegenId: isCodegenNode
         ? extractCodegenId()
         : node.wholeStageCodegenId,
-      icebergCommit: type === "output" || enrichedSql.nodes.length === 1 ? icebergCommit : undefined,
+      icebergCommit:
+        type === "output" || enrichedSql.nodes.length === 1
+          ? icebergCommit
+          : undefined,
     };
 
     function extractCodegenId(): number | undefined {
@@ -301,10 +304,16 @@ function calculateSql(
   };
 }
 
-function calculateSqls(sqls: SparkSQLs, plans: SQLPlans, icebergInfo: IcebergInfo): EnrichedSparkSQL[] {
+function calculateSqls(
+  sqls: SparkSQLs,
+  plans: SQLPlans,
+  icebergInfo: IcebergInfo,
+): EnrichedSparkSQL[] {
   return sqls.map((sql) => {
     const plan = plans.find((plan) => plan.executionId === parseInt(sql.id));
-    const icebergCommit = icebergInfo.commitsInfo.find((plan) => plan.executionId === parseInt(sql.id));
+    const icebergCommit = icebergInfo.commitsInfo.find(
+      (plan) => plan.executionId === parseInt(sql.id),
+    );
     return calculateSql(sql, plan, icebergCommit);
   });
 }
@@ -313,7 +322,7 @@ export function calculateSqlStore(
   currentStore: SparkSQLStore | undefined,
   sqls: SparkSQLs,
   plans: SQLPlans,
-  icebergInfo: IcebergInfo
+  icebergInfo: IcebergInfo,
 ): SparkSQLStore {
   if (currentStore === undefined) {
     return { sqls: calculateSqls(sqls, plans, icebergInfo) };
@@ -335,7 +344,9 @@ export function calculateSqlStore(
       (existingSql) => parseInt(existingSql.id) === id,
     );
     const plan = plans.find((plan) => plan.executionId === id);
-    const icebergCommit = icebergInfo.commitsInfo.find((plan) => plan.executionId === id);
+    const icebergCommit = icebergInfo.commitsInfo.find(
+      (plan) => plan.executionId === id,
+    );
 
     // case 1: SQL does not exist, we add it
     if (currentSql === undefined) {
