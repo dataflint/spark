@@ -1,6 +1,4 @@
-import CheckIcon from "@mui/icons-material/Check";
-import PendingIcon from "@mui/icons-material/Pending";
-import { Box, CircularProgress, Tooltip, Typography } from "@mui/material";
+import { Box, Tooltip, Typography } from "@mui/material";
 import { duration } from "moment";
 import React, { FC } from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
@@ -8,16 +6,14 @@ import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { Handle, Position } from "reactflow";
 import { useAppSelector } from "../../Hooks";
 import {
-  EnrichedSqlNode,
-  SQLNodeExchangeStageData,
-  SQLNodeStageData,
+  EnrichedSqlNode
 } from "../../interfaces/AppStore";
 import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
 import { calculatePercentage, humanFileSize, humanizeTimeDiff, parseBytesString } from "../../utils/FormatUtils";
 import AlertBadge, { TransperantTooltip } from "../AlertBadge/AlertBadge";
-import ExceptionIcon from "../ExceptionIcon";
 import { ConditionalWrapper } from "../InfoBox/InfoBox";
+import StageIconTooltip from "./StageIconTooltip";
 import styles from "./node-style.module.css";
 
 export const StageNodeName: string = "stageNode";
@@ -60,62 +56,6 @@ function getBucketedColor(percentage: number): string {
       return "#FF0000"; // Red
   }
 }
-
-const getStatusIcon = (
-  status: string,
-  failureReason: string | undefined,
-): JSX.Element => {
-  switch (status) {
-    case "ACTIVE":
-      return (
-        <CircularProgress
-          color="info"
-          style={{ width: "30px", height: "30px" }}
-        />
-      );
-    case "COMPLETE":
-      return (
-        <CheckIcon color="success" style={{ width: "30px", height: "30px" }} />
-      );
-    case "FAILED":
-      return <ExceptionIcon failureReason={failureReason ?? ""} />;
-    case "PENDING":
-      return (
-        <PendingIcon
-          sx={{ color: "#b2a300" }}
-          style={{ width: "30px", height: "30px" }}
-        />
-      );
-    default:
-      return <div></div>;
-  }
-};
-
-const StageIcon: FC<{
-  stage: SQLNodeStageData | SQLNodeExchangeStageData | undefined;
-}> = ({ stage }): JSX.Element => {
-  if (stage === undefined) return <div></div>;
-
-  const stages = useAppSelector((state) => state.spark.stages);
-  const stageData = stages?.find(
-    (currentStage) =>
-      (stage.type === "onestage" && stage.stageId === currentStage.stageId) ||
-      (stage.type === "exchange" &&
-        (stage.writeStage === currentStage.stageId ||
-          stage.readStage === currentStage.stageId)),
-  );
-
-  const text =
-    stage.type === "onestage"
-      ? `Stage ${stage.stageId}`
-      : `Write Stage: ${stage.writeStage}\n, Read Stage: ${stage.readStage}`;
-
-  return (
-    <Tooltip sx={{ zIndex: 6 }} title={text}>
-      {getStatusIcon(stage.status, stageData?.failureReason)}
-    </Tooltip>
-  );
-};
 
 function handleAddedRemovedMetrics(name: string, added: number, removed: number, total: number, transformer: (x: number) => string): MetricWithTooltip[] {
   const previousSnapshotTotal = total - added + removed;
@@ -492,11 +432,11 @@ export const StageNode: FC<{
         <Box
           sx={{
             position: "absolute",
-            top: "80%",
+            top: "83%",
             right: "85%",
           }}
         >
-          <StageIcon stage={data.node.stage} />
+          <StageIconTooltip stage={data.node.stage} />
         </Box>
         <Box
           sx={{

@@ -62,7 +62,7 @@ export interface SparkStage {
   taskMetricsDistributions: TaskMetricsDistributions | undefined;
 }
 
-export interface KilledTasksSummary {}
+export interface KilledTasksSummary { }
 
 export interface PeakExecutorMetrics {
   JVMHeapMemory: number;
@@ -106,6 +106,13 @@ export interface TaskMetricsDistributions {
   inputMetrics: InputMetrics;
   outputMetrics: OutputMetrics;
   shuffleReadMetrics: ShuffleReadMetrics;
+  shuffleWriteMetrics: ShuffleWriteMetrics;
+}
+
+export interface ShuffleWriteMetrics {
+  writeBytes: number[]
+  writeRecords: number[]
+  writeTime: number[]
 }
 
 export interface InputMetrics {

@@ -345,6 +345,16 @@ export interface SparkStageStore {
   hasPartitionSkew: boolean | undefined;
   mediumTaskDuration: number | undefined;
   maxTaskDuration: number | undefined;
+  completedTasks: number;
+  failedTasks: number;
+  activeTasks: number;
+  pendingTasks: number;
+  stageProgress: number;
+  durationDistribution: number[];
+  inputDistribution: number[];
+  outputDistribution: number[];
+  shuffleWriteDistribution: number[];
+  shuffleReadDistribution: number[];
   metrics: SparkMetricsStore;
 }
 

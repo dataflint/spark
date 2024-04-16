@@ -33,7 +33,7 @@ export function humanFileSizeSparkConfigFormat(bytes: number): string {
 
 export function humanizeTimeDiff(
   duration: Duration,
-  roundSeconds: boolean = false,
+  roundSeconds: boolean = false
 ): string {
   if (duration.asDays() >= 1) {
     return duration.asDays().toFixed(1) + "d";
@@ -44,9 +44,12 @@ export function humanizeTimeDiff(
   if (duration.asMinutes() >= 1) {
     return duration.asMinutes().toFixed(1) + "m";
   }
-  return roundSeconds
-    ? duration.asSeconds().toFixed(0) + "s"
-    : duration.asSeconds().toFixed(1) + "s";
+  if (duration.asSeconds() >= 1 || roundSeconds) {
+    return roundSeconds
+      ? duration.asSeconds().toFixed(0) + "s"
+      : duration.asSeconds().toFixed(1) + "s";
+  }
+  return duration.asMilliseconds().toFixed(0) + "ms";
 }
 
 export function msToHours(ms: number): number {
