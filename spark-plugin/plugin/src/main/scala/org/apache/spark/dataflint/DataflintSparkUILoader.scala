@@ -14,6 +14,16 @@ import org.apache.spark.ui.SparkUI
 
 class DataflintSparkUIInstaller extends Logging {
   def install(context: SparkContext): String = {
+    if(context.ui.isEmpty) {
+      logWarning("No UI detected, skipping installation...")
+      return ""
+    }
+    val isDataFlintAlreadyInstalled = context.ui.get.getTabs.exists(_.name == "DataFlint")
+    if(isDataFlintAlreadyInstalled){
+      logInfo("DataFlint UI is already installed, skipping installation...")
+      return context.ui.get.webUrl
+    }
+
     val sqlListener = () => context.listenerBus.listeners.toArray().find(_.isInstanceOf[SQLAppStatusListener]).asInstanceOf[Option[SQLAppStatusListener]]
     val tokenConf = context.conf.getOption("spark.dataflint.token")
     val dataflintEnabled = context.conf.getBoolean("spark.dataflint.enabled", true)

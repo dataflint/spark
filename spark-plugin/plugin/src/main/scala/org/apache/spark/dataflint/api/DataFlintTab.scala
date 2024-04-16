@@ -6,6 +6,7 @@ import javax.servlet.http.HttpServletRequest
 import scala.xml.Node
 
 class DataFlintTab(parent: SparkUI) extends WebUITab(parent,"dataflint") {
+  override val name: String = "DataFlint"
   def render(request: HttpServletRequest): Seq[Node] = {
     val content =
           <div>
