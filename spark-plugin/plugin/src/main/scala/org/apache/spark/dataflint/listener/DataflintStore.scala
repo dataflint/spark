@@ -1,10 +1,19 @@
 package org.apache.spark.dataflint.listener
 
-import org.apache.spark.status.{JobDataWrapper, KVUtils}
-import org.apache.spark.util.kvstore.KVStore
+import scala.collection.JavaConverters._
+import org.apache.spark.util.Utils
+import org.apache.spark.util.kvstore.{KVStore, KVStoreView}
+
 
 class DataflintStore(val store: KVStore) {
+  // mapToSeq copied from KVUtils because it does not exists in spark 3.3
+  def mapToSeq[T, B](view: KVStoreView[T])(mapFunc: T => B): Seq[B] = {
+    Utils.tryWithResource(view.closeableIterator()) { iter =>
+      iter.asScala.map(mapFunc).toList
+    }
+  }
+
   def icebergCommits(offset: Int, length: Int): Seq[IcebergCommitInfo] = {
-    KVUtils.mapToSeq(store.view(classOf[IcebergCommitWrapper]))(_.info).filter(_.executionId >= offset).take(length).sortBy(_.executionId)
+    mapToSeq(store.view(classOf[IcebergCommitWrapper]))(_.info).filter(_.executionId >= offset).take(length).sortBy(_.executionId)
   }
 }

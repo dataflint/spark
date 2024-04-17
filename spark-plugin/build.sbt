@@ -62,10 +62,12 @@ lazy val example_3_3_3 = (project in file("example_3_3_3"))
   .settings(
     name := "DataflintSparkExample333",
     organization := "io.dataflint",
-    crossScalaVersions := supportedScalaVersions,
+    crossScalaVersions := List(scala212),
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.3.3",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.3.3",
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
+    libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.3" % "1.5.0",
+    libraryDependencies += "org.scala-lang.modules" %% "scala-collection-compat" % "2.11.0",
     publish / skip := true
   ).dependsOn(plugin)
 
