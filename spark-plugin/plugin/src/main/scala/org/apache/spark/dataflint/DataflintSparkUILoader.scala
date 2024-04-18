@@ -72,6 +72,11 @@ class DataflintSparkUIInstaller extends Logging {
   }
 
   def loadUI(ui: SparkUI, sqlListener: () => Option[SQLAppStatusListener] = () => None): String = {
+    val isDataFlintAlreadyInstalled = ui.getTabs.exists(_.name == "DataFlint")
+    if (isDataFlintAlreadyInstalled) {
+      logInfo("DataFlint UI is already installed, skipping installation...")
+      return ui.webUrl
+    }
     DataflintJettyUtils.addStaticHandler(ui, "io/dataflint/spark/static/ui", ui.basePath + "/dataflint")
     val dataflintStore = new DataflintStore(store = ui.store.store)
     val tab = new DataFlintTab(ui)
