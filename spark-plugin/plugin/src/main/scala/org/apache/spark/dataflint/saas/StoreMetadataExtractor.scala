@@ -84,8 +84,8 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
 
     val executorsDurationMs = onlyExecutors.map(executorDurationMs).sum
     val driverDurationMs = executorDurationMs(driver)
-    val coreHourUsage = allExecutors.map(exec => executorDurationMs(exec) * exec.totalCores).sum
-    val memoryGbHour = onlyExecutors.map(exec => (executorDurationMs(exec).toDouble / 1000 / 60 / 60).toDouble * containerMemoryGb).sum + ((executorDurationMs(driver).toDouble / 1000 / 60 / 60) * driverMemoryGb)
+    val coreHourUsage = allExecutors.map(exec => (executorDurationMs(exec).toDouble / 1000 / 60 / 60).toDouble * exec.totalCores).sum
+    val memoryGbHour = onlyExecutors.map(exec => (executorDurationMs(exec).toDouble / 1000 / 60 / 60).toDouble * containerMemoryGb).sum + ((executorDurationMs(driver).toDouble / 1000 / 60 / 60).toDouble * driverMemoryGb).toDouble
     val totalDCU = (memoryGbHour * 0.005) + (coreHourUsage * 0.05)
     val totalSpillBytes = stages.map(stage => stage.diskBytesSpilled).sum
     val totalOutputBytes = stages.map(stage => stage.outputBytes).sum
