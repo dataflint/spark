@@ -16,8 +16,8 @@ import {
 } from "../../utils/FormatUtils";
 import AlertBadge, { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import { ConditionalWrapper } from "../InfoBox/InfoBox";
-import styles from "./node-style.module.css";
 import StageIconTooltip from "./StageIconTooltip";
+import styles from "./node-style.module.css";
 
 export const StageNodeName: string = "stageNode";
 
@@ -282,6 +282,32 @@ export const StageNode: FC<{
         }
         break;
       case "FileScan":
+        if (parsedPlan.plan.PushedFilters !== undefined && parsedPlan.plan.PushedFilters.length > 0) {
+          addTruncatedCodeTooltipMultiline(
+            dataTable,
+            "Push Down Filters",
+            parsedPlan.plan.PushedFilters,
+            25,
+            false,
+          );
+        }
+        if (parsedPlan.plan.PartitionFilters !== undefined) {
+          if (parsedPlan.plan.PartitionFilters.length > 0) {
+            addTruncatedCodeTooltipMultiline(
+              dataTable,
+              "Partition Filters",
+              parsedPlan.plan.PartitionFilters,
+              100,
+              false
+            );
+          }
+          else {
+            dataTable.push({
+              name: "Partition Filters",
+              value: "Full Scan",
+            });
+          }
+        }
         if (parsedPlan.plan.Location !== undefined) {
           addTruncatedSmallTooltip(
             dataTable,
@@ -309,8 +335,8 @@ export const StageNode: FC<{
                 ? "hashed field"
                 : "hashed fields"
               : parsedPlan.plan.fields.length === 1
-              ? "ranged field"
-              : "ranged fields",
+                ? "ranged field"
+                : "ranged fields",
             parsedPlan.plan.fields,
           );
         }
@@ -418,7 +444,7 @@ export const StageNode: FC<{
     );
     const bytesReadMetric = parseBytesString(
       data.node.metrics.find((metric) => metric.name === "bytes read")?.value ??
-        "0",
+      "0",
     );
 
     if (filesReadMetric && bytesReadMetric) {
@@ -457,7 +483,7 @@ export const StageNode: FC<{
   return (
     <>
       <Handle type="target" position={Position.Left} id="b" />
-      <Box position="relative" width={280} height={240}>
+      <Box position="relative" width={280} height={280}>
         <div className={styles.node}>
           <div className={styles.textWrapper}>
             <Typography
@@ -508,7 +534,7 @@ export const StageNode: FC<{
         <Box
           sx={{
             position: "absolute",
-            top: "83%",
+            top: "87%",
             right: "85%",
           }}
         >
@@ -517,7 +543,7 @@ export const StageNode: FC<{
         <Box
           sx={{
             position: "absolute",
-            top: "85%",
+            top: "89%",
             right: "42%",
             color: getBucketedColor(data.node.durationPercentage ?? 0),
           }}
@@ -563,8 +589,12 @@ function addTruncatedCodeTooltipMultiline(
   dataTable: MetricWithTooltip[],
   name: string,
   value: string[],
+  limit = 120,
+  pushEnd: boolean = true,
+  showBlock: boolean = true,
+
 ) {
-  addTruncatedCodeTooltip(dataTable, name, value.join(",\n"));
+  addTruncatedCodeTooltip(dataTable, name, value.join(",\n"), limit, pushEnd, showBlock);
 }
 
 function addTruncatedCodeTooltip(
