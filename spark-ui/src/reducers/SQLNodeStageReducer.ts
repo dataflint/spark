@@ -228,10 +228,10 @@ export function calculateSqlStage(
     const restOfStageDuration = Math.max(
       0,
       (stage.metrics.executorRunTime ?? 0) -
-        codegensDuration -
-        exchangeWriteDuration -
-        exchangeReadDuration -
-        broadcastExchangeDuration,
+      codegensDuration -
+      exchangeWriteDuration -
+      exchangeReadDuration -
+      broadcastExchangeDuration,
     );
 
     return { id: id, restOfStageDuration: restOfStageDuration };
@@ -275,10 +275,10 @@ export function calculateSqlStage(
           ? sql.stageMetrics?.executorRunTime === 0
             ? 0
             : Math.max(
-                0,
-                Math.min(100, duration / sql.stageMetrics?.executorRunTime) *
-                  100,
-              )
+              0,
+              Math.min(100, duration / sql.stageMetrics?.executorRunTime) *
+              100,
+            )
           : undefined;
       return {
         ...node,

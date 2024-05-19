@@ -8,6 +8,7 @@ import {
 export function parseFilter(input: string): ParseFilterPlan {
   let filterStr = input;
   filterStr = removeFromStart(filterStr, "Filter ");
+  filterStr = removeFromStart(filterStr, "PhotonFilter ");
   if (filterStr.startsWith("(")) {
     filterStr = removeFromStart(filterStr, "(");
     filterStr = removeFromEnd(filterStr, ")");

@@ -10,23 +10,23 @@ import {
   SparkSQLStore,
 } from "../interfaces/AppStore";
 import { IcebergCommitsInfo, IcebergInfo } from "../interfaces/IcebergInfo";
+import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
-import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import {
-  timeStringToMilliseconds,
   timeStrToEpocTime,
+  timeStringToMilliseconds,
 } from "../utils/FormatUtils";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
 import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
-import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import { parseJoin } from "./PlanParsers/JoinParser";
 import { parseProject } from "./PlanParsers/ProjectParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
+import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import {
   calcNodeMetrics,
   calcNodeType,
@@ -92,11 +92,13 @@ export function parseNodePlan(
 ): ParsedNodePlan | undefined {
   try {
     switch (node.nodeName) {
+      case "PhotonGroupingAgg":
       case "HashAggregate":
         return {
           type: "HashAggregate",
           plan: parseHashAggregate(plan.planDescription),
         };
+
       case "TakeOrderedAndProject":
         return {
           type: "TakeOrderedAndProject",
@@ -112,6 +114,7 @@ export function parseNodePlan(
           type: "WriteToHDFS",
           plan: parseWriteToHDFS(plan.planDescription),
         };
+      case "PhotonFilter":
       case "Filter":
         return {
           type: "Filter",
@@ -122,6 +125,7 @@ export function parseNodePlan(
           type: "Exchange",
           plan: parseExchange(plan.planDescription),
         };
+      case "PhotonProject":
       case "Project":
         return {
           type: "Project",

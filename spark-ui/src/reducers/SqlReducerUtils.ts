@@ -29,6 +29,9 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "number of partitions",
     "shuffle bytes written",
     "shuffle records written",
+    "number of output rows",
+    "num bytes read",
+    "num bytes written",
   ],
   broadcast: ["number of output rows", "data size"],
   sort: ["spill size"],
@@ -59,6 +62,8 @@ const metricsRenamer: Record<string, string> = {
   "written output": "bytes written",
   "number of files read": "files read",
   "size of files read": "bytes read",
+  "num bytes read": "bytes read",
+  "num bytes written": "bytes written",
   "number of partitions read": "partitions read",
   "number of dynamic part": "partitions written",
   "number of partitions": "partitions",
@@ -94,6 +99,12 @@ const nodeTypeDict: Record<string, NodeType> = {
   ReplaceData: "output",
   WriteDelta: "output",
   DeleteFromTable: "output",
+  PhotonProject: "transformation",
+  PhotonGroupingAgg: "transformation",
+  PhotonShuffleExchangeSink: "shuffle",
+  PhotonShuffleExchangeSource: "shuffle",
+  PhotonTopK: "transformation",
+  PhotonFilter: "transformation",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -123,6 +134,12 @@ const nodeRenamerDict: Record<string, string> = {
   ReplaceData: "Iceberg - Replace data",
   WriteDelta: "Iceberg - Write Delta",
   DeleteFromTable: "Iceberg - Delete from table",
+  PhotonProject: "Project (Photon)",
+  PhotonGroupingAgg: "Aggregate (Photon)",
+  PhotonShuffleExchangeSink: "Exchange Write (Photon)",
+  PhotonShuffleExchangeSource: "Exchange Read (Photon)",
+  PhotonTopK: "Take (Photon)",
+  PhotonFilter: "Filter (Photon)"
 };
 
 export function extractTotalFromStatisticsMetric(
