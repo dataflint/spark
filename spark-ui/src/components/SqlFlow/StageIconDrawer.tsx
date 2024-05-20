@@ -32,7 +32,7 @@ function LinearProgressWithLabel(props: LinearProgressProps & { completedTasks: 
     const runningTasksPercent = ((props.completedTasks + props.runningTasks) / props.numTasks) * 100;
 
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: "center" }}>
             <Box sx={{ width: '70%', m: 1, mr: 2 }}>
                 <LinearProgress variant="buffer" value={completedTasksPercent} valueBuffer={runningTasksPercent} {...props} />
             </Box>
