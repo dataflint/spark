@@ -143,6 +143,10 @@ function StageSummary({
                 <Typography variant="body2">
                     <strong>Running tasks: </strong> {stageData.activeTasks}
                 </Typography>)}
+            {stageData.failedTasks === 0 ? undefined : (
+                <Typography variant="body2">
+                    <strong>Failed tasks: </strong> {stageData.failedTasks}
+                </Typography>)}
             {stageData.stageRealTimeDurationMs === undefined ? undefined : <Typography variant="body2">
                 <strong>Stage duration:</strong>{" "}
                 {humanizeTimeDiff(
