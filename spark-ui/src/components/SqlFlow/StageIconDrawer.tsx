@@ -31,6 +31,7 @@ function MultiStageIconTooltip({
     stage: SQLNodeExchangeStageData;
 }): JSX.Element {
     const stages = useAppSelector((state) => state.spark.stages);
+
     const readStage = stages?.find(
         (currentStage) => stage.readStage === currentStage.stageId,
     );
@@ -42,17 +43,19 @@ function MultiStageIconTooltip({
     return (
         <Box>
             <Box sx={{ m: 1 }} display="flex" gap={1}>
-                {readStage === undefined ? undefined : <Link
-                    color="inherit"
-                    onClick={(evn) => linkToStage(stage.readStage)}
-                >
-                    Read Stage - {stage.readStage}
-                </Link>}
                 {writeStage === undefined ? undefined : <Link
                     color="inherit"
+                    sx={{ textAlign: "center", margin: "0 auto" }}
                     onClick={(evn) => linkToStage(stage.writeStage)}
                 >
                     Write Stage - {stage.writeStage}
+                </Link>}
+                {readStage === undefined ? undefined : <Link
+                    color="inherit"
+                    sx={{ textAlign: "center", margin: "0 auto" }}
+                    onClick={(evn) => linkToStage(stage.readStage)}
+                >
+                    Read Stage - {stage.readStage}
                 </Link>}
             </Box>
             {writeStage === undefined ? undefined : <Box sx={{ m: 1 }}>
@@ -87,7 +90,7 @@ function SingleStageIconTooltip({
 
     return (
         <Box sx={{ m: 1 }} display="flex" flexDirection="column" gap={1}>
-            <Link color="inherit" onClick={(evn) => linkToStage(stage.stageId)}>
+            <Link color="inherit" onClick={(evn) => linkToStage(stage.stageId)} sx={{ textAlign: "center", margin: "0 auto" }}>
                 Stage {stage.stageId}
             </Link>
             <StageSummary stageData={stageData} />
@@ -97,7 +100,8 @@ function SingleStageIconTooltip({
             {stageData.outputDistribution !== undefined && stageData.outputDistribution.some(x => x !== 0) ? <BytesDistributionChart title="output bytes" bytesDist={stageData.outputDistribution} /> : undefined}
             {stageData.outputRowsDistribution !== undefined && stageData.outputRowsDistribution.some(x => x !== 0) ? <NumbersDistributionChart title="output rows" numbersDist={stageData.outputRowsDistribution} /> : undefined}
             {stageData.spillDiskDistriution !== undefined && stageData.spillDiskDistriution.some(x => x !== 0) ? <NumbersDistributionChart title="output rows" numbersDist={stageData.spillDiskDistriution} /> : undefined}
-        </Box>)
+        </Box>
+    )
 }
 
 function StageSummary({
