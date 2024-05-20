@@ -1,10 +1,12 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { GraphFilter } from "../interfaces/AppStore";
+import { GraphFilter, SQLNodeExchangeStageData, SQLNodeStageData } from "../interfaces/AppStore";
 
 export const initialState: {
   sqlMode: GraphFilter;
+  selectedStage: SQLNodeStageData | SQLNodeExchangeStageData | undefined;
 } = {
   sqlMode: "basic",
+  selectedStage: undefined
 };
 
 const generalSlice = createSlice({
@@ -19,10 +21,18 @@ const generalSlice = createSlice({
     ) => {
       state.sqlMode = action.payload.newMode;
     },
+    setSelectedStage: (
+      state,
+      action: PayloadAction<{
+        selectedStage: SQLNodeStageData | SQLNodeExchangeStageData | undefined;
+      }>,
+    ) => {
+      state.selectedStage = action.payload.selectedStage;
+    },
   },
 });
 
 // Export the action creators and the reducer
-export const { setSQLMode } = generalSlice.actions;
+export const { setSQLMode, setSelectedStage } = generalSlice.actions;
 
 export default generalSlice.reducer;

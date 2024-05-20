@@ -1,19 +1,20 @@
 import React, { FC, useCallback, useEffect, useState } from "react";
 import ReactFlow, {
-  addEdge,
   ConnectionLineType,
   Controls,
   ReactFlowInstance,
+  addEdge,
   useEdgesState,
   useNodesState,
 } from "reactflow";
 
-import { Box, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
+import { Box, Drawer, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
 import "reactflow/dist/style.css";
 import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
-import { setSQLMode } from "../../reducers/GeneralSlice";
+import { setSQLMode, setSelectedStage } from "../../reducers/GeneralSlice";
 import SqlLayoutService from "./SqlLayoutService";
+import StageIconDrawer from "./StageIconDrawer";
 import { StageNode, StageNodeName } from "./StageNode";
 
 const options = { hideAttribution: true };
@@ -28,6 +29,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
 
   const dispatch = useAppDispatch();
   const graphFilter = useAppSelector((state) => state.general.sqlMode);
+  const selectedStage = useAppSelector((state) => state.general.selectedStage);
 
   React.useEffect(() => {
     if (!sparkSQL) return;
@@ -56,7 +58,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     }
   }, [instance, edges]);
 
-  useEffect(() => {}, [nodes]);
+  useEffect(() => { }, [nodes]);
 
   const onConnect = useCallback(
     (params: any) =>
@@ -114,6 +116,16 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
               <MenuItem value={"advanced"}>Advanced</MenuItem>
             </Select>
           </FormControl>
+          <Drawer
+            anchor={"right"}
+            open={selectedStage !== undefined}
+            onClose={() => dispatch(setSelectedStage({ selectedStage: undefined }))}
+          >
+            <Box sx={{ minWidth: "400px" }}
+            >
+              <StageIconDrawer stage={selectedStage} />
+            </Box>
+          </Drawer>
         </Box>
       </ReactFlow>
     </div>

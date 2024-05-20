@@ -1,12 +1,14 @@
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Box, Tooltip, Typography } from "@mui/material";
 import { duration } from "moment";
 import React, { FC } from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { Handle, Position } from "reactflow";
-import { useAppSelector } from "../../Hooks";
+import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSqlNode } from "../../interfaces/AppStore";
 import { SqlMetric } from "../../interfaces/SparkSQLs";
+import { setSelectedStage } from '../../reducers/GeneralSlice';
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
 import {
   calculatePercentage,
@@ -16,7 +18,7 @@ import {
 } from "../../utils/FormatUtils";
 import AlertBadge, { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import { ConditionalWrapper } from "../InfoBox/InfoBox";
-import StageIconTooltip from "./StageIconTooltip";
+import StageIcon from "./StageIcon";
 import styles from "./node-style.module.css";
 
 export const StageNodeName: string = "stageNode";
@@ -131,6 +133,7 @@ function handleAddedRemovedMetrics(
 export const StageNode: FC<{
   data: { sqlId: string; node: EnrichedSqlNode };
 }> = ({ data }): JSX.Element => {
+  const dispatch = useAppDispatch();
   const alerts = useAppSelector((state) => state.spark.alerts);
   const sqlNodeAlert = alerts?.alerts.find(
     (alert) =>
@@ -531,6 +534,18 @@ export const StageNode: FC<{
           </div>
         </div>
         <AlertBadge alert={sqlNodeAlert} margin="20px" placement="top" />
+        {(data.node.stage === undefined ||
+          (data.node.stage?.type == 'onestage' && data.node.stage?.stageId === -1) ||
+          (data.node.stage?.type == 'exchange' && data.node.stage?.readStage === -1 && data.node.stage?.writeStage === -1))
+          ? undefined : <Box
+            sx={{
+              position: "absolute",
+              top: "87%",
+              right: "5%"
+            }}
+          >
+            <ExpandMoreIcon color='info' style={{ width: "30px", height: "30px" }} onClick={() => dispatch(setSelectedStage({ selectedStage: data.node.stage }))} />
+          </Box>}
         <Box
           sx={{
             position: "absolute",
@@ -538,7 +553,7 @@ export const StageNode: FC<{
             right: "85%",
           }}
         >
-          <StageIconTooltip stage={data.node.stage} />
+          <StageIcon stage={data.node.stage} />
         </Box>
         <Box
           sx={{

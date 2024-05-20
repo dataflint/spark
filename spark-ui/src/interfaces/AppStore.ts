@@ -342,6 +342,7 @@ export interface SparkStageStore {
   name: string;
   stagesRdd: Record<string, string> | undefined;
   failureReason: string | undefined;
+  stageRealTimeDurationMs: number | undefined;
   hasPartitionSkew: boolean | undefined;
   mediumTaskDuration: number | undefined;
   maxTaskDuration: number | undefined;
@@ -355,6 +356,9 @@ export interface SparkStageStore {
   outputDistribution: number[];
   shuffleWriteDistribution: number[];
   shuffleReadDistribution: number[];
+  inputRowsDistribution: number[];
+  spillDiskDistriution: number[];
+  outputRowsDistribution: number[];
   metrics: SparkMetricsStore;
 }
 

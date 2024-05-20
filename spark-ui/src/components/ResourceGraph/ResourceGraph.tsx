@@ -133,7 +133,7 @@ const ResourceGraph: React.FC<SteplineGraphProps> = ({
       type: "numeric",
       labels: {
         formatter: (value: string, timestamp?: number, opts?: any) =>
-          humanizeTimeDiff(duration(value)),
+          humanizeTimeDiff(duration(value), false),
       },
     },
     yaxis: {

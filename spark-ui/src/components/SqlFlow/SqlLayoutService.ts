@@ -10,7 +10,7 @@ import {
 import { StageNodeName } from "./StageNode";
 
 const nodeWidth = 280;
-const nodeHeight = 220;
+const nodeHeight = 280;
 
 const getLayoutedElements = (
   nodes: Node[],
