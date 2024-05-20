@@ -1,5 +1,7 @@
 import {
     Box,
+    LinearProgress,
+    LinearProgressProps,
     Link,
     Typography
 } from "@mui/material";
@@ -24,6 +26,24 @@ const linkToStage = (stageId: number) => {
         "_blank",
     );
 };
+
+function LinearProgressWithLabel(props: LinearProgressProps & { completedTasks: number, runningTasks: number, numTasks: number }) {
+    const completedTasksPercent = ((props.completedTasks) / props.numTasks) * 100;
+    const runningTasksPercent = ((props.completedTasks + props.runningTasks) / props.numTasks) * 100;
+
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ width: '70%', m: 1, mr: 2 }}>
+                <LinearProgress variant="buffer" value={completedTasksPercent} valueBuffer={runningTasksPercent} {...props} />
+            </Box>
+            <Box sx={{ minWidth: 35 }}>
+                <Typography variant="body2" color="text.secondary">
+                    {props.completedTasks}/{props.numTasks}
+                </Typography>
+            </Box>
+        </Box>
+    );
+}
 
 function MultiStageIconTooltip({
     stage,
@@ -59,14 +79,16 @@ function MultiStageIconTooltip({
                 </Link>}
             </Box>
             {writeStage === undefined ? undefined : <Box sx={{ m: 1 }}>
-                <Typography variant="h6">Write Stage</Typography>
+                <Typography variant="h6" sx={{ textAlign: "center", margin: "0 auto" }}>Write Stage</Typography>
+                <LinearProgressWithLabel numTasks={writeStage.numTasks} runningTasks={writeStage.activeTasks} completedTasks={writeStage.completedTasks}></LinearProgressWithLabel>
                 <StageSummary stageData={writeStage} />
                 {writeStage.durationDistribution !== undefined ? <DurationDistributionChart durationDist={writeStage.durationDistribution} /> : undefined}
                 {writeStage.shuffleWriteDistribution !== undefined && writeStage.shuffleWriteDistribution.some(x => x !== 0) ? <BytesDistributionChart title="shuffle write (bytes)" bytesDist={writeStage.shuffleWriteDistribution} /> : undefined}
                 {writeStage.spillDiskDistriution !== undefined && writeStage.spillDiskDistriution.some(x => x !== 0) ? <NumbersDistributionChart title="Spill disk (bytes)" numbersDist={writeStage.spillDiskDistriution} /> : undefined}
             </Box>}
             {readStage === undefined ? undefined : <Box sx={{ m: 1 }}>
-                <Typography variant="h6">Read Stage</Typography>
+                <Typography variant="h6" sx={{ textAlign: "center", margin: "0 auto" }} >Write Stage</Typography>
+                <LinearProgressWithLabel numTasks={readStage.numTasks} runningTasks={readStage.activeTasks} completedTasks={readStage.completedTasks}></LinearProgressWithLabel>
                 <StageSummary stageData={readStage} />
                 {readStage.durationDistribution !== undefined ? <DurationDistributionChart durationDist={readStage.durationDistribution} /> : undefined}
                 {readStage.shuffleReadDistribution !== undefined && readStage.shuffleReadDistribution.some(x => x !== 0) ? <BytesDistributionChart title="shuffle read (bytes)" bytesDist={readStage.shuffleReadDistribution} /> : undefined}
@@ -93,6 +115,7 @@ function SingleStageIconTooltip({
             <Link color="inherit" onClick={(evn) => linkToStage(stage.stageId)} sx={{ textAlign: "center", margin: "0 auto" }}>
                 Stage {stage.stageId}
             </Link>
+            <LinearProgressWithLabel numTasks={stageData.numTasks} runningTasks={stageData.activeTasks} completedTasks={stageData.completedTasks}></LinearProgressWithLabel>
             <StageSummary stageData={stageData} />
             {stageData.durationDistribution !== undefined ? <DurationDistributionChart durationDist={stageData.durationDistribution} /> : undefined}
             {stageData.inputDistribution !== undefined && stageData.inputDistribution.some(x => x !== 0) ? <BytesDistributionChart title="input bytes" bytesDist={stageData.inputDistribution} /> : undefined}
@@ -116,9 +139,10 @@ function StageSummary({
 
     return (
         <Box>
-            <Typography variant="body2">
-                <strong>Tasks number: </strong> {stageData.numTasks}
-            </Typography>
+            {stageData.activeTasks === 0 ? undefined : (
+                <Typography variant="body2">
+                    <strong>Running tasks: </strong> {stageData.activeTasks}
+                </Typography>)}
             {stageData.stageRealTimeDurationMs === undefined ? undefined : <Typography variant="body2">
                 <strong>Stage duration:</strong>{" "}
                 {humanizeTimeDiff(
