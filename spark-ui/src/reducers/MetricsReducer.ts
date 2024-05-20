@@ -95,13 +95,9 @@ export function calculateStagesStore(
             ? undefined
             : partitionSkew.hasPartitionSkew,
         mediumTaskDuration:
-          partitionSkew === undefined
-            ? undefined
-            : partitionSkew.medianTaskDuration,
+          partitionSkew?.medianTaskDuration,
         maxTaskDuration:
-          partitionSkew === undefined
-            ? undefined
-            : partitionSkew.maxTaskDuration,
+          partitionSkew?.maxTaskDuration,
         metrics: {
           executorRunTime: stage.executorRunTime,
           diskBytesSpilled: stage.diskBytesSpilled,
@@ -131,7 +127,7 @@ export function calculatePartitionSkew(stage: SparkStage) {
   ) {
     return { hasPartitionSkew: true, medianTaskDuration, maxTaskDuration };
   }
-  return { hasPartitionSkew: false };
+  return { hasPartitionSkew: false, medianTaskDuration, maxTaskDuration };
 }
 
 function sumMetricStores(metrics: SparkMetricsStore[]): SparkMetricsStore {

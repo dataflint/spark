@@ -10,6 +10,7 @@ import { reduceIcebergReplaces } from "./Alerts/IcebergReplacesReducer";
 import { reduceMemoryAlerts } from "./Alerts/MemoryAlertsReducer";
 import { reduceSQLInputOutputAlerts } from "./Alerts/MemorySQLInputOutputAlerts";
 import { reducePartitionSkewAlert } from "./Alerts/PartitionSkewAlert";
+import { reduceSmallTasksAlert } from "./Alerts/SmallTasksAlert";
 import { reduceWastedCoresAlerts } from "./Alerts/WastedCoresAlertsReducer";
 
 export function reduceAlerts(
@@ -23,6 +24,7 @@ export function reduceAlerts(
   reduceWastedCoresAlerts(statusStore, config, alerts);
   reduceSQLInputOutputAlerts(sqlStore, alerts);
   reducePartitionSkewAlert(sqlStore, stageStore, alerts);
+  reduceSmallTasksAlert(sqlStore, stageStore, alerts);
   reduceIcebergReplaces(sqlStore, alerts);
   return {
     alerts: alerts,
