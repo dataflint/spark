@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 object DataflintDatabricksLiveListener {
   def apply(listenerBus: LiveListenerBus): DataflintDatabricksLiveListener = {
-    val rddScopeIdReader = classOf[SparkPlanGraphNode].getClass.getMethod("rddScopeId")
+    val rddScopeIdReader = classOf[SparkPlanGraphNode].getMethod("rddScopeId")
     new DataflintDatabricksLiveListener(listenerBus, rddScopeIdReader)
   }
 }

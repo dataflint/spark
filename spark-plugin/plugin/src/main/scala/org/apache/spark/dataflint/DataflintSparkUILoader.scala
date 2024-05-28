@@ -7,6 +7,7 @@ import org.apache.spark.dataflint.iceberg.ClassLoaderChecker.isMetricLoaderInRig
 import org.apache.spark.dataflint.listener.{DataflintDatabricksLiveListener, DataflintListener, DataflintStore}
 import org.apache.spark.dataflint.saas.DataflintRunExporterListener
 import org.apache.spark.internal.Logging
+import org.apache.spark.scheduler.SparkListenerInterface
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.ui.SQLAppStatusListener
 import org.apache.spark.status.ElementTrackingStore
@@ -68,10 +69,21 @@ class DataflintSparkUIInstaller extends Logging {
       }
     }
     if((icebergInstalled && icebergEnabled) || isDatabricks) {
-      // DataflintListener currently only relevant for iceberg or databricks support, so no need to add the listener if iceberg support is off
-      context.listenerBus.addToQueue(new DataflintListener(context.statusStore.store.asInstanceOf[ElementTrackingStore]), "dataflint")
-      if(isDatabricks) {
-        context.listenerBus.addToQueue(DataflintDatabricksLiveListener(context.listenerBus), "dataflint")
+      try {
+        val addToQueueMethod =
+          if (isDatabricks) (listener: SparkListenerInterface,
+                                                        queue: String) =>
+          context.listenerBus.getClass.getMethods.find(_.getName == "addToQueue").head.invoke(context.listenerBus, listener, queue, None)
+            .asInstanceOf[Unit]
+        else (listener: SparkListenerInterface,
+            queue: String) => context.listenerBus.addToQueue(listener, queue)
+        // DataflintListener currently only relevant for iceberg or databricks support, so no need to add the listener if iceberg support is off
+        addToQueueMethod(new DataflintListener(context.statusStore.store.asInstanceOf[ElementTrackingStore]), "dataflint")
+        if (isDatabricks) {
+          addToQueueMethod(DataflintDatabricksLiveListener(context.listenerBus), "dataflint")
+        }
+      } catch {
+        case e: Throwable => logWarning("could not add DataFlint Listeners to listener bus", e)
       }
     }
 

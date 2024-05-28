@@ -1,7 +1,5 @@
 package org.apache.spark.dataflint.listener
 
-import org.apache.spark.dataflint.saas.DatabricksAdditionalStageData
-
 import scala.collection.JavaConverters._
 import org.apache.spark.util.Utils
 import org.apache.spark.util.kvstore.{KVStore, KVStoreView}
