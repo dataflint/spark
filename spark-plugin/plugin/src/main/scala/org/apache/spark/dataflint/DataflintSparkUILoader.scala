@@ -4,7 +4,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.dataflint.api.{DataFlintTab, DataflintApplicationInfoPage, DataflintIcebergPage, DataflintJettyUtils, DataflintSQLMetricsPage, DataflintSQLPlanPage, DataflintSQLStagesRddPage}
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker.isMetricLoaderInRightClassLoader
-import org.apache.spark.dataflint.listener.{DataflintListener, DataflintStore}
+import org.apache.spark.dataflint.listener.{DataflintDatabricksLiveListener, DataflintListener, DataflintStore}
 import org.apache.spark.dataflint.saas.DataflintRunExporterListener
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
@@ -39,6 +39,7 @@ class DataflintSparkUIInstaller extends Logging {
       }
     }
 
+    val isDatabricks = context.conf.getOption("spark.databricks.clusterUsageTags.cloudProvider").isDefined
     val icebergInstalled = context.conf.get("spark.sql.extensions", "").contains("org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
     val icebergEnabled = context.conf.getBoolean("spark.dataflint.iceberg.enabled", defaultValue = true)
     val icebergAuthCatalogDiscovery = context.conf.getBoolean("spark.dataflint.iceberg.autoCatalogDiscovery", defaultValue = false)
@@ -65,9 +66,15 @@ class DataflintSparkUIInstaller extends Logging {
           }
         })
       }
-    // DataflintListener currently only relevant for iceberg support, so no need to add the listener if iceberg support is off
-      context.listenerBus.addToQueue(new DataflintListener(context.statusStore.store.asInstanceOf[ElementTrackingStore]), "dataflint")
     }
+    if((icebergInstalled && icebergEnabled) || isDatabricks) {
+      // DataflintListener currently only relevant for iceberg or databricks support, so no need to add the listener if iceberg support is off
+      context.listenerBus.addToQueue(new DataflintListener(context.statusStore.store.asInstanceOf[ElementTrackingStore]), "dataflint")
+      if(isDatabricks) {
+        context.listenerBus.addToQueue(DataflintDatabricksLiveListener(context.listenerBus), "dataflint")
+      }
+    }
+
     loadUI(context.ui.get, sqlListener)
   }
 
@@ -80,7 +87,7 @@ class DataflintSparkUIInstaller extends Logging {
     DataflintJettyUtils.addStaticHandler(ui, "io/dataflint/spark/static/ui", ui.basePath + "/dataflint")
     val dataflintStore = new DataflintStore(store = ui.store.store)
     val tab = new DataFlintTab(ui)
-    tab.attachPage(new DataflintSQLPlanPage(ui, sqlListener))
+    tab.attachPage(new DataflintSQLPlanPage(ui, dataflintStore, sqlListener))
     tab.attachPage(new DataflintSQLMetricsPage(ui, sqlListener))
     tab.attachPage(new DataflintSQLStagesRddPage(ui))
     tab.attachPage(new DataflintApplicationInfoPage(ui))

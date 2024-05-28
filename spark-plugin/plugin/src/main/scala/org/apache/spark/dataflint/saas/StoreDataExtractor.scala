@@ -1,5 +1,6 @@
 package org.apache.spark.dataflint.saas
 
+import org.apache.spark.dataflint.listener.DatabricksAdditionalExecutionWrapper
 import org.apache.spark.sql.execution.ui.{SQLExecutionUIData, SparkPlanGraphWrapper}
 import org.apache.spark.status._
 
@@ -29,7 +30,8 @@ class StoreDataExtractor(store: AppStatusStore) {
       speculationStageSummaries = readAll[SpeculationStageSummaryWrapper],
       sparkPlanGraphWrapper = readAll[SparkPlanGraphWrapper],
       sqlExecutionUIData = readAll[SQLExecutionUIData],
-      stageTaskSummary = calculateTaskSummary()
+      stageTaskSummary = calculateTaskSummary(),
+      databricksAdditionalExecutionInfo = readAll[DatabricksAdditionalExecutionWrapper]
     )
   }
 

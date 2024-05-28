@@ -4,6 +4,20 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import org.apache.spark.scheduler.SparkListenerEvent
 import org.apache.spark.util.kvstore.KVIndex
 
+case class DatabricksAdditionalExecutionInfo(
+                       executionId: Long,
+                       version: Long,
+                       nodeIdToRddScopeId: Map[Long, String]) {
+}
+
+case class DatabricksAdditionalExecutionEvent(databricksAdditionalExecutionInfo: DatabricksAdditionalExecutionInfo) extends SparkListenerEvent
+
+class DatabricksAdditionalExecutionWrapper(val info: DatabricksAdditionalExecutionInfo) {
+  @KVIndex
+  @JsonIgnore
+  def id: Long = info.executionId
+}
+
 case class IcebergCommitMetrics(
                                  durationMS: Long,
                                  attempts: Long,

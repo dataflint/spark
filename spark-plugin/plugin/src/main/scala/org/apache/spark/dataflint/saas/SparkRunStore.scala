@@ -1,5 +1,6 @@
 package org.apache.spark.dataflint.saas
 
+import org.apache.spark.dataflint.listener.DatabricksAdditionalExecutionWrapper
 import org.apache.spark.sql.execution.ui.{SQLExecutionUIData, SparkPlanGraphWrapper}
 import org.apache.spark.status._
 
@@ -21,5 +22,6 @@ case class SparkRunStore(
                           speculationStageSummaries: Seq[SpeculationStageSummaryWrapper],
                           sparkPlanGraphWrapper: Seq[SparkPlanGraphWrapper],
                           sqlExecutionUIData: Seq[SQLExecutionUIData],
-                          stageTaskSummary: Seq[StageTaskSummary]
+                          stageTaskSummary: Seq[StageTaskSummary],
+                          databricksAdditionalExecutionInfo: Seq[DatabricksAdditionalExecutionWrapper]
                         )

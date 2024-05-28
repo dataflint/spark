@@ -1,5 +1,6 @@
 package org.apache.spark.dataflint.api
 
+import org.apache.spark.dataflint.listener.DataflintStore
 import org.apache.spark.internal.Logging
 import org.apache.spark.ui.{SparkUI, WebUIPage}
 import org.json4s.JsonAST.JValue
