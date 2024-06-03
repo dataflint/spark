@@ -35,7 +35,6 @@ class DataflintSparkUIInstaller extends Logging {
         logWarning("Dataflint is explicitly disabled although token is defined, if you which to re-enable it please set spark.dataflint.enabled to true")
       }
       else {
-        context.conf.set("spark.dataflint.runId", java.util.UUID.randomUUID.toString.replaceAll("-", ""))
         context.listenerBus.addToQueue(new DataflintRunExporterListener(context), "dataflint")
       }
     }

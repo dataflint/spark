@@ -19,6 +19,7 @@ class DataflintRunExporterListener(context: SparkContext) extends SparkListener 
       logInfo("DataFlint run exporter started")
       val startTimeMillis = System.currentTimeMillis()
 
+      context.conf.set("spark.dataflint.runId", java.util.UUID.randomUUID.toString.replaceAll("-", ""))
       def runId = context.conf.get("spark.dataflint.runId")
 
       val mode = context.getConf.get("spark.dataflint.mode", "prod")

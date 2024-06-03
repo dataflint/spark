@@ -58,7 +58,7 @@ class SparkAPI {
       (id) =>
         this.sqlIdToFinishTime[id] !== null &&
         this.sqlIdToFinishTime[id].finishTime + SQL_LOOKBACK_QUERY_TIME >
-          currentTime,
+        currentTime,
     );
 
     if (lookbackSqls.length > 0) {
@@ -198,17 +198,16 @@ class SparkAPI {
         );
 
         const currentApplication = appInfo.info;
-        this.appId =
-          isDataFlintSaaSUI() && appInfo.runId
-            ? appInfo.runId
-            : currentApplication.id;
+        this.appId = appInfo.runId
+          ? appInfo.runId
+          : currentApplication.id;
         const currentAttempt =
           currentApplication.attempts[currentApplication.attempts.length - 1];
-        this.attemptId = isDataFlintSaaSUI()
+        this.attemptId = appInfo.runId
           ? undefined
           : currentAttempt?.attemptId !== undefined
-          ? currentAttempt.attemptId
-          : undefined;
+            ? currentAttempt.attemptId
+            : undefined;
         const sparkConfiguration: SparkConfiguration = await this.queryData(
           this.environmentPath,
         );
