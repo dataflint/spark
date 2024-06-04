@@ -122,6 +122,7 @@ const sparkSlice = createSlice({
       const executorsStore = calculateSparkExecutorsStore(
         state.executors,
         action.payload.value,
+        state.runMetadata.startTime,
         currentEndDate,
         state.config.executorMemoryBytes,
       );

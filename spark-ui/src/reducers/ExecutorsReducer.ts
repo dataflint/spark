@@ -10,10 +10,11 @@ import { IS_HISTORY_SERVER_MODE } from "../utils/UrlConsts";
 export function calculateSparkExecutorsStore(
   existingStore: SparkExecutorsStore | undefined,
   sparkExecutors: SparkExecutors,
+  startDate: number,
   currentEndDate: number,
   executorMemoryBytes: number,
 ): SparkExecutorsStore {
-  return sparkExecutors.map((executor) => {
+  const executorsStore = sparkExecutors.map((executor) => {
     const addTimeEpoc = timeStrToEpocTime(executor.addTime);
     const endTimeEpoc =
       executor.removeTime !== undefined
@@ -51,6 +52,28 @@ export function calculateSparkExecutorsStore(
       totalShuffleWrite: executor.totalShuffleWrite,
     };
   });
+  // for cases before spark 3.0 where driver is not included in the executors list
+  if (executorsStore.find(executor => executor.isDriver) === undefined) {
+    executorsStore.push({
+      id: "driver",
+      isActive: true,
+      isDriver: true,
+      duration: currentEndDate - startDate,
+      totalTaskDuration: 0,
+      potentialTaskTimeMs: 0,
+      wastedCoresRate: 0,
+      addTimeEpoc: startDate,
+      endTimeEpoc: currentEndDate,
+      totalCores: 0,
+      maxTasks: 0,
+      memoryUsageBytes: 0,
+      memoryUsagePercentage: 0,
+      totalInputBytes: 0,
+      totalShuffleRead: 0,
+      totalShuffleWrite: 0,
+    });
+  }
+  return executorsStore;
 }
 
 export function calculateSparkExecutorsTimeline(
