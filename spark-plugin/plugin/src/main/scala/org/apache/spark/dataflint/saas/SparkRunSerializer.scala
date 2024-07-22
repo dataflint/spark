@@ -9,7 +9,7 @@ import org.json4s.{Formats, NoTypeHints}
 import java.io.{File, PrintWriter}
 
 object SparkRunSerializer {
-  implicit val formats: Formats = Serialization.formats(NoTypeHints) + new JavaEnumNameSerializer[JobExecutionStatus]() + new JavaEnumNameSerializer[StageStatus]() + new EnumSerializer(DeterministicLevel)
+  implicit val formats: Formats = Serialization.formats(NoTypeHints) + new JavaEnumNameSerializer[JobExecutionStatus]() + new JavaEnumNameSerializer[StageStatus]() + new EnumSerializer(DeterministicLevel) + new ExecutorsMetricsSerializer()
 
   def serialize(data: SparkRunStore): String = {
     Serialization.write(data)
