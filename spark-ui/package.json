@@ -1,3 +1,4 @@
+
 {
   "name": "dataflint-ui",
   "version": "0.2.2",
@@ -16,6 +17,8 @@
     "@types/graphlib": "^2.1.8",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "ajv": "^8.17.1",
+    "ajv-keywords": "^5.1.0",
     "apexcharts": "^3.45.1",
     "bytes": "^3.1.2",
     "dagre": "^0.8.5",
