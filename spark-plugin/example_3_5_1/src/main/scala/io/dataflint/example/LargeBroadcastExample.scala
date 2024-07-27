@@ -1,6 +1,5 @@
 package main.scala.io.dataflint.example
 
-import io.dataflint.example.AccessPatternExample.spark
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
@@ -20,9 +19,7 @@ object LargeBroadcastExample extends App {
     .config("spark.eventLog.dir", "/opt/spark/conf/spark-events")
     .master("local[*]")
     .getOrCreate()
-
-  import spark.implicits._
-
+  
   val numberRows = sys.env.get("NUMBER_OF_ROWS").map(_.toInt).getOrElse(100000)
 
   val largeDF = spark.range(1, 5000000).toDF("item_sk")
@@ -33,5 +30,6 @@ object LargeBroadcastExample extends App {
 
   joinedDF.show()
 
+  scala.io.StdIn.readLine()
   spark.stop()
 }
