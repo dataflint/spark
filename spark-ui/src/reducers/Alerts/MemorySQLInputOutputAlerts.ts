@@ -155,8 +155,8 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
             location: `In: SQL query "${sql.description}" (id: ${sql.id}) and node "${node.nodeName}"`,
             message: `The data broadcast size is ${broadcastSizeString}, which exceeds the 1GB threshold and can cause performance issues`,
             suggestion: `
-    1. spark.sql.autoBroadcastJoinThreshold config might be set to a large number by mistake
-    2. The broadcast hint is applied on a large dataframe by mistake`,
+    1. spark.sql.autoBroadcastJoinThreshold config might be set to a large number which is not optimal
+    2. The broadcast hint is applied on a large dataframe which is not optimal`,
             type: "warning",
             source: {
               type: "sql",
