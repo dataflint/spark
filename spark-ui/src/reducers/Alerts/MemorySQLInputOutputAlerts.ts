@@ -9,6 +9,8 @@ const FILES_WRITTEN_TOO_HIGH_THREASHOLD = 100;
 
 const IDEAL_FILE_SIZE = 128 * 1024 * 1024;
 
+const BROADCAST_SIZE_THRESHOLD = 1 * 1024 * 1024 * 1024;
+
 export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
   sql.sqls.forEach((sql) => {
     sql.nodes.forEach((node) => {
@@ -137,6 +139,31 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
               },
             });
           }
+        }
+      }
+      if (node.nodeName === "BroadcastExchange") {
+        const broadcastSizeMetric = parseBytesString(
+          node.metrics.find((metric) => metric.name === "data size")?.value ?? "0",
+        );
+
+        if (broadcastSizeMetric > BROADCAST_SIZE_THRESHOLD) {
+          const broadcastSizeString = humanFileSize(broadcastSizeMetric);
+          alerts.push({
+            id: `largeBroadcast_${sql.id}_${node.nodeId}_${broadcastSizeString}`,
+            name: "largeBroadcast",
+            title: "Large data Broadcast",
+            location: `In: SQL query "${sql.description}" (id: ${sql.id}) and node "${node.nodeName}"`,
+            message: `The data broadcast size is ${broadcastSizeString}, which exceeds the 1GB threshold and can cause performance issues`,
+            suggestion: `
+    1. spark.sql.autoBroadcastJoinThreshold config might be set to a large number which is not optimal
+    2. The broadcast hint is applied on a large dataframe which is not optimal`,
+            type: "warning",
+            source: {
+              type: "sql",
+              sqlId: sql.id,
+              sqlNodeId: node.nodeId,
+            },
+          });
         }
       }
     });
