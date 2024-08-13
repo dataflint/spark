@@ -525,7 +525,7 @@ export const StageNode: FC<{
                   <Typography sx={{ fontWeight: "bold" }} variant="body2">
                     {metric.name}:
                   </Typography>
-                  <Typography sx={{ ml: 0.3, mt: 0, mb: 0 }} variant="body2">
+                  <Typography sx={{ ml: 0.3, mt: 0, mb: 0, maxWidth: 260 }} variant="body2">
                     {metric.value}
                   </Typography>
                 </Box>

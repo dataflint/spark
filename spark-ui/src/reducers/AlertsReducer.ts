@@ -7,6 +7,7 @@ import {
   StatusStore,
 } from "../interfaces/AppStore";
 import { reduceIcebergReplaces } from "./Alerts/IcebergReplacesReducer";
+import { reduceLongFilterConditions } from "./Alerts/LongFilterConditions";
 import { reduceMemoryAlerts } from "./Alerts/MemoryAlertsReducer";
 import { reduceSQLInputOutputAlerts } from "./Alerts/MemorySQLInputOutputAlerts";
 import { reducePartitionSkewAlert } from "./Alerts/PartitionSkewAlert";
@@ -26,6 +27,7 @@ export function reduceAlerts(
   reducePartitionSkewAlert(sqlStore, stageStore, alerts);
   reduceSmallTasksAlert(sqlStore, stageStore, alerts);
   reduceIcebergReplaces(sqlStore, alerts);
+  reduceLongFilterConditions(sqlStore, alerts);
   return {
     alerts: alerts,
   };
