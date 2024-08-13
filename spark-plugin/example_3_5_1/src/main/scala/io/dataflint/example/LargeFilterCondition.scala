@@ -16,18 +16,29 @@ object LargeFilterCondition extends App {
 
   import spark.implicits._
 
-  val numOfConditions = 100
-  val sizeOfDF = 100000
-
-  val filterConditions = Range(0, numOfConditions).map($"id".equalTo(_)).reduce(_ || _)
+  val numOfConditions = 1000
+  val sizeOfDF = 10000000
 
   spark.sparkContext.setJobDescription("Filter with long filter condition")
+
+  val filterConditions = Range(0, numOfConditions).map($"id".equalTo(_)).reduce(_ || _)
 
   val countAfterLongFilter = spark.range(0, sizeOfDF)
     .filter(filterConditions)
     .count()
 
   println(s"count after long filter condition: ${countAfterLongFilter}")
+
+  spark.sparkContext.setJobDescription("Filter with long regex condition")
+
+  val regexPattern = Range(0, numOfConditions).map(_.toString).mkString("|")
+
+  val countAfterLongRegexFilter = spark.range(0, sizeOfDF)
+  .withColumn("num_str", $"id".cast("string"))
+    .filter($"num_str".rlike(s"^($regexPattern)$$"))
+    .count()
+
+  println(s"count after long regex filter: ${countAfterLongRegexFilter}")
 
   spark.sparkContext.setJobDescription("Filter using join")
 
