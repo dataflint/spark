@@ -20,4 +20,8 @@ class DataflintStore(val store: KVStore) {
   def databricksAdditionalExecutionInfo(offset: Int, length: Int): Seq[DatabricksAdditionalExecutionInfo] = {
     mapToSeq(store.view(classOf[DatabricksAdditionalExecutionWrapper]))(_.info).filter(_.executionId >= offset).take(length).sortBy(_.executionId)
   }
+
+  def environmentInfo(): Option[DataflintEnvironmentInfo] = {
+    mapToSeq(store.view(classOf[DataflintEnvironmentInfoWrapper]))(_.info).headOption
+  }
 }

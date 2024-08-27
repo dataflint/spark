@@ -16,7 +16,7 @@
  */
 package org.apache.spark.dataflint.api
 
-import org.apache.spark.dataflint.listener.IcebergCommitInfo
+import org.apache.spark.dataflint.listener.{IcebergCommitInfo, DataflintEnvironmentInfo}
 import org.apache.spark.status.api.v1.ApplicationInfo
 
 case class NodeMetric(name: String, value: Option[String])
@@ -27,6 +27,6 @@ case class SqlEnrichedData(executionId: Long, numOfNodes:Int, rddScopesToStages:
 
 case class NodePlan(id: Long, planDescription: String, rddScopeId: Option[String])
 
-case class DataFlintApplicationInfo(runId: Option[String], info: ApplicationInfo)
+case class DataFlintApplicationInfo(runId: Option[String], info: ApplicationInfo, environmentInfo: Option[DataflintEnvironmentInfo])
 
 case class IcebergInfo(commitsInfo: Seq[IcebergCommitInfo])

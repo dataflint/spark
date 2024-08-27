@@ -1,4 +1,5 @@
 import { IcebergCommitsInfo } from "./IcebergInfo";
+import { EnvironmentInfo } from './ApplicationInfo';
 
 export type NodeType =
   | "input"
@@ -22,6 +23,7 @@ export type AppStore = {
   executors: SparkExecutorsStore | undefined;
   executorTimeline: ExecutorTimelinePoints | undefined;
   alerts: AlertsStore | undefined;
+  environmentInfo: EnvironmentInfo | undefined;
 };
 
 export interface AlertsStore {
@@ -38,7 +40,7 @@ export interface SQLAlertSourceData {
 
 export interface StatusAlertSourceData {
   type: "status";
-  metric: "memory" | "wastedCores";
+  metric: "memory" | "driverMemory" | "wastedCores";
 }
 
 export interface Alert {

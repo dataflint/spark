@@ -2,6 +2,7 @@ package org.apache.spark.dataflint
 
 import org.apache.spark.SparkContext
 import org.apache.spark.dataflint.api.{DataFlintTab, DataflintApplicationInfoPage, DataflintIcebergPage, DataflintJettyUtils, DataflintSQLMetricsPage, DataflintSQLPlanPage, DataflintSQLStagesRddPage}
+import org.apache.spark.dataflint.listener.{DataflintEnvironmentInfo, DataflintEnvironmentInfoEvent}
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker.isMetricLoaderInRightClassLoader
 import org.apache.spark.dataflint.listener.{DataflintDatabricksLiveListener, DataflintListener, DataflintStore}
@@ -26,19 +27,24 @@ class DataflintSparkUIInstaller extends Logging {
     }
 
     val sqlListener = () => context.listenerBus.listeners.toArray().find(_.isInstanceOf[SQLAppStatusListener]).asInstanceOf[Option[SQLAppStatusListener]]
+    val dataflintListener = new DataflintListener(context.statusStore.store.asInstanceOf[ElementTrackingStore])
     val tokenConf = context.conf.getOption("spark.dataflint.token")
     val dataflintEnabled = context.conf.getBoolean("spark.dataflint.enabled", true)
     if(tokenConf.isDefined) {
       if (!tokenConf.get.contains("-")) {
         logWarning("Dataflint token is not valid, please check your configuration")
       } else if (!dataflintEnabled) {
-        logWarning("Dataflint is explicitly disabled although token is defined, if you which to re-enable it please set spark.dataflint.enabled to true")
+        logWarning("Dataflint is explicitly disabled although token is defined, if you wish to re-enable it please set spark.dataflint.enabled to true")
       }
       else {
         context.listenerBus.addToQueue(new DataflintRunExporterListener(context), "dataflint")
+        logInfo("Added DataflintRunExporterListener to the listener bus")
       }
     }
 
+    val runtime = Runtime.getRuntime
+    val driverXmxBytes = runtime.maxMemory()
+    val environmentInfo = DataflintEnvironmentInfo(driverXmxBytes)
     val isDatabricks = context.conf.getOption("spark.databricks.clusterUsageTags.cloudProvider").isDefined
     val icebergInstalled = context.conf.get("spark.sql.extensions", "").contains("org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
     val icebergEnabled = context.conf.getBoolean("spark.dataflint.iceberg.enabled", defaultValue = true)
@@ -67,23 +73,22 @@ class DataflintSparkUIInstaller extends Logging {
         })
       }
     }
-    if((icebergInstalled && icebergEnabled) || isDatabricks) {
-      try {
-        val addToQueueMethod =
-          if (isDatabricks) (listener: SparkListenerInterface,
-                                                        queue: String) =>
+    try {
+      val addToQueueMethod =
+        if (isDatabricks) (listener: SparkListenerInterface, queue: String) =>
           context.listenerBus.getClass.getMethods.find(_.getName == "addToQueue").head.invoke(context.listenerBus, listener, queue, None)
             .asInstanceOf[Unit]
-        else (listener: SparkListenerInterface,
-            queue: String) => context.listenerBus.addToQueue(listener, queue)
-        // DataflintListener currently only relevant for iceberg or databricks support, so no need to add the listener if iceberg support is off
-        addToQueueMethod(new DataflintListener(context.statusStore.store.asInstanceOf[ElementTrackingStore]), "dataflint")
-        if (isDatabricks) {
-          addToQueueMethod(DataflintDatabricksLiveListener(context.listenerBus), "dataflint")
-        }
-      } catch {
-        case e: Throwable => logWarning("could not add DataFlint Listeners to listener bus", e)
+        else (listener: SparkListenerInterface, queue: String) => context.listenerBus.addToQueue(listener, queue)
+      addToQueueMethod(dataflintListener, "dataflint")
+      context.listenerBus.post(DataflintEnvironmentInfoEvent(environmentInfo))
+      logInfo(s"Posted DataflintEnvironmentInfoEvent max driver memory: ${driverXmxBytes}")
+      if (isDatabricks) {
+        addToQueueMethod(DataflintDatabricksLiveListener(context.listenerBus), "dataflint")
+        logInfo("Added DataflintDatabricksLiveListener to the Spark context")
       }
+    } catch {
+      case e: Throwable =>
+        logWarning("Could not add DataFlint Listeners to listener bus", e)
     }
 
     loadUI(context.ui.get, sqlListener)
@@ -101,7 +106,7 @@ class DataflintSparkUIInstaller extends Logging {
     tab.attachPage(new DataflintSQLPlanPage(ui, dataflintStore, sqlListener))
     tab.attachPage(new DataflintSQLMetricsPage(ui, sqlListener))
     tab.attachPage(new DataflintSQLStagesRddPage(ui))
-    tab.attachPage(new DataflintApplicationInfoPage(ui))
+    tab.attachPage(new DataflintApplicationInfoPage(ui, dataflintStore))
     tab.attachPage(new DataflintIcebergPage(ui, dataflintStore))
     ui.attachTab(tab)
     ui.webUrl

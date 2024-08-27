@@ -251,6 +251,7 @@ class SparkAPI {
             appId: currentApplication.id,
             attempt: currentAttempt,
             epocCurrentTime: Date.now(),
+            environmentInfo: appInfo.environmentInfo,
           }),
         );
       } else {
