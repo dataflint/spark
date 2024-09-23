@@ -81,10 +81,8 @@ class DataflintSparkUIInstaller extends Logging {
         else (listener: SparkListenerInterface, queue: String) => context.listenerBus.addToQueue(listener, queue)
       addToQueueMethod(dataflintListener, "dataflint")
       context.listenerBus.post(DataflintEnvironmentInfoEvent(environmentInfo))
-      logInfo(s"Posted DataflintEnvironmentInfoEvent max driver memory: ${driverXmxBytes}")
       if (isDatabricks) {
         addToQueueMethod(DataflintDatabricksLiveListener(context.listenerBus), "dataflint")
-        logInfo("Added DataflintDatabricksLiveListener to the Spark context")
       }
     } catch {
       case e: Throwable =>

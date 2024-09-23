@@ -12,7 +12,11 @@ import { duration } from "moment";
 import React, { FC } from "react";
 import "reactflow/dist/style.css";
 import { useAppSelector } from "../Hooks";
-import { humanFileSize, humanizeTimeDiff } from "../utils/FormatUtils";
+import {
+  calculatePercentage,
+  humanFileSize,
+  humanizeTimeDiff,
+} from "../utils/FormatUtils";
 import InfoBox from "./InfoBox/InfoBox";
 import Progress from "./Progress";
 
@@ -26,7 +30,9 @@ const SummaryBar: FC = (): JSX.Element => {
   const memoryAlert = alerts?.alerts.find(
     (alert) =>
       (alert.source.type === "status" && alert.source.metric === "memory") ||
-      (alert.source.type === "status" && alert.source.metric === "driverMemory")  );
+      (alert.source.type === "status" &&
+        alert.source.metric === "driverMemory"),
+  );
   const wastedCoresAlert = alerts?.alerts.find(
     (alert) =>
       alert.source.type === "status" && alert.source.metric === "wastedCores",
@@ -48,9 +54,11 @@ const SummaryBar: FC = (): JSX.Element => {
     ? Object.values(executors).find((exec) => exec.id === "driver")
     : undefined;
   const driverMaxMemory = environmentInfo?.driverXmxBytes ?? 1;
-  const driverMemoryUsage = driverExecutor?.memoryUsageBytes ?? 0;
-  const driverMemoryUsagePercentage =
-    (driverMemoryUsage / driverMaxMemory) * 100;
+  const driverMemoryUsage = driverExecutor?.HeapMemoryUsageBytes ?? 0;
+  const driverMemoryUsagePercentage = calculatePercentage(
+    driverMemoryUsage,
+    driverMaxMemory,
+  );
   const driverMemoryUsageString = humanFileSize(driverMemoryUsage);
   const driverMaxMemoryString = humanFileSize(driverMaxMemory);
   const totalDCUFormated =
@@ -145,35 +153,37 @@ const SummaryBar: FC = (): JSX.Element => {
                 {status.executors.maxExecutorMemoryPercentage.toFixed(2)}%)
               </Typography>
 
-              <Typography
-                variant="subtitle1"
-                color="inherit"
-                fontWeight="bold"
-                style={{ marginTop: "16px" }}
-              >
-                Peak Driver Memory:
-              </Typography>
-              <Typography variant="body1" color="inherit" textAlign={"center"}>
-                {driverMemoryUsage > 0 ? (
-                  <>
+              {driverMemoryUsage > 0 && (
+                <>
+                  <Typography
+                    variant="subtitle1"
+                    color="inherit"
+                    fontWeight="bold"
+                    style={{ marginTop: "16px" }}
+                  >
+                    Peak Driver Memory:
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    color="inherit"
+                    textAlign={"center"}
+                  >
                     {driverMemoryUsageString} / {driverMaxMemoryString} (
                     {driverMemoryUsagePercentage.toFixed(2)}%)
-                  </>
-                ) : (
-                  "N/A"
-                )}{" "}
-              </Typography>
+                  </Typography>
+                </>
+              )}
 
               <Typography variant="body2" style={{ marginTop: "16px" }}>
                 "Memory Usage" shows the peak memory usage of the most
                 memory-utilized executor.
               </Typography>
               <Typography variant="body2">
-                "Memory" refers to the JVM memory (both on-heap and off-heap).
+                "Memory" refers to the JVM memory (on-heap).
               </Typography>
             </React.Fragment>
           }
-        ></InfoBox>
+          ></InfoBox>
       </Grid>
       <Grid
         container

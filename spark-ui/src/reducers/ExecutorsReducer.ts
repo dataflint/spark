@@ -21,11 +21,9 @@ export function calculateSparkExecutorsStore(
         ? timeStrToEpocTime(executor.removeTime)
         : currentEndDate;
     const isDriver = executor.id === "driver";
-    const memoryUsageBytes =
-      (executor.peakMemoryMetrics?.JVMHeapMemory ?? 0) +
-      (executor.peakMemoryMetrics?.JVMOffHeapMemory ?? 0);
+    const HeapMemoryUsageBytes = executor.peakMemoryMetrics?.JVMHeapMemory ?? 0;
     const memoryUsagePercentage = calculatePercentage(
-      memoryUsageBytes,
+      HeapMemoryUsageBytes,
       executorMemoryBytes,
     );
     const duration = endTimeEpoc - addTimeEpoc;
@@ -45,7 +43,7 @@ export function calculateSparkExecutorsStore(
       endTimeEpoc: endTimeEpoc,
       totalCores: executor.totalCores,
       maxTasks: executor.maxTasks,
-      memoryUsageBytes: memoryUsageBytes,
+      HeapMemoryUsageBytes: HeapMemoryUsageBytes,
       memoryUsagePercentage: memoryUsagePercentage,
       totalInputBytes: executor.totalInputBytes,
       totalShuffleRead: executor.totalShuffleRead,
@@ -66,7 +64,7 @@ export function calculateSparkExecutorsStore(
       endTimeEpoc: currentEndDate,
       totalCores: 0,
       maxTasks: 0,
-      memoryUsageBytes: 0,
+      HeapMemoryUsageBytes: 0,
       memoryUsagePercentage: 0,
       totalInputBytes: 0,
       totalShuffleRead: 0,

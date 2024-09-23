@@ -385,7 +385,7 @@ export interface SparkExecutorStore {
   endTimeEpoc: number;
   totalCores: number;
   maxTasks: number;
-  memoryUsageBytes: number;
+  HeapMemoryUsageBytes: number;
   memoryUsagePercentage: number;
   totalInputBytes: number;
   totalShuffleRead: number;

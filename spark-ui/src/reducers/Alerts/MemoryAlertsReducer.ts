@@ -1,5 +1,5 @@
 import { Alerts, ConfigStore, StatusStore, SparkExecutorStore } from "../../interfaces/AppStore";
-import { humanFileSizeSparkConfigFormat, humanFileSize } from "../../utils/FormatUtils";
+import { humanFileSizeSparkConfigFormat, humanFileSize, calculatePercentage } from "../../utils/FormatUtils";
 
 const MAX_MEMORY_PERCENTAGE_TOO_HIGH_THRESHOLD = 95;
 const MAX_MEMORY_PERCENTAGE_TOO_LOW_THRESHOLD = 70;
@@ -16,8 +16,6 @@ export function reduceMemoryAlerts(
   if (statusExecutors?.maxExecutorMemoryBytes) {
     checkMemoryUsage(
       statusExecutors.maxExecutorMemoryPercentage,
-      statusExecutors.maxExecutorMemoryBytes,
-      statusExecutors.maxExecutorMemoryBytesString,
       executorMemoryBytes,
       executorMemoryBytesSparkFormatString,
       "executor",
@@ -27,13 +25,12 @@ export function reduceMemoryAlerts(
 
   const driverExecutor = executors?.find((exec) => exec.id === "driver");
   const driverMaxMemory = environmentInfo?.driverXmxBytes ?? 1;
-  const driverMemoryUsage = driverExecutor?.memoryUsageBytes ?? 0;
+  const driverMemoryUsage = driverExecutor?.HeapMemoryUsageBytes ?? 0;
+  const driverMemoryUsagePercentage = calculatePercentage(driverMemoryUsage, driverMaxMemory);
 
   if (driverMemoryUsage) {
     checkMemoryUsage(
-      (driverMemoryUsage / driverMaxMemory) * 100,
-      driverMemoryUsage,
-      humanFileSize(driverMemoryUsage),
+      driverMemoryUsagePercentage,
       driverMaxMemory,
       humanFileSizeSparkConfigFormat(driverMaxMemory),
       "driver",
@@ -44,8 +41,6 @@ export function reduceMemoryAlerts(
 
 function checkMemoryUsage(
   memoryPercentage: number,
-  memoryUsageBytes: number,
-  memoryUsageBytesString: string,
   maxMemoryBytes: number,
   maxMemoryBytesString: string,
   type: "executor" | "driver",
