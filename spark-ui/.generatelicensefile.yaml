@@ -1,0 +1,14 @@
+inputs:
+  - ./package.json
+output: ./../THIRD-PARTY-LICENSES.txt
+overwrite: true
+eol: lf
+ci: true
+no-spinner: true
+replace:
+  '@bcoe/v8-coverage@0.2.3': https://raw.githubusercontent.com/demurgos/v8-coverage/refs/heads/master/ts/LICENSE.md
+  doctrine@3.0.0: https://raw.githubusercontent.com/eslint/doctrine/refs/heads/master/LICENSE
+  doctrine@2.1.0: https://raw.githubusercontent.com/eslint/doctrine/refs/heads/master/LICENSE
+  harmony-reflect@1.6.2: https://raw.githubusercontent.com/tvcutsem/harmony-reflect/refs/heads/master/LICENSE
+  sockjs@0.3.24: https://raw.githubusercontent.com/sockjs/sockjs-node/refs/heads/main/LICENSE
+
