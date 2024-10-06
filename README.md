@@ -3,7 +3,7 @@
 </p>
 
 <h2 align="center">
- Data-Application Performance Monitoring for data engineers
+ Spark Insights Made Simple
 </h2>
 
 <div align="center">
@@ -20,11 +20,26 @@ If you enjoy DataFlint please give us a ⭐️ and join our [slack community](ht
 
 ## What is DataFlint?
 
-DataFlint is an open-source D-APM (Data-Application Performance Monitoring) for Apache Spark, built for big data engineers.
+DataFlint is a modern, user-friendly enhancement for Apache Spark that transforms how you monitor, debug, and optimize your big data applications.
 
-DataFlint mission is to bring the development experience of using APM (Application Performance Monitoring) solutions such as DataDog and New Relic for the big data world.
+As an open-source performance monitoring and debugging tool, DataFlint simplifies the complex world of Spark operations. It adds a new, intuitive tab to the existing Spark WebUI, turning a powerful but often overwhelming interface into something easy to navigate and understand.
 
-DataFlint is installed within minutes via open source library, working on top of the existing Spark-UI infrastructure, all in order to help you solve big data performance issues and debug failures!
+With DataFlint, you can quickly identify performance bottlenecks, optimize resource usage, and troubleshoot issues faster than ever before.
+
+## Why DataFlint?
+
+- **Intuitive Design**: DataFlint's tab in the Spark WebUI presents complex metrics in a clear, easy-to-understand format, making Spark insights accessible to everyone.
+- **Effortless Setup**: Get up and running fast, seamlessly integrating with your existing Spark environment.
+- **For All Skill Levels**: Whether you're a seasoned data engineer or just starting with Spark, DataFlint provides valuable insights that help you work more effectively.
+
+By using DataFlint, you can spend less time deciphering logs and more time deriving value from your data. It's about making big data work better for you, regardless of your role or experience level with Spark.
+
+
+### Usage
+
+After the installations you will see a "DataFlint" button in Spark UI, click on it to start using DataFlint
+
+<img alt="Logo" src="documentation/resources/usage.png">
 
 ## Demo
 
@@ -81,12 +96,6 @@ spark-submit
 ...
 ```
 
-### Usage
-
-After the installations you will see a "DataFlint" button in Spark UI, click on it to start using DataFlint
-
-<img alt="Logo" src="documentation/resources/usage.png">
-
 ### Additional installation options
 
 * There is also support for scala 2.13, if your spark cluster is using scala 2.13 change package name to io.dataflint:spark_**2.13**:0.2.3
@@ -104,9 +113,13 @@ The plugin exposes an additional HTTP resoures for additional metrics not availa
 
 For more information, see [how it works docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/how-it-works)
 
-## Articles
+## Medium Articles
 
-[Fixing small files performance issues in Apache Spark using DataFlint](https://medium.com/@menishmueli/fixing-small-files-performance-issues-in-apache-spark-using-dataflint-49ffe3eb755f)
+*  [Fixing small files performance issues in Apache Spark using DataFlint](https://medium.com/@menishmueli/fixing-small-files-performance-issues-in-apache-spark-using-dataflint-49ffe3eb755f)
+
+*  [Are Long Filter Conditions in Apache Spark Leading to Performance Issues?](https://medium.com/@menishmueli/are-long-filter-conditions-in-apache-spark-leading-to-performance-issues-0b5bc6c0f94a)
+
+*  [Optimizing update operations to Apache Iceberg tables using DataFlint](https://medium.com/dev-genius/optimizing-update-operations-to-apache-iceberg-tables-using-dataflint-e4e372e75b8a)
 
 ## Compatibility Matrix
 
