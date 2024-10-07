@@ -3,7 +3,7 @@
 </p>
 
 <h2 align="center">
- Spark Insights Made Simple
+ Spark Performance Made Simple
 </h2>
 
 <div align="center">
@@ -20,24 +20,21 @@ If you enjoy DataFlint please give us a ⭐️ and join our [slack community](ht
 
 ## What is DataFlint?
 
-DataFlint is a modern, user-friendly enhancement for Apache Spark that transforms how you monitor, debug, and optimize your big data applications.
-
-As an open-source performance monitoring and debugging tool, DataFlint simplifies the complex world of Spark operations. It adds a new, intuitive tab to the existing Spark WebUI, turning a powerful but often overwhelming interface into something easy to navigate and understand.
-
-With DataFlint, you can quickly identify performance bottlenecks, optimize resource usage, and troubleshoot issues faster than ever before.
+DataFlint is a modern, user-friendly enhancement for Apache Spark that simplifies performance monitoring and debugging. It adds an intuitive tab to the existing Spark Web UI, transforming a powerful but often overwhelming interface into something easy to navigate and understand.
 
 ## Why DataFlint?
 
-- **Intuitive Design**: DataFlint's tab in the Spark WebUI presents complex metrics in a clear, easy-to-understand format, making Spark insights accessible to everyone.
-- **Effortless Setup**: Get up and running fast, seamlessly integrating with your existing Spark environment.
+- **Intuitive Design**: DataFlint's tab in the Spark Web UI presents complex metrics in a clear, easy-to-understand format, making Spark performance accessible to everyone.
+- **Effortless Setup**: Install DataFlint in minutes with just a few lines of code or configuration, without making any changes to your existing Spark environment.
 - **For All Skill Levels**: Whether you're a seasoned data engineer or just starting with Spark, DataFlint provides valuable insights that help you work more effectively.
 
-By using DataFlint, you can spend less time deciphering logs and more time deriving value from your data. It's about making big data work better for you, regardless of your role or experience level with Spark.
+With DataFlint, spend less time deciphering Spark Web UI and more time deriving value from your data. Make big data work better for you, regardless of your role or experience level with Spark.
+
 
 
 ### Usage
 
-After the installations you will see a "DataFlint" button in Spark UI, click on it to start using DataFlint
+After installation, you will see a "DataFlint" tab in the Spark Web UI. Click on it to start using DataFlint.
 
 <img alt="Logo" src="documentation/resources/usage.png">
 
@@ -120,6 +117,11 @@ For more information, see [how it works docs](https://dataflint.gitbook.io/dataf
 *  [Are Long Filter Conditions in Apache Spark Leading to Performance Issues?](https://medium.com/@menishmueli/are-long-filter-conditions-in-apache-spark-leading-to-performance-issues-0b5bc6c0f94a)
 
 *  [Optimizing update operations to Apache Iceberg tables using DataFlint](https://medium.com/dev-genius/optimizing-update-operations-to-apache-iceberg-tables-using-dataflint-e4e372e75b8a)
+
+*  [Did you know that your Apache Spark logs might be leaking PIIs?](https://medium.com/system-weakness/did-you-know-that-your-apache-spark-logs-might-be-leaking-piis-06f2a0e8a82c)
+
+*  [Cost vs Speed: measuring Apache Spark performance with DataFlint](https://medium.com/@menishmueli/cost-vs-speed-measuring-apache-spark-performance-with-dataflint-c5f909ebe229)
+
 
 ## Compatibility Matrix
 
