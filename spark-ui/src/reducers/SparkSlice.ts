@@ -250,8 +250,7 @@ const sparkSlice = createSlice({
         state.jobs &&
         state.sql &&
         state.executors &&
-        state.stages &&
-        state.environmentInfo
+        state.stages
       ) {
         state.sql = calculateSqlQueryLevelMetricsReducer(
           state.config,

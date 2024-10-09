@@ -1,7 +1,8 @@
 import { Alerts, ConfigStore, StatusStore, SparkExecutorStore } from "../../interfaces/AppStore";
 import { humanFileSizeSparkConfigFormat, humanFileSize, calculatePercentage } from "../../utils/FormatUtils";
+import { EnvironmentInfo } from "../../interfaces/ApplicationInfo";
 
-const MAX_MEMORY_PERCENTAGE_TOO_HIGH_THRESHOLD = 95;
+const MAX_MEMORY_PERCENTAGE_TOO_HIGH_THRESHOLD = 30;
 const MAX_MEMORY_PERCENTAGE_TOO_LOW_THRESHOLD = 70;
 const MEMORY_INCREASE_RATIO = 0.2;
 const MEMORY_DECREASE_SAFETY_BUFFER = 0.2;
@@ -9,7 +10,7 @@ const MEMORY_DECREASE_SAFETY_BUFFER = 0.2;
 export function reduceMemoryAlerts(
   { executors: statusExecutors }: StatusStore,
   { executorMemoryBytes, executorMemoryBytesSparkFormatString }: ConfigStore,
-  environmentInfo: any,
+  environmentInfo: EnvironmentInfo | undefined, 
   executors: SparkExecutorStore[],
   alerts: Alerts
 ) {
@@ -23,19 +24,21 @@ export function reduceMemoryAlerts(
     );
   }
 
-  const driverExecutor = executors?.find((exec) => exec.id === "driver");
-  const driverMaxMemory = environmentInfo?.driverXmxBytes ?? 1;
-  const driverMemoryUsage = driverExecutor?.HeapMemoryUsageBytes ?? 0;
-  const driverMemoryUsagePercentage = calculatePercentage(driverMemoryUsage, driverMaxMemory);
-
-  if (driverMemoryUsage) {
-    checkMemoryUsage(
-      driverMemoryUsagePercentage,
-      driverMaxMemory,
-      humanFileSizeSparkConfigFormat(driverMaxMemory),
-      "driver",
-      alerts
-    );
+  if (environmentInfo?.driverXmxBytes) {
+    const driverExecutor = executors?.find((exec) => exec.id === "driver");
+    const driverMaxMemory = environmentInfo?.driverXmxBytes ?? 1;
+    const driverMemoryUsage = driverExecutor?.HeapMemoryUsageBytes ?? 0;
+    const driverMemoryUsagePercentage = calculatePercentage(driverMemoryUsage, driverMaxMemory);
+  
+    if (driverMemoryUsage) {
+      checkMemoryUsage(
+        driverMemoryUsagePercentage,
+        driverMaxMemory,
+        humanFileSizeSparkConfigFormat(driverMaxMemory),
+        "driver",
+        alerts
+      );
+    }
   }
 }
 

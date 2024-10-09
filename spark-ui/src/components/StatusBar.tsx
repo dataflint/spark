@@ -61,14 +61,17 @@ const StatusBar: FC = (): JSX.Element => {
   const driverExecutor = executors?.find(
     (exec: SparkExecutorStore) => exec.id === "driver",
   );
-  const driverMaxMemory = environmentInfo?.driverXmxBytes ?? 1;
+  const driverMaxMemory = environmentInfo?.driverXmxBytes;
   const driverMemoryUsage = driverExecutor?.HeapMemoryUsageBytes ?? 0;
-  const driverMemoryUsagePercentage = calculatePercentage(
-    driverMemoryUsage,
-    driverMaxMemory,
-  );
+  const isDriverMemoryAvailable =
+    driverMaxMemory !== undefined && driverMaxMemory > 1;
+  const driverMemoryUsagePercentage = isDriverMemoryAvailable
+    ? calculatePercentage(driverMemoryUsage, driverMaxMemory)
+    : 0;
   const driverMemoryUsageString = humanFileSize(driverMemoryUsage);
-  const driverMaxMemoryString = humanFileSize(driverMaxMemory);
+  const driverMaxMemoryString = isDriverMemoryAvailable
+    ? humanFileSize(driverMaxMemory)
+    : "N/A";
   return (
     <div>
       {isIdle ? (
@@ -119,7 +122,7 @@ const StatusBar: FC = (): JSX.Element => {
                   {status?.executors?.maxExecutorMemoryPercentage.toFixed(2)}%)
                 </Typography>
 
-                {driverMemoryUsage > 0 && (
+                {isDriverMemoryAvailable ? (
                   <>
                     <Typography
                       variant="subtitle1"
@@ -138,6 +141,14 @@ const StatusBar: FC = (): JSX.Element => {
                       {driverMemoryUsagePercentage.toFixed(2)}%)
                     </Typography>
                   </>
+                ) : (
+                  <Typography
+                    variant="body2"
+                    color="inherit"
+                    style={{ marginTop: "16px" }}
+                  >
+                    Driver memory information is not available for this run.
+                  </Typography>
                 )}
 
                 <Typography variant="body2" style={{ marginTop: "16px" }}>
