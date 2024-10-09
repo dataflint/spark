@@ -19,6 +19,7 @@ import {
 } from "../utils/FormatUtils";
 import InfoBox from "./InfoBox/InfoBox";
 import Progress from "./Progress";
+import { IS_HISTORY_SERVER_MODE } from "../utils/UrlConsts";
 
 const StatusBar: FC = (): JSX.Element => {
   const { status, sql } = useAppSelector((state) => state.spark);
@@ -58,20 +59,17 @@ const StatusBar: FC = (): JSX.Element => {
   );
   const durationText = humanizeTimeDiff(duration(status?.duration), true);
   const numOfQueries = sql?.sqls.length ?? 0;
-  const driverExecutor = executors?.find(
-    (exec: SparkExecutorStore) => exec.id === "driver",
-  );
-  const driverMaxMemory = environmentInfo?.driverXmxBytes;
+  const driverExecutor = executors
+    ? Object.values(executors).find((exec) => exec.id === "driver")
+    : undefined;
+  const driverMaxMemory = environmentInfo?.driverXmxBytes ?? 1;
   const driverMemoryUsage = driverExecutor?.HeapMemoryUsageBytes ?? 0;
-  const isDriverMemoryAvailable =
-    driverMaxMemory !== undefined && driverMaxMemory > 1;
-  const driverMemoryUsagePercentage = isDriverMemoryAvailable
-    ? calculatePercentage(driverMemoryUsage, driverMaxMemory)
-    : 0;
+  const driverMemoryUsagePercentage = calculatePercentage(
+    driverMemoryUsage,
+    driverMaxMemory,
+  );
   const driverMemoryUsageString = humanFileSize(driverMemoryUsage);
-  const driverMaxMemoryString = isDriverMemoryAvailable
-    ? humanFileSize(driverMaxMemory)
-    : "N/A";
+  const driverMaxMemoryString = humanFileSize(driverMaxMemory);
   return (
     <div>
       {isIdle ? (
@@ -95,72 +93,54 @@ const StatusBar: FC = (): JSX.Element => {
             color="#a31545"
             icon={AccessTimeIcon}
           ></InfoBox>
-          <InfoBox
-            title="Memory Usage"
-            text={
-              status?.executors?.maxExecutorMemoryPercentage.toFixed(2) + "%"
-            }
-            color="#8e24aa"
-            alert={memoryAlert}
-            icon={MemoryIcon}
-            tooltipContent={
-              <React.Fragment>
-                <Typography
-                  variant="subtitle1"
-                  color="inherit"
-                  fontWeight="bold"
-                >
-                  Peak Executor Memory:
-                </Typography>
-                <Typography
-                  variant="body1"
-                  color="inherit"
-                  textAlign={"center"}
-                >
-                  {status?.executors?.maxExecutorMemoryBytesString} /{" "}
-                  {executorMemoryBytesString} (
-                  {status?.executors?.maxExecutorMemoryPercentage.toFixed(2)}%)
-                </Typography>
+        <InfoBox
+          title="Memory Usage"
+          text={status?.executors?.maxExecutorMemoryPercentage.toFixed(2) + "%"}
+          color="#8e24aa"
+          icon={MemoryIcon}
+          alert={memoryAlert}
+          tooltipContent={
+            <React.Fragment>
+              <Typography variant="subtitle1" color="inherit" fontWeight="bold">
+                Peak Executor Memory:
+              </Typography>
+              <Typography variant="body1" color="inherit" textAlign={"center"}>
+                {status?.executors?.maxExecutorMemoryBytesString} /{" "}
+                {executorMemoryBytesString} (
+                {status?.executors?.maxExecutorMemoryPercentage.toFixed(2)}%)
+              </Typography>
 
-                {isDriverMemoryAvailable ? (
-                  <>
-                    <Typography
-                      variant="subtitle1"
-                      color="inherit"
-                      fontWeight="bold"
-                      style={{ marginTop: "16px" }}
-                    >
-                      Peak Driver Memory:
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      color="inherit"
-                      textAlign={"center"}
-                    >
-                      {driverMemoryUsageString} / {driverMaxMemoryString} (
-                      {driverMemoryUsagePercentage.toFixed(2)}%)
-                    </Typography>
-                  </>
-                ) : (
+              {!IS_HISTORY_SERVER_MODE && (
+                <>
                   <Typography
-                    variant="body2"
+                    variant="subtitle1"
                     color="inherit"
+                    fontWeight="bold"
                     style={{ marginTop: "16px" }}
                   >
-                    Driver memory information is not available for this run.
+                    Peak Driver Memory:
                   </Typography>
-                )}
+                  <Typography
+                    variant="body1"
+                    color="inherit"
+                    textAlign={"center"}
+                  >
+                    {driverMemoryUsageString} / {driverMaxMemoryString} (
+                    {driverMemoryUsagePercentage.toFixed(2)}%)
+                  </Typography>
+                </>
+              )}
 
-                <Typography variant="body2" style={{ marginTop: "16px" }}>
-                  "Memory Usage" shows the peak memory usage of the most
-                  memory-utilized executor.
-                </Typography>
-                <Typography variant="body2">
-                  "Memory" refers to the JVM memory (on-heap).
-                </Typography>
-              </React.Fragment>
-            }
-          />
+              <Typography variant="body2" style={{ marginTop: "16px" }}>
+                "Memory Usage" shows the peak memory usage of the most
+                memory-utilized executor.
+              </Typography>
+              <Typography variant="body2">
+                "Memory" refers to the JVM memory (on-heap).
+              </Typography>
+            </React.Fragment>
+          }
+          ></InfoBox>
           <InfoBox
             title="Executors"
             text={numOfExecutorsText}

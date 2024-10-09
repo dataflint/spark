@@ -19,6 +19,7 @@ import {
 } from "../utils/FormatUtils";
 import InfoBox from "./InfoBox/InfoBox";
 import Progress from "./Progress";
+import { IS_HISTORY_SERVER_MODE } from "../utils/UrlConsts";
 
 const SummaryBar: FC = (): JSX.Element => {
   const status = useAppSelector((state) => state.spark.status);
@@ -153,7 +154,7 @@ const SummaryBar: FC = (): JSX.Element => {
                 {status.executors.maxExecutorMemoryPercentage.toFixed(2)}%)
               </Typography>
 
-              {driverMemoryUsage > 0 && (
+              {!IS_HISTORY_SERVER_MODE && (
                 <>
                   <Typography
                     variant="subtitle1"

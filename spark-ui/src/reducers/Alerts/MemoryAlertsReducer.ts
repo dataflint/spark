@@ -2,7 +2,7 @@ import { Alerts, ConfigStore, StatusStore, SparkExecutorStore } from "../../inte
 import { humanFileSizeSparkConfigFormat, humanFileSize, calculatePercentage } from "../../utils/FormatUtils";
 import { EnvironmentInfo } from "../../interfaces/ApplicationInfo";
 
-const MAX_MEMORY_PERCENTAGE_TOO_HIGH_THRESHOLD = 30;
+const MAX_MEMORY_PERCENTAGE_TOO_HIGH_THRESHOLD = 95;
 const MAX_MEMORY_PERCENTAGE_TOO_LOW_THRESHOLD = 70;
 const MEMORY_INCREASE_RATIO = 0.2;
 const MEMORY_DECREASE_SAFETY_BUFFER = 0.2;
