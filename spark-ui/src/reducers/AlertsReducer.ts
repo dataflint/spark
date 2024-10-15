@@ -5,6 +5,7 @@ import {
   SparkSQLStore,
   SparkStagesStore,
   StatusStore,
+  SparkExecutorsStore,
 } from "../interfaces/AppStore";
 import { reduceIcebergReplaces } from "./Alerts/IcebergReplacesReducer";
 import { reduceLongFilterConditions } from "./Alerts/LongFilterConditions";
@@ -19,9 +20,11 @@ export function reduceAlerts(
   statusStore: StatusStore,
   stageStore: SparkStagesStore,
   config: ConfigStore,
+  executors: SparkExecutorsStore,
+  environmentInfo: any 
 ): AlertsStore {
   const alerts: Alerts = [];
-  reduceMemoryAlerts(statusStore, config, alerts);
+  reduceMemoryAlerts(statusStore, config, environmentInfo, executors ,alerts);
   reduceWastedCoresAlerts(statusStore, config, alerts);
   reduceSQLInputOutputAlerts(sqlStore, alerts);
   reducePartitionSkewAlert(sqlStore, stageStore, alerts);

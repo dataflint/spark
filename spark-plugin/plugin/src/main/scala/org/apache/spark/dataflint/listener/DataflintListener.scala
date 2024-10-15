@@ -18,6 +18,10 @@ class DataflintListener(store: ElementTrackingStore) extends SparkListener with 
           val executionInfo = new DatabricksAdditionalExecutionWrapper(e.databricksAdditionalExecutionInfo)
           store.write(executionInfo)
         }
+        case e: DataflintEnvironmentInfoEvent => {
+          val wrapper = new DataflintEnvironmentInfoWrapper(e.environmentInfo)
+          store.write(wrapper)
+        }
         case _ => {}
       }
     } catch {

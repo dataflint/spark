@@ -127,7 +127,7 @@ export function calculateSparkExecutorsStatus(
       : 0;
   const maxExecutorMemoryBytes =
     executors.length > 0
-      ? Math.max(...executors.map((executor) => executor.memoryUsageBytes))
+      ? Math.max(...executors.map((executor) => executor.HeapMemoryUsageBytes))
       : 0;
   const maxExecutorMemoryBytesString = humanFileSize(maxExecutorMemoryBytes);
 

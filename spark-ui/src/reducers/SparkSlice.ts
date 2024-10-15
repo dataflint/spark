@@ -28,6 +28,7 @@ import {
   calculateSqlIdleTime,
   calculateStageStatus,
 } from "./StatusReducer";
+import { EnvironmentInfo } from '../interfaces/ApplicationInfo';
 
 export const initialState: AppStore = {
   isConnected: false,
@@ -41,6 +42,7 @@ export const initialState: AppStore = {
   executors: undefined,
   alerts: undefined,
   executorTimeline: undefined,
+  environmentInfo: undefined,
 };
 
 const sparkSlice = createSlice({
@@ -54,6 +56,7 @@ const sparkSlice = createSlice({
         appId: string;
         attempt: Attempt;
         epocCurrentTime: number;
+        environmentInfo: EnvironmentInfo;
       }>,
     ) => {
       const [appName, config] = extractConfig(action.payload.config);
@@ -78,6 +81,7 @@ const sparkSlice = createSlice({
       state.runMetadata = runMetadata;
       state.config = config;
       state.status = newStatus;
+      state.environmentInfo = action.payload.environmentInfo;
       state.alerts = { alerts: [] };
       state.sql = undefined;
       state.stages = undefined;
@@ -261,6 +265,8 @@ const sparkSlice = createSlice({
           state.status,
           state.stages,
           state.config!,
+          state.executors,
+          state.environmentInfo
         );
       }
     },

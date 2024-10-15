@@ -51,7 +51,7 @@ local.properties
 
 # custom
 null/
-plugin/src/main/resources
+plugin/src/main/resources/io/
 
 # custom
 .bsp

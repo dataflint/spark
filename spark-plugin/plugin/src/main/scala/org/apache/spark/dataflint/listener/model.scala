@@ -54,3 +54,13 @@ class IcebergCommitWrapper(val info: IcebergCommitInfo) {
   @JsonIgnore @KVIndex
   def id: String = info.executionId.toString
 }
+
+case class DataflintEnvironmentInfo(driverXmxBytes: Long)
+
+case class DataflintEnvironmentInfoEvent(environmentInfo: DataflintEnvironmentInfo) extends SparkListenerEvent
+
+class DataflintEnvironmentInfoWrapper(val info: DataflintEnvironmentInfo) {
+  @KVIndex
+  @JsonIgnore
+  def id: String = "environment_info"
+}
