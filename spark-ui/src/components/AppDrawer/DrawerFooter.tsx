@@ -5,7 +5,7 @@ import {
   BASE_PATH,
   IS_HISTORY_SERVER_MODE,
 } from "../../utils/UrlConsts";
-import { getBaseAppUrl, isDataFlintSaaSUI } from "../../utils/UrlUtils";
+import { getBaseAppUrl, isDataFlintSaaSUI, getProxyBasePath } from "../../utils/UrlUtils";
 
 export default function DrawerFooter({ version }: { version?: string }) {
   const onSparkUiClick = (): void => {
@@ -13,7 +13,8 @@ export default function DrawerFooter({ version }: { version?: string }) {
   };
 
   const onHistoryServerClick = (): void => {
-    window.location.href = `${BASE_PATH}/history`;
+    const basePath = getProxyBasePath();
+    window.location.href = basePath;
   };
 
   return (
