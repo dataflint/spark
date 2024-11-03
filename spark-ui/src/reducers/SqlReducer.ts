@@ -93,6 +93,7 @@ export function parseNodePlan(
   try {
     switch (node.nodeName) {
       case "PhotonGroupingAgg":
+      case "GpuHashAggregate":
       case "HashAggregate":
         return {
           type: "HashAggregate",
@@ -115,22 +116,26 @@ export function parseNodePlan(
           plan: parseWriteToHDFS(plan.planDescription),
         };
       case "PhotonFilter":
+      case "GpuFilter":
       case "Filter":
         return {
           type: "Filter",
           plan: parseFilter(plan.planDescription),
         };
       case "Exchange":
+      case "GpuColumnarExchange":
         return {
           type: "Exchange",
           plan: parseExchange(plan.planDescription),
         };
       case "PhotonProject":
+      case "GpuProject":
       case "Project":
         return {
           type: "Project",
           plan: parseProject(plan.planDescription),
         };
+      case "GpuSort":
       case "Sort":
         return {
           type: "Sort",

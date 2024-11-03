@@ -16,6 +16,7 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "number of data loss error",
     "total data manifests",
     "number of file splits read",
+    "output columnar batches",
   ],
   output: [
     "number of written files",
@@ -23,8 +24,10 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "written output",
     "number of dynamic part",
   ],
-  join: ["number of output rows"],
-  transformation: ["number of output rows"],
+  join: ["number of output rows", "output columnar batches",
+  ],
+  transformation: ["number of output rows", "output columnar batches", "output rows",
+  ],
   shuffle: [
     "number of partitions",
     "shuffle bytes written",
@@ -32,9 +35,11 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "number of output rows",
     "num bytes read",
     "num bytes written",
+    "output columnar batches",
   ],
-  broadcast: ["number of output rows", "data size"],
-  sort: ["spill size"],
+
+  broadcast: ["number of output rows", "data size", "output columnar batches"],
+  sort: ["spill size", "output columnar batches"],
   other: [],
 };
 
@@ -58,6 +63,7 @@ const metricsValueTransformer: Record<
 
 const metricsRenamer: Record<string, string> = {
   "number of output rows": "rows",
+  "output rows": "rows",
   "number of written files": "files written",
   "written output": "bytes written",
   "number of files read": "files read",
@@ -74,6 +80,7 @@ const metricsRenamer: Record<string, string> = {
   "total data file size (bytes)": "bytes read",
   "total data manifests": "data manifests read",
   "number of file splits read": "files read",
+  "output columnar batches": "output batches",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -103,8 +110,21 @@ const nodeTypeDict: Record<string, NodeType> = {
   PhotonGroupingAgg: "transformation",
   PhotonShuffleExchangeSink: "shuffle",
   PhotonShuffleExchangeSource: "shuffle",
-  PhotonTopK: "transformation",
+  PhotonTopK: "output",
   PhotonFilter: "transformation",
+  GpuFilter: "transformation",
+  GpuBroadcastHashJoin: "join",
+  GpuCoalesceBatches: "shuffle",
+  GpuBroadcastExchange: "broadcast",
+  GpuProject: "transformation",
+  GpuHashAggregate: "transformation",
+  GpuColumnarExchange: "shuffle",
+  GpuCustomShuffleReader: "shuffle",
+  GpuTopN: "output",
+  GpuShuffleCoalesce: "shuffle",
+  GpuSort: "sort",
+  GpuShuffledSymmetricHashJoin: "join",
+  GpuBroadcastNestedLoopJoin: "join",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -139,7 +159,20 @@ const nodeRenamerDict: Record<string, string> = {
   PhotonShuffleExchangeSink: "Exchange Write (Photon)",
   PhotonShuffleExchangeSource: "Exchange Read (Photon)",
   PhotonTopK: "Take (Photon)",
-  PhotonFilter: "Filter (Photon)"
+  PhotonFilter: "Filter (Photon)",
+  GpuFilter: "Filter (RAPIDS)",
+  GpuCoalesceBatches: "Coalesce Batches (RAPIDS)",
+  GpuBroadcastExchange: "Broadcast (RAPIDS)",
+  GpuProject: "Project (RAPIDS)",
+  GpuBroadcastHashJoin: "Join (Broadcast Hash) (RAPIDS)",
+  GpuHashAggregate: "Aggregate (RAPIDS)",
+  GpuColumnarExchange: "Exchange (RAPIDS)",
+  GpuCustomShuffleReader: "Shuffle Read (RAPIDS)",
+  GpuTopN: "Take (RAPIDS)",
+  GpuShuffleCoalesce: "Coalesce (RAPIDS)",
+  GpuSort: "Sort (RAPIDS)",
+  GpuShuffledSymmetricHashJoin: "Join (Shuffled Symmetric Hash) (RAPIDS)",
+  GpuBroadcastNestedLoopJoin: "Join (Broadcast Nested Loop) (RAPIDS)",
 };
 
 export function extractTotalFromStatisticsMetric(
@@ -205,9 +238,10 @@ export function nodeEnrichedNameBuilder(
     return renamedNodeName;
   }
   if (name.includes("Scan")) {
-    const scanRenamed = name.includes("BatchScan")
+    let scanRenamed = name.includes("BatchScan")
       ? name.replace("BatchScan", "Read")
       : name.replace("Scan", "Read");
+    scanRenamed = scanRenamed.replace("GpuRead", "Read (RAPIDS)");
     const scanNameSliced = scanRenamed.split(" ");
     if (scanNameSliced.length > 2) {
       return scanNameSliced.slice(0, 2).join(" ");
