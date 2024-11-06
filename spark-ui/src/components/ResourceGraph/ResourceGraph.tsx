@@ -1,11 +1,11 @@
 import { ApexOptions } from "apexcharts";
-import distinctColors from "distinct-colors";
 import { duration } from "moment";
 import React from "react";
 import ReactApexChart from "react-apexcharts";
 import { ExecutorTimelinePoints } from "../../interfaces/AppStore";
 import { truncateString } from "../../reducers/PlanParsers/PlanParserUtils";
 import { humanizeTimeDiff } from "../../utils/FormatUtils";
+import { DISTINCT_COLORS } from "./ColorsOutput";
 
 export interface StaticResource {
   type: "static";
@@ -89,13 +89,13 @@ const ResourceGraph: React.FC<SteplineGraphProps> = ({
     }
   }
 
-  var palette = distinctColors({ count: 1000 });
+  var palette = DISTINCT_COLORS;
   const xannotations: XAxisAnnotations[] = queries.map((query, i) => {
     // first color is ugly so we skip it (i + 1)
     const color =
       i < palette.length
-        ? palette[i + 1].hex()
-        : palette[i % (palette.length - 1)].hex();
+        ? palette[i + 1]
+        : palette[i % (palette.length - 1)];
     return {
       x: query.start,
       x2: query.end,
