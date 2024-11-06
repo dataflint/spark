@@ -24,8 +24,6 @@ export function reduceSmallTasksAlert(
       const stageData = stages.find(
         (stage) => stage.stageId === stageInfo.stageId,
       );
-      console.log(stageData?.numTasks)
-      console.log(stageData?.mediumTaskDuration)
 
       if (stageData !== undefined &&
         stageData.numTasks > LARGE_TASKS_NUM_THRESHOLD &&
