@@ -1,5 +1,3 @@
-import { IS_HISTORY_SERVER_MODE } from "./UrlConsts";
-
 export const isHistoryServer = (): boolean =>
   window.location.href.includes("history");
 
@@ -30,7 +28,7 @@ export function hrefWithoutEndSlash(): string {
 }
 
 export const getProxyBasePath = (): string => {
-  if (IS_HISTORY_SERVER_MODE) {
+  if (isHistoryServer()) {
     // in cases where we are in history server mode, the API should be before the last /history part
     // For example, for: http://localhost:18080/history/<application_id>/dataflint/
     // the api is in http://localhost:18080/api/
