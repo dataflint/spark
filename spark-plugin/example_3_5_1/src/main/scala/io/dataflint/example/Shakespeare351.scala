@@ -16,7 +16,6 @@ object Shakespeare351 extends App {
     .builder()
     .appName("Shakespeare Statistics")
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
-    .config("spark.dataflint.telemetry.enabled", false)
     .config("spark.ui.port", "10000")
     .config("spark.dataflint.telemetry.enabled", value = false)
     .config("spark.sql.maxMetadataStringLength", "10000")

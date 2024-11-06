@@ -32,8 +32,8 @@ export const getProxyBasePath = (): string => {
     // in cases where we are in history server mode, the API should be before the last /history part
     // For example, for: http://localhost:18080/history/<application_id>/dataflint/
     // the api is in http://localhost:18080/api/
-    // when the path is https://gateway//sparkhistory/history/<application_id>/1/dataflint/
-    // the api is in https://gateway//sparkhistory/api/
+    // when the path is https://gateway/sparkhistory/history/<application_id>/1/dataflint/
+    // the api is in https://gateway/sparkhistory/api/
     const url = new URL(window.location.href);
     const pathToRemove = /.*\/history\/[^/]+\/dataflint\/?$/;
     return url.origin + url.pathname.replace(pathToRemove, '');
@@ -41,8 +41,8 @@ export const getProxyBasePath = (): string => {
     // in cases where we are not in history server mode, the API should be before the last /dataflint part
     // for example, for: http://localhost:18080/dataflint/
     // the api is in http://localhost:18080/api
-    // when the path is https://gateway//mysparkapp/dataflint/
-    // the api is in https://gateway//mysparkapp/api/
+    // when the path is https://gateway/mysparkapp/dataflint/
+    // the api is in https://gateway/mysparkapp/api/
     return hrefWithoutEndSlash().substring(
       0,
       hrefWithoutEndSlash().lastIndexOf("/dataflint"),
