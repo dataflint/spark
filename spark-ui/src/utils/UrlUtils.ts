@@ -35,7 +35,7 @@ export const getProxyBasePath = (): string => {
     // when the path is https://gateway/sparkhistory/history/<application_id>/1/dataflint/
     // the api is in https://gateway/sparkhistory/api/
     const url = new URL(window.location.href);
-    const pathToRemove = /.*\/history\/[^/]+\/dataflint\/?$/;
+    const pathToRemove = /\/history\/[^/]+\/dataflint\/?$/;
     return url.origin + url.pathname.replace(pathToRemove, '');
   } else {
     // in cases where we are not in history server mode, the API should be before the last /dataflint part
