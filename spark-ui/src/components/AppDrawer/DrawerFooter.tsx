@@ -2,10 +2,9 @@ import Button from "@mui/material/Button";
 import * as React from "react";
 import {
   BASE_CURRENT_PAGE,
-  BASE_PATH,
-  IS_HISTORY_SERVER_MODE,
+  IS_HISTORY_SERVER_MODE
 } from "../../utils/UrlConsts";
-import { getBaseAppUrl, isDataFlintSaaSUI, getProxyBasePath } from "../../utils/UrlUtils";
+import { getBaseAppUrl, getProxyBasePath, isDataFlintSaaSUI } from "../../utils/UrlUtils";
 
 export default function DrawerFooter({ version }: { version?: string }) {
   const onSparkUiClick = (): void => {
@@ -14,7 +13,7 @@ export default function DrawerFooter({ version }: { version?: string }) {
 
   const onHistoryServerClick = (): void => {
     const basePath = getProxyBasePath();
-    window.location.href = basePath;
+    window.location.href = basePath + "/history/";
   };
 
   return (
