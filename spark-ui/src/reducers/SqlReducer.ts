@@ -237,14 +237,13 @@ function calculateSql(
 
   const metricEnrichedNodes: EnrichedSqlNode[] = onlyGraphNodes.map((node) => {
     const exchangeMetrics = calcExchangeMetrics(node.nodeName, node.metrics);
-    const metrics_orig = calcNodeMetrics(node.type, node.metrics)
     const exchangeBroadcastDuration = calcBroadcastExchangeDuration(
       node.nodeName,
       node.metrics,
     );
     return {
       ...node,
-      metrics: updateNodeMetrics(node, metrics_orig, graph, onlyGraphNodes),
+      metrics: updateNodeMetrics(node, node.metrics, graph, onlyGraphNodes),
       exchangeMetrics: exchangeMetrics,
       exchangeBroadcastDuration: exchangeBroadcastDuration,
     };
@@ -410,8 +409,7 @@ export function updateSqlNodeMetrics(
       return node;
     }
 
-    const metrics_orig = calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics);
-    const metrics = updateNodeMetrics(node, metrics_orig, graph, runningSql.nodes);
+    const metrics = updateNodeMetrics(node, matchedMetricsNodes[0].metrics, graph, runningSql.nodes);
     const exchangeMetrics = calcExchangeMetrics(node.nodeName, metrics);
 
     // TODO: maybe do a smarter replacement, or send only the initialized metrics
@@ -448,11 +446,9 @@ export function updateSqlNodeMetrics(
   const notEffectedSqlsBefore = currentStore.sqls.filter(
     (sql) => sql.id < sqlId,
   );
-
   const notEffectedSqlsAfter = currentStore.sqls.filter(
     (sql) => sql.id > sqlId,
   );
-  
   return {
     ...currentStore,
     sqls: [...notEffectedSqlsBefore, updatedSql, ...notEffectedSqlsAfter],
@@ -494,16 +490,23 @@ function calcBroadcastExchangeDuration(
 
 function updateNodeMetrics(
   node: EnrichedSqlNode,
+  metrics: EnrichedSqlMetric[],
+  graph: Graph,
+  allNodes: EnrichedSqlNode[],
+): EnrichedSqlMetric[] {
+
+  const updatedMetrics = calcNodeMetrics(node.type, metrics);
+  addFilterRatioMetric(node, updatedMetrics, graph, allNodes);
+  return updatedMetrics;
+}
+
+function addFilterRatioMetric(
+  node: EnrichedSqlNode,
   updatedMetrics: EnrichedSqlMetric[],
   graph: Graph,
   allNodes: EnrichedSqlNode[],
 ): EnrichedSqlMetric[] {
-  // Add custom logic for filter_ratio
-  // Implemented for happy path range followed by filter
-  // 1. Missing predecessor or ambigious - not computable
-  // 2. Multiple Predecessors - aggregate row counts of all predecessors
-  // 3. Filter after non row based nodes - ?
-  // 4. Filters with dependecies on broadcast variables
+
   if (node.nodeName.includes("Filter") || node.nodeName.includes("Join")) {
     const inputEdges = graph.inEdges(node.nodeId.toString());
 
@@ -511,7 +514,6 @@ function updateNodeMetrics(
       return updatedMetrics;
     }
     
-    // 2. Multiple Predecessors - aggregate row counts of all predecessors
     let totalInputRows = 0;
     let validPredecessors = 0;
 
@@ -535,7 +537,7 @@ function updateNodeMetrics(
       return updatedMetrics;
     }
 
-     const outputRowsMetric = updatedMetrics.find((m) => m.name === "rows");
+     const outputRowsMetric = updatedMetrics.find((m) => m.name.includes("rows"));
      if (!outputRowsMetric) {
        return updatedMetrics;
      }
@@ -555,5 +557,5 @@ function updateNodeMetrics(
   }
 
   return updatedMetrics;
-
 }
+
