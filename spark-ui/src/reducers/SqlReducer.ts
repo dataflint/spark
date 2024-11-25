@@ -180,6 +180,7 @@ function calculateSql(
   icebergCommit: IcebergCommitsInfo | undefined,
 ): EnrichedSparkSQL {
   const enrichedSql = sql as EnrichedSparkSQL;
+  const graph = generateGraph(enrichedSql.edges, enrichedSql.nodes);
   const originalNumOfNodes = enrichedSql.nodes.length;
   const typeEnrichedNodes = enrichedSql.nodes.map((node) => {
     const type = calcNodeType(node.nodeName);
@@ -236,13 +237,14 @@ function calculateSql(
 
   const metricEnrichedNodes: EnrichedSqlNode[] = onlyGraphNodes.map((node) => {
     const exchangeMetrics = calcExchangeMetrics(node.nodeName, node.metrics);
+    const metrics_orig = calcNodeMetrics(node.type, node.metrics)
     const exchangeBroadcastDuration = calcBroadcastExchangeDuration(
       node.nodeName,
       node.metrics,
     );
     return {
       ...node,
-      metrics: calcNodeMetrics(node.type, node.metrics),
+      metrics: updateNodeMetrics(node, metrics_orig, graph, onlyGraphNodes),
       exchangeMetrics: exchangeMetrics,
       exchangeBroadcastDuration: exchangeBroadcastDuration,
     };
@@ -399,6 +401,7 @@ export function updateSqlNodeMetrics(
 
   const notEffectedSqls = currentStore.sqls.filter((sql) => sql.id !== sqlId);
   const runningSql = runningSqls[0];
+  const graph = generateGraph(runningSql.edges, runningSql.nodes);
   const nodes = runningSql.nodes.map((node) => {
     const matchedMetricsNodes = sqlMetrics.filter(
       (nodeMetrics) => nodeMetrics.id === node.nodeId,
@@ -407,7 +410,8 @@ export function updateSqlNodeMetrics(
       return node;
     }
 
-    const metrics = calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics);
+    const metrics_orig = calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics);
+    const metrics = updateNodeMetrics(node, metrics_orig, graph, runningSql.nodes);
     const exchangeMetrics = calcExchangeMetrics(node.nodeName, metrics);
 
     // TODO: maybe do a smarter replacement, or send only the initialized metrics
@@ -444,9 +448,11 @@ export function updateSqlNodeMetrics(
   const notEffectedSqlsBefore = currentStore.sqls.filter(
     (sql) => sql.id < sqlId,
   );
+
   const notEffectedSqlsAfter = currentStore.sqls.filter(
     (sql) => sql.id > sqlId,
   );
+  
   return {
     ...currentStore,
     sqls: [...notEffectedSqlsBefore, updatedSql, ...notEffectedSqlsAfter],
@@ -484,4 +490,70 @@ function calcBroadcastExchangeDuration(
     return duration;
   }
   return undefined;
+}
+
+function updateNodeMetrics(
+  node: EnrichedSqlNode,
+  updatedMetrics: EnrichedSqlMetric[],
+  graph: Graph,
+  allNodes: EnrichedSqlNode[],
+): EnrichedSqlMetric[] {
+  // Add custom logic for filter_ratio
+  // Implemented for happy path range followed by filter
+  // 1. Missing predecessor or ambigious - not computable
+  // 2. Multiple Predecessors - aggregate row counts of all predecessors
+  // 3. Filter after non row based nodes - ?
+  // 4. Filters with dependecies on broadcast variables
+  if (node.nodeName.includes("Filter") || node.nodeName.includes("Join")) {
+    const inputEdges = graph.inEdges(node.nodeId.toString());
+
+    if (!inputEdges || inputEdges.length === 0) {
+      return updatedMetrics;
+    }
+    
+    // 2. Multiple Predecessors - aggregate row counts of all predecessors
+    let totalInputRows = 0;
+    let validPredecessors = 0;
+
+    inputEdges.forEach((edge) => {
+      const inputNode = allNodes.find((n) => n.nodeId.toString() === edge.v);
+      if (inputNode) {
+        const inputRowsMetric = inputNode.metrics?.find((m) =>
+          m.name.includes("rows")
+        );
+        if (inputRowsMetric) {
+          const inputRows = parseFloat(inputRowsMetric.value.replace(/,/g, ""));
+          if (!isNaN(inputRows)) {
+            totalInputRows += inputRows;
+            validPredecessors++;
+          }
+        }
+      }
+    });
+
+    if (validPredecessors === 0) {
+      return updatedMetrics;
+    }
+
+     const outputRowsMetric = updatedMetrics.find((m) => m.name === "rows");
+     if (!outputRowsMetric) {
+       return updatedMetrics;
+     }
+
+    const outputRows = parseFloat(outputRowsMetric.value.replace(/,/g, ""));
+    if (isNaN(outputRows)) {
+      return updatedMetrics;
+    }
+
+    const filterRatio = ((totalInputRows - outputRows) / totalInputRows) * 100;
+    if(filterRatio <= 100){
+      updatedMetrics.push({
+        name: "filter_ratio",
+        value: filterRatio.toFixed(2).concat("%"),
+      });
+    }
+  }
+
+  return updatedMetrics;
+
 }
