@@ -537,10 +537,10 @@ function addFilterRatioMetric(
       return updatedMetrics;
     }
 
-     const outputRowsMetric = updatedMetrics.find((m) => m.name.includes("rows"));
-     if (!outputRowsMetric) {
-       return updatedMetrics;
-     }
+    const outputRowsMetric = updatedMetrics.find((m) => m.name.includes("rows"));
+    if (!outputRowsMetric) {
+      return updatedMetrics;
+    }
 
     const outputRows = parseFloat(outputRowsMetric.value.replace(/,/g, ""));
     if (isNaN(outputRows)) {
