@@ -495,9 +495,15 @@ function updateNodeMetrics(
   allNodes: EnrichedSqlNode[],
 ): EnrichedSqlMetric[] {
 
-  const updatedMetrics = calcNodeMetrics(node.type, metrics);
-  addFilterRatioMetric(node, updatedMetrics, graph, allNodes);
-  return updatedMetrics;
+  const updatedOriginalMetrics = calcNodeMetrics(node.type, metrics);
+  const filterRatio = addFilterRatioMetric(node, updatedOriginalMetrics, graph, allNodes);
+
+  return [
+    ...updatedOriginalMetrics,
+    ...(filterRatio !== null
+      ? [{ name: "Filter Ratio", value: filterRatio }]
+      : []),
+  ];
 }
 
 function addFilterRatioMetric(
@@ -505,17 +511,16 @@ function addFilterRatioMetric(
   updatedMetrics: EnrichedSqlMetric[],
   graph: Graph,
   allNodes: EnrichedSqlNode[],
-): EnrichedSqlMetric[] {
+): string | null {
 
   if (node.nodeName.includes("Filter") || node.nodeName.includes("Join")) {
     const inputEdges = graph.inEdges(node.nodeId.toString());
 
     if (!inputEdges || inputEdges.length === 0) {
-      return updatedMetrics;
+      return null;
     }
     
     let totalInputRows = 0;
-    let validPredecessors = 0;
 
     inputEdges.forEach((edge) => {
       const inputNode = allNodes.find((n) => n.nodeId.toString() === edge.v);
@@ -527,35 +532,33 @@ function addFilterRatioMetric(
           const inputRows = parseFloat(inputRowsMetric.value.replace(/,/g, ""));
           if (!isNaN(inputRows)) {
             totalInputRows += inputRows;
-            validPredecessors++;
           }
         }
       }
     });
 
-    if (validPredecessors === 0) {
-      return updatedMetrics;
+    if (totalInputRows === 0) {
+      return null;
     }
 
     const outputRowsMetric = updatedMetrics.find((m) => m.name.includes("rows"));
     if (!outputRowsMetric) {
-      return updatedMetrics;
+      return null;
     }
 
     const outputRows = parseFloat(outputRowsMetric.value.replace(/,/g, ""));
     if (isNaN(outputRows)) {
-      return updatedMetrics;
+      return null;
     }
 
-    const filterRatio = ((totalInputRows - outputRows) / totalInputRows) * 100;
-    if(filterRatio <= 100){
-      updatedMetrics.push({
-        name: "filter_ratio",
-        value: filterRatio.toFixed(2).concat("%"),
-      });
-    }
+    const filteredRowsPercentage = new Intl.NumberFormat('default', {
+      style: 'percent',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format((totalInputRows - outputRows) / totalInputRows);
+    
+    return filteredRowsPercentage;
   }
-
-  return updatedMetrics;
+  return null;
 }
 
