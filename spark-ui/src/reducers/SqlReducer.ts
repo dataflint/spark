@@ -400,6 +400,7 @@ export function updateSqlNodeMetrics(
 
   const notEffectedSqls = currentStore.sqls.filter((sql) => sql.id !== sqlId);
   const runningSql = runningSqls[0];
+  // TODO: cache the graph
   const graph = generateGraph(runningSql.edges, runningSql.nodes);
   const nodes = runningSql.nodes.map((node) => {
     const matchedMetricsNodes = sqlMetrics.filter(
