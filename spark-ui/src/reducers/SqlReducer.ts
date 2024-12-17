@@ -94,6 +94,7 @@ export function parseNodePlan(
     switch (node.nodeName) {
       case "PhotonGroupingAgg":
       case "GpuHashAggregate":
+      case "!CometGpuHashAggregate":
       case "HashAggregate":
         return {
           type: "HashAggregate",
@@ -117,12 +118,15 @@ export function parseNodePlan(
         };
       case "PhotonFilter":
       case "GpuFilter":
+      case "CometFilter":
       case "Filter":
         return {
           type: "Filter",
           plan: parseFilter(plan.planDescription),
         };
       case "Exchange":
+      case "CometExchange":
+      case "CometColumnarExchange":
       case "GpuColumnarExchange":
         return {
           type: "Exchange",
@@ -130,12 +134,14 @@ export function parseNodePlan(
         };
       case "PhotonProject":
       case "GpuProject":
+      case "CometFilter":
       case "Project":
         return {
           type: "Project",
           plan: parseProject(plan.planDescription),
         };
       case "GpuSort":
+      case "CometSort":
       case "Sort":
         return {
           type: "Sort",

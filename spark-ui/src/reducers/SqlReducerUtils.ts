@@ -125,6 +125,15 @@ const nodeTypeDict: Record<string, NodeType> = {
   GpuSort: "sort",
   GpuShuffledSymmetricHashJoin: "join",
   GpuBroadcastNestedLoopJoin: "join",
+  CometColumnarExchange: "shuffle",
+  CometHashAggregate: "transformation",
+  CometExchange: "shuffle",
+  CometProject: "transformation",
+  CometFilter: "transformation",
+  CometSort: "sort",
+  CometHashJoin: "join",
+  CometBroadcastHashJoin: "join",
+  CometSortMergeJoin: "join",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -173,6 +182,15 @@ const nodeRenamerDict: Record<string, string> = {
   GpuSort: "Sort (RAPIDS)",
   GpuShuffledSymmetricHashJoin: "Join (Shuffled Symmetric Hash) (RAPIDS)",
   GpuBroadcastNestedLoopJoin: "Join (Broadcast Nested Loop) (RAPIDS)",
+  CometProject: "Project (Comet)",
+  CometHashAggregate: "Aggregate (Comet)",
+  CometExchange: "Exchange (Comet)",
+  CometColumnarExchange: "Columnar Exchange (Comet)",
+  CometFilter: "Filter (Comet)",
+  CometSort: "Sort (Comet)",
+  CometHashJoin: "Join (Comet)",
+  CometBroadcastHashJoin: "Join (Broadcast Hash) (Comet)",
+  CometSortMergeJoin: "Join (Sort Merge) (Comet)",
 };
 
 export function extractTotalFromStatisticsMetric(
@@ -228,7 +246,7 @@ export function nodeEnrichedNameBuilder(
         } else if (plan.plan.type === "SinglePartition") {
           return "Repartition To Single Partition";
         } else if (plan.plan.type === "RoundRobinPartitioning") {
-          return "Repartition By Round Robin";
+          return "Repartition By Round Robin (Comet)";
         }
     }
   }

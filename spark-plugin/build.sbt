@@ -97,6 +97,7 @@ lazy val example_3_5_1 = (project in file("example_3_5_1"))
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0",
     libraryDependencies += "org.scala-lang.modules" %% "scala-collection-compat" % "2.11.0",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17",
+    libraryDependencies += "org.apache.datafusion" % "comet-spark-spark3.5_2.12" % "0.4.0",
     publish / skip := true
   ).dependsOn(plugin)
 

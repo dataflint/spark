@@ -10,6 +10,8 @@ export function parseFilter(input: string): ParseFilterPlan {
   filterStr = removeFromStart(filterStr, "Filter ");
   filterStr = removeFromStart(filterStr, "PhotonFilter ");
   filterStr = removeFromStart(filterStr, "GpuFilter ");
+  filterStr = removeFromStart(filterStr, "CometFilter ");
+
   if (filterStr.startsWith("(")) {
     filterStr = removeFromStart(filterStr, "(");
     filterStr = removeFromEnd(filterStr, ")");
