@@ -94,7 +94,7 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
     val failedTasks = stages.map(stage => stage.numFailedTasks).sum
     val taskErrorRate = calculatePercentage(failedTasks.toDouble, totalTasks.toDouble)
 
-    val totalTasksSlotsMs = allExecutors.map(exec => executorDurationMs(exec).toDouble * exec.totalTasks).sum
+    val totalTasksSlotsMs = allExecutors.map(exec => executorDurationMs(exec).toDouble * exec.maxTasks).sum
     val totalTaskTime = stages.map(stage => stage.executorRunTime).sum
     val CoresWastedRatio = 100 - calculatePercentage(totalTaskTime, totalTasksSlotsMs)
 
