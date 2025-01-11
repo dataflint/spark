@@ -4,12 +4,16 @@ import org.apache.spark.status.api.v1
 
 case class SparkMetadataMetrics(
                                  containerMemoryGb: Double,
+                                 executorJvmMemoryGb: Double,
                                  totalInputBytes: Long,
                                  totalOutputBytes: Long,
                                  totalSpillBytes: Long,
                                  totalShuffleWriteBytes: Long,
                                  totalShuffleReadBytes: Long,
                                  executorPeakMemoryBytes: Long,
+                                 containerPeakMemoryBytes: Long,
+                                 executorJvmMemoryUsage: Double,
+                                 containerMemoryUsage: Double,
                                  totalDCU: Double,
                                  coreHourUsage: Double,
                                  memoryGbHour: Double,
@@ -17,7 +21,8 @@ case class SparkMetadataMetrics(
                                  taskErrorRate: Double,
                                  CoresWastedRatio: Double,
                                  executorsDurationMs: Long,
-                                 driverDurationMs: Long
+                                 driverDurationMs: Long,
+
                                )
 
 case class SparkMetadataStore(version: String,
