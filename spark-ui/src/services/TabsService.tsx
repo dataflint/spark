@@ -1,6 +1,5 @@
 import AdjustIcon from "@mui/icons-material/Adjust";
 import AssessmentIcon from "@mui/icons-material/Assessment";
-import ChatIcon from "@mui/icons-material/Chat";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 import ReportIcon from "@mui/icons-material/Report";
 import SettingsApplicationsIcon from "@mui/icons-material/SettingsApplications";
@@ -13,7 +12,6 @@ export enum Tab {
   Resources = "Resources",
   Configuration = "Configuration",
   Alerts = "Alerts",
-  Chat = "Flint Assistant",
 }
 
 export const TabToUrl = {
@@ -21,7 +19,6 @@ export const TabToUrl = {
   [Tab.Summary]: "/summary",
   [Tab.Configuration]: "/config",
   [Tab.Alerts]: "/alerts",
-  [Tab.Chat]: "/sparkassistant",
   [Tab.Resources]: "/resources",
 };
 
@@ -35,8 +32,6 @@ export const getTabByUrl = (path: string) => {
       return Tab.Configuration;
     case TabToUrl[Tab.Alerts]:
       return Tab.Alerts;
-    case TabToUrl[Tab.Chat]:
-      return Tab.Chat;
     case TabToUrl[Tab.Resources]:
       return Tab.Resources;
     default:
@@ -54,8 +49,6 @@ export function renderTabIcon(selectedTab: Tab): JSX.Element {
       return <AssessmentIcon />;
     case Tab.Alerts:
       return <ReportIcon />;
-    case Tab.Chat:
-      return <ChatIcon />;
     case Tab.Resources:
       return <PrecisionManufacturingIcon />;
     default:

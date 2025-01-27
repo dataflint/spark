@@ -49,7 +49,6 @@ After installation, you will see a "DataFlint" tab in the Spark Web UI. Click on
 - 📋 Application Run Summary
 - ⚠️ Performance alerts and suggestions
 - 👀 Identify query failures
-- 🤖 Spark AI Assistant
 
 See [Our Features](https://dataflint.gitbook.io/dataflint-for-spark/overview/our-features) for more information
 
