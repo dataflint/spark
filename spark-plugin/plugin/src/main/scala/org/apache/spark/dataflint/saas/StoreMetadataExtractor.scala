@@ -1,5 +1,6 @@
 package org.apache.spark.dataflint.saas
 
+import org.apache.spark.dataflint.listener.DataflintStore
 import org.apache.spark.internal.config.{DRIVER_MEMORY, EXECUTOR_MEMORY, EXECUTOR_MEMORY_OVERHEAD, EXECUTOR_MEMORY_OVERHEAD_FACTOR}
 import org.apache.spark.scheduler.cluster.ExecutorInfo
 import org.apache.spark.sql.execution.ui.SQLAppStatusStore
@@ -12,6 +13,7 @@ import java.util.Date
 
 class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore, conf: SparkConf) {
   private val version: String = "1"
+  private val dataflintStore = new DataflintStore(store.store)
 
   def extract(runId: String, accessKey: String, eventEndTime: Long): SparkMetadataStore = {
     SparkMetadataStore(
@@ -80,12 +82,15 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
       .map(_.peakMemoryMetrics.get)
       .map(mem => mem.getMetricValue("JVMOffHeapMemory") + mem.getMetricValue("JVMOffHeapMemory"))
 
+    val driverJvmPeakMemoryBytes = driver.peakMemoryMetrics.map(_.getMetricValue("JVMHeapMemory")).getOrElse(-1L)
 
     val executorJvmPeakMemoryBytes = if(peakJvmExecutorsMemory.isEmpty) 0 else peakJvmExecutorsMemory.max
     val containerPeakMemoryBytes = if(peakContainerMemory.isEmpty) 0 else peakContainerMemory.max
 
     val executorMemoryConf = conf.get(EXECUTOR_MEMORY)
     val memoryOverheadConf = conf.get(EXECUTOR_MEMORY_OVERHEAD).getOrElse(386.toLong).toDouble
+    val driverMemoryBytesConf = dataflintStore.environmentInfo().map(_.driverXmxBytes).getOrElse(conf.get(DRIVER_MEMORY) * 1024 * 1024)
+
     val memoryOverheadFactorConf = (executorMemoryConf * conf.getOption("spark.kubernetes.memoryOverheadFactor").map(_.toDouble).getOrElse(conf.get(EXECUTOR_MEMORY_OVERHEAD_FACTOR)))
     val memoryOverhead = Math.max(memoryOverheadConf, memoryOverheadFactorConf)
     val executorJvmMemoryGb = executorMemoryConf.toDouble / 1024
@@ -115,6 +120,7 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
 
     val containerMemoryUsage = calculatePercentage(containerPeakMemoryBytes, containerMemoryGb * 1024 * 1024 * 1024)
     val executorJvmMemoryUsage = calculatePercentage(executorJvmPeakMemoryBytes, executorJvmMemoryGb * 1024 * 1024 * 1024)
+    val driverJvmMemoryUsage = calculatePercentage(driverJvmPeakMemoryBytes, driverMemoryBytesConf.toDouble)
 
     SparkMetadataMetrics(
       containerMemoryGb = containerMemoryGb,
@@ -135,7 +141,9 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
       taskErrorRate = taskErrorRate,
       CoresWastedRatio = CoresWastedRatio,
       executorsDurationMs = executorsDurationMs,
-      driverDurationMs = driverDurationMs
+      driverDurationMs = driverDurationMs,
+      driverJvmPeakMemoryBytes = driverJvmPeakMemoryBytes,
+      driverJvmMemoryUsage = driverJvmMemoryUsage
     )
   }
 }

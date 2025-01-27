@@ -13,6 +13,8 @@ case class SparkMetadataMetrics(
                                  executorPeakMemoryBytes: Long,
                                  containerPeakMemoryBytes: Long,
                                  executorJvmMemoryUsage: Double,
+                                 driverJvmPeakMemoryBytes: Long,
+                                 driverJvmMemoryUsage: Double,
                                  containerMemoryUsage: Double,
                                  totalDCU: Double,
                                  coreHourUsage: Double,
