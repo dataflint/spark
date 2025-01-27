@@ -12,14 +12,16 @@ import { visuallyHidden } from "@mui/utils";
 import _ from "lodash";
 import { duration } from "moment";
 import * as React from "react";
-import { useAppSelector } from "../../Hooks";
+import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, SparkSQLStore } from "../../interfaces/AppStore";
 import { SqlStatus } from "../../interfaces/SparkSQLs";
+import { initializeVisibleColumns, setVisibleColumns } from "../../reducers/JobsColumnSlice";
 import { humanFileSize, humanizeTimeDiff } from "../../utils/FormatUtils";
 import { default as MultiAlertBadge } from "../AlertBadge/MultiAlertsBadge";
+import ColumnPicker from "../ColumnPicker/ColumnPicker";
 import ExceptionIcon from "../ExceptionIcon";
 import Progress from "../Progress";
-import { Data, EnhancedTableProps, HeadCell, Order } from "./TableTypes";
+import { Data, EnhancedTableProps, Order } from './TableTypes';
 import { getComparator, stableSort } from "./TableUtils";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -62,73 +64,35 @@ function StatusIcon(status: string, failureReason: string): JSX.Element {
   }
 }
 
-const headCells: readonly HeadCell[] = [
-  {
-    id: "id",
-    numeric: true,
-    disablePadding: false,
-    label: "id",
-  },
-  {
-    id: "status",
-    numeric: false,
-    disablePadding: false,
-    label: "Status",
-  },
-  {
-    id: "description",
-    numeric: false,
-    disablePadding: false,
-    label: "Description",
-  },
-  {
-    id: "duration",
-    numeric: false,
-    disablePadding: false,
-    label: "Duration",
-  },
-  {
-    id: "dcu",
-    numeric: false,
-    disablePadding: false,
-    label: "DCU",
-  },
-  {
-    id: "input",
-    numeric: false,
-    disablePadding: false,
-    label: "Input",
-  },
-  {
-    id: "output",
-    numeric: false,
-    disablePadding: false,
-    label: "Output",
-  },
-];
-
 const createSqlTableData = (sqls: EnrichedSparkSQL[]): Data[] => {
   return sqls.flatMap((sql) => {
     return !sql.stageMetrics || !sql.resourceMetrics
       ? []
       : {
-          id: sql.id,
-          status: sql.status,
-          description: sql.description,
-          duration: sql.duration,
-          durationPercentage: sql.resourceMetrics.durationPercentage,
-          dcu: sql.resourceMetrics.dcu,
-          dcuPercentage: sql.resourceMetrics?.dcuPercentage,
-          wastedCoresRate: sql.resourceMetrics.wastedCoresRate,
-          input: sql.stageMetrics.inputBytes,
-          output: sql.stageMetrics.outputBytes,
-          failureReason: !sql.failureReason ? "" : sql.failureReason,
-        };
+        id: sql.id,
+        status: sql.status,
+        description: sql.description,
+        duration: sql.duration,
+        durationPercentage: sql.resourceMetrics.durationPercentage,
+        dcu: sql.resourceMetrics.dcu,
+        dcuPercentage: sql.resourceMetrics?.dcuPercentage,
+        wastedCoresRate: sql.resourceMetrics.wastedCoresRate,
+        input: sql.stageMetrics.inputBytes,
+        output: sql.stageMetrics.outputBytes,
+        failureReason: !sql.failureReason ? "" : sql.failureReason,
+        spill: sql.stageMetrics.diskBytesSpilled,
+        wastedCores: sql.resourceMetrics.wastedCoresRate,
+        shuffleReadBytes: sql.stageMetrics.shuffleReadBytes,
+        shuffleWriteBytes: sql.stageMetrics.shuffleWriteBytes,
+        totalTasks: sql.stageMetrics.totalTasks,
+        executorRunTime: sql.stageMetrics.executorRunTime,
+      };
   });
 };
 
 function EnhancedTableHead(props: EnhancedTableProps) {
   const { order, orderBy, onRequestSort } = props;
+
   const createSortHandler =
     (property: keyof Data) => (event: React.MouseEvent<unknown>) => {
       onRequestSort(event, property);
@@ -137,27 +101,33 @@ function EnhancedTableHead(props: EnhancedTableProps) {
   return (
     <TableHead>
       <TableRow>
-        {headCells.map((headCell) => (
-          <TableCell
-            key={headCell.id}
-            align={"left"}
-            padding={headCell.disablePadding ? "none" : "normal"}
-            sortDirection={orderBy === headCell.id ? order : false}
-          >
-            <TableSortLabel
-              active={orderBy === headCell.id}
-              direction={orderBy === headCell.id ? order : "asc"}
-              onClick={createSortHandler(headCell.id)}
+        {props.headCells
+          .filter((head) => {
+            if (!props.visibleColumns.includes(head.id)) {
+              return false;
+            }
+            return true
+          }).map((headCell) => (
+            <TableCell
+              key={headCell.id}
+              align={"left"}
+              padding={headCell.disablePadding ? "none" : "normal"}
+              sortDirection={orderBy === headCell.id ? order : false}
             >
-              {headCell.label}
-              {orderBy === headCell.id ? (
-                <Box component="span" sx={visuallyHidden}>
-                  {order === "desc" ? "sorted descending" : "sorted ascending"}
-                </Box>
-              ) : null}
-            </TableSortLabel>
-          </TableCell>
-        ))}
+              <TableSortLabel
+                active={orderBy === headCell.id}
+                direction={orderBy === headCell.id ? order : "asc"}
+                onClick={createSortHandler(headCell.id)}
+              >
+                {headCell.label}
+                {orderBy === headCell.id ? (
+                  <Box component="span" sx={visuallyHidden}>
+                    {order === "desc" ? "sorted descending" : "sorted ascending"}
+                  </Box>
+                ) : null}
+              </TableSortLabel>
+            </TableCell>
+          ))}
       </TableRow>
     </TableHead>
   );
@@ -172,12 +142,27 @@ export default function SqlTable({
   selectedSqlId: string | undefined;
   setSelectedSqlId: (id: string) => void;
 }) {
+  const dispatch = useAppDispatch();
+
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof Data>("id");
   const [sqlsTableData, setSqlsTableData] = React.useState<Data[]>([]);
   const sqlAlerts = useAppSelector(
     (state) => state.spark.alerts,
   )?.alerts.filter((alert) => alert.source.type === "sql");
+
+  const visibleColumns = useAppSelector(
+    (state) => state.jobsColumns.visibleColumns
+  );
+
+  const headers = useAppSelector((state) => state.jobsColumns.headCells);
+
+
+  React.useEffect(() => {
+    if (visibleColumns.length === 0) {
+      dispatch(initializeVisibleColumns([]));
+    }
+  }, [dispatch]);
 
   React.useEffect(() => {
     if (!sqlStore) return;
@@ -218,81 +203,129 @@ export default function SqlTable({
     );
   }
 
+  const handleToggleColumn = (columns: string[]) => {
+    dispatch(setVisibleColumns(columns));
+  };
+
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        justifyContent: "space-around",
-        marginBottom: "15px",
-        overflow: "hidden",
-      }}
-    >
-      <TableContainer component={Paper} sx={{ width: "80%" }}>
-        <Table
-          size="small"
-          stickyHeader
-          aria-label="customized table"
-          sx={{ margin: "auto" }}
-        >
-          <EnhancedTableHead
-            onRequestSort={handleRequestSort}
-            order={order}
-            orderBy={orderBy}
-          />
-          <TableBody>
-            {visibleRows.map((sql) => (
-              <StyledTableRow
-                sx={{ cursor: "pointer" }}
-                key={sql.id}
-                selected={sql.id === selectedSqlId}
-                onClick={(event) => setSelectedSqlId(sql.id)}
-              >
-                <StyledTableCell component="th" scope="row">
-                  {sql.id}
-                </StyledTableCell>
-                <StyledTableCell component="th" scope="row">
-                  {StatusIcon(sql.status, sql.failureReason)}
-                </StyledTableCell>
-                <StyledTableCell component="th" scope="row">
-                  <Box display="flex" alignItems="center" flexWrap="wrap">
-                    {sql.description}
-                    {sqlAlerts !== undefined &&
-                    sqlAlerts.find(
-                      (alert) =>
-                        alert.source.type === "sql" &&
-                        alert.source.sqlId === sql.id,
-                    ) !== undefined ? (
-                      <MultiAlertBadge
-                        alerts={sqlAlerts.filter(
-                          (alert) =>
-                            alert.source.type === "sql" &&
-                            alert.source.sqlId === sql.id,
-                        )}
-                      ></MultiAlertBadge>
-                    ) : null}
-                  </Box>
-                </StyledTableCell>
-                <StyledTableCell align="left">
-                  {humanizeTimeDiff(duration(sql.duration))} (
-                  {sql.durationPercentage.toFixed(1)}%)
-                </StyledTableCell>
-                <StyledTableCell align="left">
-                  {sql.dcu.toFixed(4)} ({sql.dcuPercentage.toFixed(1)}
-                  %)
-                </StyledTableCell>
-                <StyledTableCell align="left">
-                  {humanFileSize(sql.input)}
-                </StyledTableCell>
-                <StyledTableCell align="left">
-                  {humanFileSize(sql.output)}
-                </StyledTableCell>
-              </StyledTableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </div>
+    <Box display="flex" flexDirection="column" height="100%">
+      <Box display="flex" alignItems="center" justifyContent="center">
+        <ColumnPicker
+          headCells={headers}
+          visibleColumns={visibleColumns}
+          onToggleColumn={handleToggleColumn}
+        />
+      </Box>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          justifyContent: "space-around",
+          marginBottom: "15px",
+          overflow: "hidden",
+        }}
+      >
+        <TableContainer component={Paper} sx={{ width: "80%" }}>
+          <Table
+            size="small"
+            stickyHeader
+            aria-label="customized table"
+            sx={{ margin: "auto" }}
+          >
+            <EnhancedTableHead
+              visibleColumns={visibleColumns}
+              headCells={headers}
+              onRequestSort={handleRequestSort}
+              order={order}
+              orderBy={orderBy}
+            />
+            <TableBody>
+              {visibleRows.map((sql) => (
+                <StyledTableRow
+                  sx={{ cursor: "pointer" }}
+                  key={sql.id}
+                  selected={sql.id === selectedSqlId}
+                  onClick={(event) => setSelectedSqlId(sql.id)}
+                >
+                  {visibleColumns.includes("id") && (
+                    <StyledTableCell component="th" scope="row">
+                      {sql.id}
+                    </StyledTableCell>)}
+                  {visibleColumns.includes("status") && (
+                    <StyledTableCell component="th" scope="row">
+                      {StatusIcon(sql.status, sql.failureReason)}
+                    </StyledTableCell>
+                  )}
+                  {visibleColumns.includes("description") && (
+                    <StyledTableCell component="th" scope="row">
+                      <Box display="flex" alignItems="center" flexWrap="wrap">
+                        {sql.description}
+                        {sqlAlerts !== undefined &&
+                          sqlAlerts.find(
+                            (alert) =>
+                              alert.source.type === "sql" &&
+                              alert.source.sqlId === sql.id,
+                          ) !== undefined ? (
+                          <MultiAlertBadge
+                            alerts={sqlAlerts.filter(
+                              (alert) =>
+                                alert.source.type === "sql" &&
+                                alert.source.sqlId === sql.id,
+                            )}
+                          ></MultiAlertBadge>
+                        ) : null}
+                      </Box>
+                    </StyledTableCell>)}
+                  {visibleColumns.includes("duration") && (
+                    <StyledTableCell align="left">
+                      {humanizeTimeDiff(duration(sql.duration))} (
+                      {sql.durationPercentage.toFixed(1)}%)
+                    </StyledTableCell>)}
+                  {visibleColumns.includes("dcu") && (
+                    <StyledTableCell align="left">
+                      {sql.dcu.toFixed(4)} ({sql.dcuPercentage.toFixed(1)}
+                      %)
+                    </StyledTableCell>)}
+                  {visibleColumns.includes("input") && (
+                    <StyledTableCell align="left">
+                      {humanFileSize(sql.input)}
+                    </StyledTableCell>)}
+                  {visibleColumns.includes("output") && (
+                    <StyledTableCell align="left">
+                      {humanFileSize(sql.output)}
+                    </StyledTableCell>)}
+                  {visibleColumns.includes("spill") && (
+                    <StyledTableCell align="left">
+                      {humanFileSize(sql.spill)}
+                    </StyledTableCell>)}
+                  {visibleColumns.includes("wastedCores") && (
+                    <StyledTableCell align="left">
+                      {sql.wastedCores.toFixed(2)}%
+                    </StyledTableCell>)}
+                  {visibleColumns.includes("shuffleReadBytes") && (
+                    <StyledTableCell align="left">
+                      {humanFileSize(sql.shuffleReadBytes)}
+                    </StyledTableCell>)}
+                  {visibleColumns.includes("shuffleWriteBytes") && (
+                    <StyledTableCell align="left">
+                      {humanFileSize(sql.shuffleWriteBytes)}
+                    </StyledTableCell>)}
+                  {visibleColumns.includes("totalTasks") && (
+                    <StyledTableCell align="left">
+                      {sql.totalTasks}
+                    </StyledTableCell>)}
+                  {visibleColumns.includes("executorRunTime") && (
+                    <StyledTableCell align="left">
+                      {humanizeTimeDiff(duration(sql.executorRunTime))}
+                    </StyledTableCell>)
+                  }
+                </StyledTableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </div>
+    </Box>
   );
 }

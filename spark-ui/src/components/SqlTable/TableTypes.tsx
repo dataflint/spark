@@ -7,6 +7,8 @@ export interface EnhancedTableProps {
   ) => void;
   order: Order;
   orderBy: string;
+  headCells: HeadCell[];
+  visibleColumns: string[];
 }
 
 export interface Data {
@@ -17,9 +19,14 @@ export interface Data {
   durationPercentage: number;
   dcu: number;
   dcuPercentage: number;
-  wastedCoresRate: number;
   input: number;
   output: number;
+  wastedCores: number;
+  spill: number;
+  totalTasks: number;
+  shuffleReadBytes: number;
+  shuffleWriteBytes: number;
+  executorRunTime: number;
   failureReason: string;
 }
 
@@ -28,4 +35,5 @@ export interface HeadCell {
   id: keyof Data;
   label: string;
   numeric: boolean;
+  initiallyVisible: boolean;
 }

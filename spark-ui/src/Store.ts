@@ -1,6 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import ChatSlice from "./reducers/ChatSlice";
 import GeneralSlice from "./reducers/GeneralSlice";
+import jobsColumnsReducer from "./reducers/JobsColumnSlice";
 import SparkSlice from "./reducers/SparkSlice";
 
 const store = configureStore({
@@ -8,6 +9,7 @@ const store = configureStore({
     spark: SparkSlice,
     chat: ChatSlice,
     general: GeneralSlice,
+    jobsColumns: jobsColumnsReducer,
   },
 });
 
