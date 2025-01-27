@@ -1,20 +1,13 @@
 package io.dataflint.example
 
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import main.scala.io.dataflint.example.LargeBroadcastExample.{smallDfSize, spark}
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
-object Shakespeare351 extends App {
-  def df(spark: SparkSession): DataFrame = spark.read
-    .format("csv")
-    .option("sep", ";")
-    .option("inferSchema", true)
-    .load("./test_data/will_play_text.csv")
-    .toDF("line_id", "play_name", "speech_number", "line_number", "speaker", "text_entry")
-    .repartition(1000)
-
+object SetJobDescriptionAndUDFName extends App {
   val spark = SparkSession
     .builder()
-    .appName("Shakespeare Statistics")
+    .appName("SetJobDescriptionAndUDFName")
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
     .config("spark.ui.port", "10000")
     .config("spark.dataflint.telemetry.enabled", value = false)
@@ -24,19 +17,17 @@ object Shakespeare351 extends App {
 
   import spark.implicits._
 
-  val shakespeareText = df(spark)
+  val df = spark.range(1L, 1000).toDF("id")
+  val plusOne = udf((x: Int) => x + 1)
 
-  shakespeareText.printSchema()
+  df.filter(plusOne($"id") =!= 5).count()
 
-  val count = shakespeareText.count()
-  println(s"number of records : $count")
+  spark.sparkContext.setJobDescription("Range 1 to 1000 and then filter plus one not equal to 5")
+  df.filter(plusOne($"id") =!= 5).count()
 
-  val uniqueSpeakers = shakespeareText.select($"speaker").distinct().count()
-  println(s"number of unique speakers : $uniqueSpeakers")
-
-  val uniqueWords = shakespeareText.select(explode(split($"text_entry", " "))).distinct().count()
-
-  println(s"number of unique words : $uniqueWords")
+  val plusOneNamed = udf((x: Int) => x + 1).withName("plusOne")
+  spark.sparkContext.setJobDescription("Range 1 to 1000 and then filter plus one not equal to 5, named")
+  df.filter(plusOneNamed($"id") =!= 5).count()
 
   scala.io.StdIn.readLine()
   spark.stop()
