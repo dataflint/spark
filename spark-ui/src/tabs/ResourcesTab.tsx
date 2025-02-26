@@ -38,6 +38,12 @@ export const ResourcesTab: FC<{}> = (): JSX.Element => {
   const executorTimeline = useAppSelector(
     (state) => state.spark.executorTimeline,
   );
+  const executors = useAppSelector(
+    (state) => state.spark.executors,
+  );
+
+  const maxCores = Math.max(...executors?.filter((executor) => !executor.isDriver).map((executor) => executor.totalCores) ?? [1]).toString();
+
   const configs = useAppSelector((state) => state.spark.config?.configs);
   const sqls = useAppSelector((state) => state.spark.sql?.sqls) ?? [];
   const startTime =
@@ -46,7 +52,14 @@ export const ResourcesTab: FC<{}> = (): JSX.Element => {
   const [showQueries, setShowQueries] = React.useState(false);
 
   const generalConfigs =
-    configs?.filter((entry) => entry.category === "resources") ?? [];
+    configs?.filter((entry) => entry.category === "resources").map(
+      (entry) => {
+        if (entry.key === "spark.executor.cores") {
+          return { ...entry, value: entry.value ?? maxCores.toString() };
+        }
+        return entry;
+      }
+    ) ?? [];
   const allocationConfigs =
     configs?.filter((entry) => {
       if (resourceControlType === "static") {
@@ -90,13 +103,13 @@ export const ResourcesTab: FC<{}> = (): JSX.Element => {
 
   const queries: Query[] = showQueries
     ? sqls.map((sql) => {
-        return {
-          id: sql.id,
-          name: sql.description,
-          start: sql.submissionTimeEpoc - startTime,
-          end: sql.submissionTimeEpoc + sql.duration - startTime,
-        };
-      })
+      return {
+        id: sql.id,
+        name: sql.description,
+        start: sql.submissionTimeEpoc - startTime,
+        end: sql.submissionTimeEpoc + sql.duration - startTime,
+      };
+    })
     : [];
 
   return (
