@@ -208,7 +208,17 @@ export default function SqlTable({
   };
 
   return (
-    <Box display="flex" flexDirection="column" height="100%">
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        justifyContent: "space-around",
+        flexDirection: "column",
+        marginBottom: "15px",
+        overflow: "hidden",
+      }}
+    >
       <Box display="flex" alignItems="center" justifyContent="center">
         <ColumnPicker
           headCells={headers}
@@ -222,7 +232,6 @@ export default function SqlTable({
           height: "100%",
           display: "flex",
           justifyContent: "space-around",
-          marginBottom: "15px",
           overflow: "hidden",
         }}
       >
@@ -299,7 +308,7 @@ export default function SqlTable({
                     <StyledTableCell align="left">
                       {humanFileSize(sql.spill)}
                     </StyledTableCell>)}
-                  {visibleColumns.includes("wastedCores") && (
+                  {visibleColumns.includes("idleCores") && (
                     <StyledTableCell align="left">
                       {sql.wastedCores.toFixed(2)}%
                     </StyledTableCell>)}
@@ -326,6 +335,6 @@ export default function SqlTable({
           </Table>
         </TableContainer>
       </div>
-    </Box>
+    </div>
   );
 }
