@@ -345,12 +345,36 @@ export function extractConfig(
       key: "spark.dynamicAllocation.sustainedSchedulerBacklogTimeout",
       value:
         sparkPropertiesObj[
-          "spark.dynamicAllocation.sustainedSchedulerBacklogTimeout"
+        "spark.dynamicAllocation.sustainedSchedulerBacklogTimeout"
         ],
       default: "infinity",
       documentation:
         "If dynamic allocation is enabled and an executor which has cached data blocks has been idle for more than this duration, the executor will be removed",
       category: "dynamic-allocation-super-advanced",
+    },
+    {
+      name: "max databricks workers",
+      key: "spark.databricks.clusterUsageTags.clusterMaxWorkers",
+      value: sparkPropertiesObj["spark.databricks.clusterUsageTags.clusterMaxWorkers"],
+      default: undefined,
+      documentation: "max databricks workers",
+      category: "databricks-autoscale",
+    },
+    {
+      name: "min databricks workers",
+      key: "spark.databricks.clusterUsageTags.clusterMinWorkers",
+      value: sparkPropertiesObj["spark.databricks.clusterUsageTags.clusterMinWorkers"],
+      default: undefined,
+      documentation: "min databricks workers",
+      category: "databricks-autoscale",
+    },
+    {
+      name: "databricks worker num",
+      key: "spark.databricks.clusterUsageTags.clusterWorkers",
+      value: sparkPropertiesObj["spark.databricks.clusterUsageTags.clusterWorkers"],
+      default: undefined,
+      documentation: "databricks worker num",
+      category: "databricks-static-allocation",
     },
   ];
 

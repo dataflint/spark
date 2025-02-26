@@ -72,6 +72,9 @@ export const ResourcesTab: FC<{}> = (): JSX.Element => {
             entry.category === "dynamic-allocation-advanced")
         );
       }
+      if (resourceControlType === "databricks") {
+        return entry.category === "databricks-static-allocation" || entry.category === "databricks-autoscale";
+      }
       return false;
     }) ?? [];
 
@@ -100,6 +103,35 @@ export const ResourcesTab: FC<{}> = (): JSX.Element => {
       max: maxEntry?.value === undefined ? undefined : parseInt(maxEntry.value),
     };
   }
+
+  if (resourceControlType === "databricks") {
+    const instancesEntry = configs?.find(
+      (entry) => entry.key === "spark.databricks.clusterUsageTags.clusterWorkers",
+    );
+
+    if (instancesEntry !== undefined) {
+      resources = {
+        type: "static",
+        instances: parseInt(instancesEntry.value ?? instancesEntry.default ?? "0"),
+      };
+    }
+
+    const minEntry = allocationConfigs.find(
+      (entry) => entry.key === "spark.databricks.clusterUsageTags.minExecutors",
+    );
+    const maxEntry = allocationConfigs.find(
+      (entry) => entry.key === "spark.databricks.clusterUsageTags.maxExecutors",
+    );
+
+    if (minEntry !== undefined && maxEntry !== undefined) {
+      resources = {
+        type: "dynamic",
+        min: parseInt(minEntry?.value ?? minEntry?.default ?? "0"),
+        max: maxEntry?.value === undefined ? undefined : parseInt(maxEntry.value),
+      };
+    }
+  }
+
 
   const queries: Query[] = showQueries
     ? sqls.map((sql) => {

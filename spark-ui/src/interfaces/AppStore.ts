@@ -63,7 +63,9 @@ export type ConfigCategory =
   | "static-allocation"
   | "dynamic-allocation"
   | "dynamic-allocation-advanced"
-  | "dynamic-allocation-super-advanced";
+  | "dynamic-allocation-super-advanced"
+  | "databricks-autoscale"
+  | "databricks-static-allocation";
 
 export type ResourceMode =
   | "local"
