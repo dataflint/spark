@@ -246,7 +246,7 @@ export function nodeEnrichedNameBuilder(
         } else if (plan.plan.type === "SinglePartition") {
           return "Repartition To Single Partition";
         } else if (plan.plan.type === "RoundRobinPartitioning") {
-          return "Repartition By Round Robin (Comet)";
+          return "Repartition By Round Robin";
         }
     }
   }
