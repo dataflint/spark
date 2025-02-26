@@ -436,6 +436,37 @@ export const StageNode: FC<{
           );
         }
         break;
+      case "Window":
+        if (
+          parsedPlan.plan.partitionFields !== undefined &&
+          parsedPlan.plan.partitionFields.length > 0
+        ) {
+          addTruncatedSmallTooltipMultiLine(
+            dataTable,
+            "Partition Fields",
+            parsedPlan.plan.partitionFields,
+          );
+        }
+        if (
+          parsedPlan.plan.sortFields !== undefined &&
+          parsedPlan.plan.sortFields.length > 0
+        ) {
+          addTruncatedSmallTooltipMultiLine(
+            dataTable,
+            "Sort Fields",
+            parsedPlan.plan.sortFields,
+          );
+        }
+        if (
+          parsedPlan.plan.selectFields !== undefined &&
+          parsedPlan.plan.selectFields.length > 0
+        ) {
+          addTruncatedCodeTooltipMultiline(
+            dataTable,
+            "Select Fields",
+            parsedPlan.plan.selectFields,
+          );
+        }
     }
   }
 

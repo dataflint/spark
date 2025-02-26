@@ -1,5 +1,5 @@
-import { IcebergCommitsInfo } from "./IcebergInfo";
 import { EnvironmentInfo } from './ApplicationInfo';
+import { IcebergCommitsInfo } from "./IcebergInfo";
 
 export type NodeType =
   | "input"
@@ -203,6 +203,12 @@ export type ParsedExchangePlan = {
   fields: string[] | undefined;
 };
 
+export type ParsedWindowPlan = {
+  partitionFields: string[];
+  selectFields: string[];
+  sortFields: string[];
+};
+
 export interface ParsedJoinPlan {
   joinType: string;
   joinSideType: string;
@@ -237,7 +243,8 @@ export type ParsedNodePlan =
   | { type: "Project"; plan: ParsedProjectPlan }
   | { type: "Exchange"; plan: ParsedExchangePlan }
   | { type: "Join"; plan: ParsedJoinPlan }
-  | { type: "Sort"; plan: ParsedSortPlan };
+  | { type: "Sort"; plan: ParsedSortPlan }
+  | { type: "Window"; plan: ParsedWindowPlan };
 
 export interface ExchangeMetrics {
   writeDuration: number;

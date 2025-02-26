@@ -25,6 +25,7 @@ import { parseProject } from "./PlanParsers/ProjectParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
+import { parseWindow } from "./PlanParsers/WindowParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
 import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import {
@@ -146,6 +147,11 @@ export function parseNodePlan(
         return {
           type: "Sort",
           plan: parseSort(plan.planDescription),
+        };
+      case "Window":
+        return {
+          type: "Window",
+          plan: parseWindow(plan.planDescription),
         };
     }
     if (node.nodeName.includes("Scan")) {
