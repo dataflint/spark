@@ -105,22 +105,14 @@ export const ResourcesTab: FC<{}> = (): JSX.Element => {
   }
 
   if (resourceControlType === "databricks") {
-    const instancesEntry = configs?.find(
-      (entry) => entry.key === "spark.databricks.clusterUsageTags.clusterWorkers",
-    );
-
-    if (instancesEntry !== undefined) {
-      resources = {
-        type: "static",
-        instances: parseInt(instancesEntry.value ?? instancesEntry.default ?? "0"),
-      };
-    }
-
     const minEntry = allocationConfigs.find(
       (entry) => entry.key === "spark.databricks.clusterUsageTags.minExecutors",
     );
     const maxEntry = allocationConfigs.find(
       (entry) => entry.key === "spark.databricks.clusterUsageTags.maxExecutors",
+    );
+    const instancesEntry = configs?.find(
+      (entry) => entry.key === "spark.databricks.clusterUsageTags.clusterWorkers",
     );
 
     if (minEntry !== undefined && maxEntry !== undefined) {
@@ -128,6 +120,11 @@ export const ResourcesTab: FC<{}> = (): JSX.Element => {
         type: "dynamic",
         min: parseInt(minEntry?.value ?? minEntry?.default ?? "0"),
         max: maxEntry?.value === undefined ? undefined : parseInt(maxEntry.value),
+      };
+    } else if (instancesEntry !== undefined) {
+      resources = {
+        type: "static",
+        instances: parseInt(instancesEntry.value ?? instancesEntry.default ?? "0"),
       };
     }
   }
