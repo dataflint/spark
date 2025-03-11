@@ -31,16 +31,6 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const graphFilter = useAppSelector((state) => state.general.sqlMode);
   const selectedStage = useAppSelector((state) => state.general.selectedStage);
 
-  React.useEffect(() => {
-    if (!sparkSQL) return;
-    const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
-      sparkSQL,
-      graphFilter,
-    );
-
-    setNodes(layoutNodes);
-  }, [sparkSQL.metricUpdateId]);
-
   useEffect(() => {
     if (!sparkSQL) return;
     const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
@@ -50,15 +40,13 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
 
     setNodes(layoutNodes);
     setEdges(layoutEdges);
-  }, [sparkSQL.uniqueId, graphFilter]);
+  }, [sparkSQL.metricUpdateId, sparkSQL.uniqueId, graphFilter]);
 
   useEffect(() => {
     if (instance) {
       setTimeout(instance.fitView, 20);
     }
   }, [instance, edges]);
-
-  useEffect(() => { }, [nodes]);
 
   const onConnect = useCallback(
     (params: any) =>
