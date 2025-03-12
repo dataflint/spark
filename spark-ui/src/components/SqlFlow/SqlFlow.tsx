@@ -1,24 +1,37 @@
 import React, { FC, useCallback, useEffect, useState } from "react";
 import ReactFlow, {
+  addEdge,
   ConnectionLineType,
   Controls,
   ReactFlowInstance,
-  addEdge,
   useEdgesState,
   useNodesState,
 } from "reactflow";
 
-import { Box, Drawer, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
+import {
+  Box,
+  Drawer,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+} from "@mui/material";
 import "reactflow/dist/style.css";
 import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
-import { setSQLMode, setSelectedStage } from "../../reducers/GeneralSlice";
-import SqlLayoutService from "./SqlLayoutService";
+import { setSelectedStage, setSQLMode } from "../../reducers/GeneralSlice";
+import SqlLayoutService from "./SqlLayoutService/SqlLayoutService";
 import StageIconDrawer from "./StageIconDrawer";
 import { StageNode, StageNodeName } from "./StageNode";
 
 const options = { hideAttribution: true };
-const nodeTypes = { [StageNodeName]: StageNode };
+const nodeTypes = {
+  [StageNodeName]: StageNode,
+};
+
+// this is a mock to allow for use of external configuration
+// const shouldUseGroupedLayout = true;
+const shouldUseGroupedLayout = false;
 
 const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   sparkSQL,
@@ -33,10 +46,10 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
 
   useEffect(() => {
     if (!sparkSQL) return;
-    const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
-      sparkSQL,
-      graphFilter,
-    );
+
+    const { layoutNodes, layoutEdges } = shouldUseGroupedLayout
+      ? SqlLayoutService.SqlElementsToGroupedLayout(sparkSQL, graphFilter)
+      : SqlLayoutService.SqlElementsToFlatLayout(sparkSQL, graphFilter);
 
     setNodes(layoutNodes);
     setEdges(layoutEdges);
@@ -109,8 +122,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
             open={selectedStage !== undefined}
             onClose={() => dispatch(setSelectedStage({ selectedStage: undefined }))}
           >
-            <Box sx={{ minWidth: "400px" }}
-            >
+            <Box sx={{ minWidth: "400px" }}>
               <StageIconDrawer stage={selectedStage} />
             </Box>
           </Drawer>

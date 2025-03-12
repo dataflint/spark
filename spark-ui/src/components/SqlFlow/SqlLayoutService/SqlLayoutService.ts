@@ -9,7 +9,7 @@ import {
 } from "./layoutServiceBuilders";
 
 class SqlLayoutService {
-  static SqlElementsToLayout(
+  static SqlElementsToFlatLayout(
     sql: EnrichedSparkSQL,
     graphFilter: GraphFilter,
   ): { layoutNodes: Node[]; layoutEdges: Edge[] } {

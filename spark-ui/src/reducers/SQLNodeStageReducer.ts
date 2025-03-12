@@ -63,6 +63,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
           ...node,
           stage: {
             type: "exchange",
+            stageId: node.nodeId,
             writeStage:
               previousNode.stage?.type === "onestage"
                 ? previousNode.stage.stageId
