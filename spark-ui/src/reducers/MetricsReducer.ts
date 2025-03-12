@@ -288,7 +288,7 @@ export function calculateSqlQueryLevelMetricsReducer(
             executors.filter((executor) => !executor.isDriver),
           );
       const totalTasksTime = sql.stageMetrics?.executorRunTime as number;
-      const wastedCoresRate = calculatePercentage(
+      const idleCoresRate = calculatePercentage(
         totalTasksTime,
         resourceUsageExecutorsOnly.coreUsageMs,
       );
@@ -296,7 +296,7 @@ export function calculateSqlQueryLevelMetricsReducer(
         coreHourUsage: resourceUsageWithDriver.coreHour,
         memoryGbHourUsage: resourceUsageWithDriver.memoryHour,
         dcu: resourceUsageWithDriver.totalDCU,
-        wastedCoresRate: wastedCoresRate,
+        idleCoresRate: idleCoresRate,
         dcuPercentage:
           statusStore.executors?.totalDCU === undefined
             ? 0

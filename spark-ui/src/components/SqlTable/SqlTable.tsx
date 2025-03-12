@@ -1,5 +1,5 @@
 import CheckIcon from "@mui/icons-material/Check";
-import { Box, CircularProgress, TableSortLabel } from "@mui/material";
+import { Box, CircularProgress, FormControlLabel, FormGroup, Switch, TableSortLabel } from "@mui/material";
 import Paper from "@mui/material/Paper";
 import { styled } from "@mui/material/styles";
 import Table from "@mui/material/Table";
@@ -17,6 +17,7 @@ import { EnrichedSparkSQL, SparkSQLStore } from "../../interfaces/AppStore";
 import { SqlStatus } from "../../interfaces/SparkSQLs";
 import { initializeVisibleColumns, setVisibleColumns } from "../../reducers/JobsColumnSlice";
 import { humanFileSize, humanizeTimeDiff } from "../../utils/FormatUtils";
+import { IS_HISTORY_SERVER_MODE } from "../../utils/UrlConsts";
 import { default as MultiAlertBadge } from "../AlertBadge/MultiAlertsBadge";
 import ColumnPicker from "../ColumnPicker/ColumnPicker";
 import ExceptionIcon from "../ExceptionIcon";
@@ -76,16 +77,16 @@ const createSqlTableData = (sqls: EnrichedSparkSQL[]): Data[] => {
         durationPercentage: sql.resourceMetrics.durationPercentage,
         dcu: sql.resourceMetrics.dcu,
         dcuPercentage: sql.resourceMetrics?.dcuPercentage,
-        wastedCoresRate: sql.resourceMetrics.wastedCoresRate,
+        idleCoresRate: sql.resourceMetrics.idleCoresRate,
         input: sql.stageMetrics.inputBytes,
         output: sql.stageMetrics.outputBytes,
         failureReason: !sql.failureReason ? "" : sql.failureReason,
         spill: sql.stageMetrics.diskBytesSpilled,
-        wastedCores: sql.resourceMetrics.wastedCoresRate,
+        idleCores: sql.resourceMetrics.idleCoresRate,
         shuffleReadBytes: sql.stageMetrics.shuffleReadBytes,
         shuffleWriteBytes: sql.stageMetrics.shuffleWriteBytes,
         totalTasks: sql.stageMetrics.totalTasks,
-        executorRunTime: sql.stageMetrics.executorRunTime,
+        executorRunTime: sql.stageMetrics.executorRunTime
       };
   });
 };
@@ -144,9 +145,12 @@ export default function SqlTable({
 }) {
   const dispatch = useAppDispatch();
 
-  const [order, setOrder] = React.useState<Order>("asc");
-  const [orderBy, setOrderBy] = React.useState<keyof Data>("id");
+  // 
+  const [order, setOrder] = React.useState<Order>(IS_HISTORY_SERVER_MODE ? "desc" : "asc");
+  const [orderBy, setOrderBy] = React.useState<keyof Data>(IS_HISTORY_SERVER_MODE ? "duration" : "id");
   const [sqlsTableData, setSqlsTableData] = React.useState<Data[]>([]);
+  const [showSqlCommands, setShowSqlCommands] = React.useState<boolean>(false);
+
   const sqlAlerts = useAppSelector(
     (state) => state.spark.alerts,
   )?.alerts.filter((alert) => alert.source.type === "sql");
@@ -166,12 +170,13 @@ export default function SqlTable({
 
   React.useEffect(() => {
     if (!sqlStore) return;
-
-    const sqls = createSqlTableData(sqlStore.sqls.slice());
+    // remove sql commands from table, such as create table, add jars, etc.
+    const sqlQueries = showSqlCommands ? sqlStore.sqls : sqlStore.sqls.filter((sql) => !sql.isSqlCommand);
+    const sqls = createSqlTableData(sqlQueries.slice());
     if (_.isEqual(sqls, sqlsTableData)) return;
 
     setSqlsTableData(sqls);
-  }, [sqlStore]);
+  }, [sqlStore, showSqlCommands]);
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
@@ -183,7 +188,9 @@ export default function SqlTable({
   };
 
   const visibleRows = React.useMemo(
-    () => stableSort(sqlsTableData, getComparator(order, orderBy)),
+    () => {
+      return stableSort(sqlsTableData, getComparator(order, orderBy));
+    },
     [order, orderBy, sqlsTableData],
   );
 
@@ -202,6 +209,8 @@ export default function SqlTable({
       </div>
     );
   }
+
+  const hasSqlCommands = sqlStore.sqls.some((sql) => sql.isSqlCommand);
 
   const handleToggleColumn = (columns: string[]) => {
     dispatch(setVisibleColumns(columns));
@@ -225,6 +234,18 @@ export default function SqlTable({
           visibleColumns={visibleColumns}
           onToggleColumn={handleToggleColumn}
         />
+        {hasSqlCommands ? <FormGroup>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showSqlCommands}
+                onChange={(evnt) => setShowSqlCommands(evnt.target.checked)}
+                inputProps={{ "aria-label": "controlled" }}
+              />
+            }
+            label="Show SQL Commands"
+          />
+        </FormGroup> : undefined}
       </Box>
       <div
         style={{
@@ -310,7 +331,7 @@ export default function SqlTable({
                     </StyledTableCell>)}
                   {visibleColumns.includes("idleCores") && (
                     <StyledTableCell align="left">
-                      {sql.wastedCores.toFixed(2)}%
+                      {sql.idleCores.toFixed(2)}%
                     </StyledTableCell>)}
                   {visibleColumns.includes("shuffleReadBytes") && (
                     <StyledTableCell align="left">

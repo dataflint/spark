@@ -21,7 +21,7 @@ export interface Data {
   dcuPercentage: number;
   input: number;
   output: number;
-  wastedCores: number;
+  idleCores: number;
   spill: number;
   totalTasks: number;
   shuffleReadBytes: number;

@@ -9,9 +9,9 @@ export function reduceWastedCoresAlerts(
 ) {
   if (
     statusStore.executors !== undefined &&
-    statusStore.executors.wastedCoresRate > WASTED_CORES_RATIO_THRESHOLD
+    statusStore.executors.idleCoresRate > WASTED_CORES_RATIO_THRESHOLD
   ) {
-    const wastedCores = statusStore.executors.wastedCoresRate;
+    const idleCores = statusStore.executors.idleCoresRate;
 
     let suggestionMessage = "decrease amount of cores or executors";
     if (config.resourceControlType === "databricks") {
@@ -26,18 +26,18 @@ export function reduceWastedCoresAlerts(
     }
 
     alerts.push({
-      id: `wastedCoresTooHigh${wastedCores.toFixed(2)}`,
-      name: "wastedCoresTooHigh",
-      title: "Wasted Cores Too High",
-      location: "In: Summery Page -> Wasted Cores",
-      message: `Wasted Cores is ${wastedCores.toFixed(
+      id: `idleCoresTooHigh${idleCores.toFixed(2)}`,
+      name: "idleCoresTooHigh",
+      title: "Idle Cores Too High",
+      location: "In: Summery Page -> Idle Cores",
+      message: `Idle Cores is ${idleCores.toFixed(
         2,
       )}% which is too high, and suggest your cluster is over-provisioned on cores or executors`,
       suggestion: suggestionMessage,
       type: "warning",
       source: {
         type: "status",
-        metric: "wastedCores",
+        metric: "idleCores",
       },
     });
   }

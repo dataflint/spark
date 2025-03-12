@@ -21,7 +21,7 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
       );
       const bytesReadMetric = parseBytesString(
         node.metrics.find((metric) => metric.name === "bytes read")?.value ??
-          "0",
+        "0",
       );
 
       if (node.type === "input" && filesReadMetric && bytesReadMetric) {
@@ -58,7 +58,7 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
       );
       const bytesWrittenMetric = parseBytesString(
         node.metrics.find((metric) => metric.name === "bytes written")?.value ??
-          "0",
+        "0",
       );
 
       if (
@@ -90,7 +90,7 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
                 : 0;
             const filesPerPartition =
               partitionsWritten !== 0
-                ? fileWrittenMetric / partitionsWritten
+                ? (fileWrittenMetric / partitionsWritten).toFixed(1)
                 : 0;
             const partitionKeysText = node.parsedPlan.plan.partitionKeys
               .map((key) => `"${key}"`)
@@ -106,9 +106,8 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
               message: `The avg files written for each partition is ${filesPerPartition}, and the avg file size is ${avgFileSizeString}, which is too small and can cause performance issues`,
               suggestion: `
         1. Do a repartition by your partition key before writing the data, by running .repartition(${partitionKeysStringParam}) before writing the dataframe. Avg file size after this change should be ${expectedAvgFileSize}
-        2. Choose different partition key${
-          partitionKeysText.length === 1 ? "" : "s"
-        } instead of ${partitionKeysText} with lower cardinality`,
+        2. Choose different partition key${partitionKeysText.length === 1 ? "" : "s"
+                } instead of ${partitionKeysText} with lower cardinality`,
               type: "warning",
               source: {
                 type: "sql",

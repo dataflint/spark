@@ -40,7 +40,7 @@ export interface SQLAlertSourceData {
 
 export interface StatusAlertSourceData {
   type: "status";
-  metric: "memory" | "driverMemory" | "wastedCores";
+  metric: "memory" | "driverMemory" | "idleCores";
 }
 
 export interface Alert {
@@ -304,7 +304,7 @@ export interface SparkExecutorsStatus {
   totalExecutorMemoryGibHour: number;
   totalMemoryGibHour: number;
   totalDCU: number;
-  wastedCoresRate: number;
+  idleCoresRate: number;
   maxExecutorMemoryPercentage: number;
   maxExecutorMemoryBytesString: string;
   maxExecutorMemoryBytes: number;
@@ -325,7 +325,7 @@ export interface SparkMetricsStore {
 
 export interface SparkSQLResourceUsageStore {
   coreHourUsage: number;
-  wastedCoresRate: number;
+  idleCoresRate: number;
   dcuPercentage: number;
   durationPercentage: number;
   memoryGbHourUsage: number;
@@ -389,7 +389,7 @@ export interface SparkExecutorStore {
   duration: number;
   totalTaskDuration: number;
   potentialTaskTimeMs: number;
-  wastedCoresRate: number;
+  idleCoresRate: number;
   addTimeEpoc: number;
   endTimeEpoc: number;
   totalCores: number;

@@ -29,7 +29,7 @@ export function calculateSparkExecutorsStore(
     const duration = endTimeEpoc - addTimeEpoc;
     const totalTaskDuration = executor.totalDuration;
     const potentialTaskTimeMs = duration * executor.maxTasks;
-    const wastedCoresRate =
+    const idleCoresRate =
       100 - calculatePercentage(totalTaskDuration, potentialTaskTimeMs);
     return {
       id: executor.id,
@@ -38,7 +38,7 @@ export function calculateSparkExecutorsStore(
       duration: duration,
       totalTaskDuration: totalTaskDuration,
       potentialTaskTimeMs: potentialTaskTimeMs,
-      wastedCoresRate: wastedCoresRate,
+      idleCoresRate: idleCoresRate,
       addTimeEpoc: addTimeEpoc,
       endTimeEpoc: endTimeEpoc,
       totalCores: executor.totalCores,
@@ -59,7 +59,7 @@ export function calculateSparkExecutorsStore(
       duration: currentEndDate - startDate,
       totalTaskDuration: 0,
       potentialTaskTimeMs: 0,
-      wastedCoresRate: 0,
+      idleCoresRate: 0,
       addTimeEpoc: startDate,
       endTimeEpoc: currentEndDate,
       totalCores: 0,

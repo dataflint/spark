@@ -65,10 +65,10 @@ const initialState: JobsColumnState = {
       initiallyVisible: false,
     },
     {
-      id: "wastedCores",
+      id: "idleCores",
       numeric: true,
       disablePadding: false,
-      label: "Wasted Cores",
+      label: "Idle Cores",
       initiallyVisible: false,
     },
     {

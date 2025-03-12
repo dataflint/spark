@@ -21,9 +21,9 @@ const ResourceBar: FC = (): JSX.Element => {
     (alert) =>
       alert.source.type === "status" && alert.source.metric === "memory",
   );
-  const wastedCoresAlert = alerts?.alerts.find(
+  const idleCoresAlert = alerts?.alerts.find(
     (alert) =>
-      alert.source.type === "status" && alert.source.metric === "wastedCores",
+      alert.source.type === "status" && alert.source.metric === "idleCores",
   );
 
   const executorMemoryBytesString = useAppSelector(
@@ -130,18 +130,18 @@ const ResourceBar: FC = (): JSX.Element => {
           }
         ></InfoBox>
         <InfoBox
-          title="Wasted Cores"
-          text={status.executors.wastedCoresRate.toFixed(2) + "%"}
-          alert={wastedCoresAlert}
+          title="Idle Cores"
+          text={status.executors.idleCoresRate.toFixed(2) + "%"}
+          alert={idleCoresAlert}
           color="#618833"
           icon={DirectionsRunIcon}
           tooltipContent={
             <React.Fragment>
               <Typography variant="h6" color="inherit">
-                What is Wasted Cores Rate?
+                What is Idle Cores Rate?
               </Typography>
               <Typography variant="subtitle2">
-                Wasted Cores Rate is the percentage of time that your executors
+                Idle Cores Rate is the percentage of time that your executors
                 cores are idle.
               </Typography>
               <Typography variant="subtitle2">
@@ -150,7 +150,7 @@ const ResourceBar: FC = (): JSX.Element => {
               </Typography>
               <Typography variant="subtitle2">
                 For example: if you have 400 cores and 200 tasks scheduled your
-                wasted cores rate is 50%.
+                Idle Cores rate is 50%.
               </Typography>
             </React.Fragment>
           }
