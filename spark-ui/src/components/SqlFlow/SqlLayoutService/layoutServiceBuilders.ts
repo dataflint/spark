@@ -32,7 +32,7 @@ export const getGroupNodes = (flowNodes: Node[]) => {
   const allGroupsWithNodes = flowNodes.reduce((stageGroups, node) => {
     const stageId = node.data.node.stage?.stageId;
 
-    if (!stageId) return stageGroups;
+    if (stageId === undefined) return stageGroups;
 
     if (!stageGroups.has(stageId)) {
       stageGroups.set(stageId, []);
@@ -111,21 +111,23 @@ export function getInternalEdges(
   flowGroupNodes: Node[],
   originalEdges: EnrichedSqlEdge[],
 ) {
-  return flowGroupNodes.map((node) => {
-    const groupNodes = node.data.nodes;
-    const groupNodeIds = new Set(groupNodes.map((node: Node) => node.id));
+  return flowGroupNodes
+    .map((node) => {
+      const groupNodes = node.data.nodes;
+      const groupNodeIds = new Set(groupNodes.map((node: Node) => node.id));
 
-    return originalEdges
-      .filter(
-        ({ fromId, toId }) =>
-          groupNodeIds.has(fromId.toString()) &&
-          groupNodeIds.has(toId.toString()),
-      )
-      .map(({ fromId, toId }) =>
-        toFlowEdge({
-          fromId,
-          toId,
-        }),
-      )
-  }).flat();
+      return originalEdges
+        .filter(
+          ({ fromId, toId }) =>
+            groupNodeIds.has(fromId.toString()) &&
+            groupNodeIds.has(toId.toString()),
+        )
+        .map(({ fromId, toId }) =>
+          toFlowEdge({
+            fromId,
+            toId,
+          }),
+        );
+    })
+    .flat();
 }
