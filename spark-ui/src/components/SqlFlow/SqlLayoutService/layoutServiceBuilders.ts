@@ -106,3 +106,26 @@ export const transformEdgesToGroupEdges = (
     })
     .filter(Boolean);
 };
+
+export function getInternalEdges(
+  flowGroupNodes: Node[],
+  originalEdges: EnrichedSqlEdge[],
+) {
+  return flowGroupNodes.map((node) => {
+    const groupNodes = node.data.nodes;
+    const groupNodeIds = new Set(groupNodes.map((node: Node) => node.id));
+
+    return originalEdges
+      .filter(
+        ({ fromId, toId }) =>
+          groupNodeIds.has(fromId.toString()) &&
+          groupNodeIds.has(toId.toString()),
+      )
+      .map(({ fromId, toId }) =>
+        toFlowEdge({
+          fromId,
+          toId,
+        }),
+      )
+  }).flat();
+}

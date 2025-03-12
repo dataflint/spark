@@ -4,6 +4,7 @@ import { getFlatElementsLayout } from "./dagreLayouts";
 import {
   getFlowNodes,
   getGroupNodes,
+  getInternalEdges,
   toFlowEdge,
   transformEdgesToGroupEdges,
 } from "./layoutServiceBuilders";
@@ -21,6 +22,7 @@ export function sqlElementsToFlatLayout(
     flowNodes,
     flowEdges,
   );
+
   return { layoutNodes: layoutNodes, layoutEdges: layoutEdges };
 }
 
@@ -32,6 +34,7 @@ export function sqlElementsToGroupedLayout(
 
   const flowNodes = getFlowNodes(sql, graphFilter);
   const flowGroupNodes = getGroupNodes(flowNodes);
+  const internalEdges = getInternalEdges(flowGroupNodes, edges);
   const nodeAndGroupEdges = transformEdgesToGroupEdges(
     flowNodes,
     flowGroupNodes,
@@ -40,7 +43,7 @@ export function sqlElementsToGroupedLayout(
 
   const { layoutNodes, layoutEdges } = getFlatElementsLayout(
     [...flowNodes, ...flowGroupNodes],
-    nodeAndGroupEdges as Edge[],
+    [...nodeAndGroupEdges, ...internalEdges] as Edge[],
   );
 
   return {

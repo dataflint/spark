@@ -33,8 +33,8 @@ const nodeTypes = {
 };
 
 // this is a mock to allow for use of external configuration
-// const shouldUseGroupedLayout = true;
-const shouldUseGroupedLayout = false;
+const shouldUseGroupedLayout = true;
+// const shouldUseGroupedLayout = false;
 
 const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   sparkSQL,
