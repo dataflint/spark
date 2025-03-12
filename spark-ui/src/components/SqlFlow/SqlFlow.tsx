@@ -20,7 +20,10 @@ import "reactflow/dist/style.css";
 import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
 import { setSelectedStage, setSQLMode } from "../../reducers/GeneralSlice";
-import SqlLayoutService from "./SqlLayoutService/SqlLayoutService";
+import {
+  sqlElementsToFlatLayout,
+  sqlElementsToGroupedLayout,
+} from "./SqlLayoutService/SqlLayoutService";
 import StageIconDrawer from "./StageIconDrawer";
 import { StageNode, StageNodeName } from "./StageNode";
 
@@ -48,8 +51,8 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     if (!sparkSQL) return;
 
     const { layoutNodes, layoutEdges } = shouldUseGroupedLayout
-      ? SqlLayoutService.SqlElementsToGroupedLayout(sparkSQL, graphFilter)
-      : SqlLayoutService.SqlElementsToFlatLayout(sparkSQL, graphFilter);
+      ? sqlElementsToGroupedLayout(sparkSQL, graphFilter)
+      : sqlElementsToFlatLayout(sparkSQL, graphFilter);
 
     setNodes(layoutNodes);
     setEdges(layoutEdges);
@@ -120,7 +123,9 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
           <Drawer
             anchor={"right"}
             open={selectedStage !== undefined}
-            onClose={() => dispatch(setSelectedStage({ selectedStage: undefined }))}
+            onClose={() =>
+              dispatch(setSelectedStage({ selectedStage: undefined }))
+            }
           >
             <Box sx={{ minWidth: "400px" }}>
               <StageIconDrawer stage={selectedStage} />

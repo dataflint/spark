@@ -8,41 +8,43 @@ import {
   transformEdgesToGroupEdges,
 } from "./layoutServiceBuilders";
 
-class SqlLayoutService {
-  static SqlElementsToFlatLayout(
-    sql: EnrichedSparkSQL,
-    graphFilter: GraphFilter,
-  ): { layoutNodes: Node[]; layoutEdges: Edge[] } {
-    const { edges } = sql.filters[graphFilter];
+export function sqlElementsToFlatLayout(
+  sql: EnrichedSparkSQL,
+  graphFilter: GraphFilter,
+): { layoutNodes: Node[]; layoutEdges: Edge[] } {
+  const { edges } = sql.filters[graphFilter];
 
-    const flowNodes = getFlowNodes(sql, graphFilter);
-    const flowEdges = edges.map(toFlowEdge);
+  const flowNodes = getFlowNodes(sql, graphFilter);
+  const flowEdges = edges.map(toFlowEdge);
 
-    const { layoutNodes, layoutEdges } = getFlatElementsLayout(
-      flowNodes,
-      flowEdges,
-    );
-    return { layoutNodes: layoutNodes, layoutEdges: layoutEdges };
-  }
-  static SqlElementsToGroupedLayout(
-    sql: EnrichedSparkSQL,
-    graphFilter: GraphFilter,
-  ): { layoutNodes: Node[]; layoutEdges: Edge[] | [] } {
-    const { edges } = sql.filters[graphFilter];
-
-    const flowNodes = getFlowNodes(sql, graphFilter);
-    const flowGroupNodes = getGroupNodes(flowNodes);
-    const nodeAndGroupEdges = transformEdgesToGroupEdges(
-      flowNodes,
-      flowGroupNodes,
-      edges,
-    );
-
-    return {
-      layoutNodes: [...flowNodes, ...flowGroupNodes],
-      layoutEdges: nodeAndGroupEdges as Edge[],
-    };
-  }
+  const { layoutNodes, layoutEdges } = getFlatElementsLayout(
+    flowNodes,
+    flowEdges,
+  );
+  return { layoutNodes: layoutNodes, layoutEdges: layoutEdges };
 }
 
-export default SqlLayoutService;
+export function sqlElementsToGroupedLayout(
+  sql: EnrichedSparkSQL,
+  graphFilter: GraphFilter,
+): { layoutNodes: Node[]; layoutEdges: Edge[] | [] } {
+  const { edges } = sql.filters[graphFilter];
+
+  const flowNodes = getFlowNodes(sql, graphFilter);
+  const flowGroupNodes = getGroupNodes(flowNodes);
+  const nodeAndGroupEdges = transformEdgesToGroupEdges(
+    flowNodes,
+    flowGroupNodes,
+    edges,
+  );
+
+  const { layoutNodes, layoutEdges } = getFlatElementsLayout(
+    [...flowNodes, ...flowGroupNodes],
+    nodeAndGroupEdges as Edge[],
+  );
+
+  return {
+    layoutNodes: layoutNodes,
+    layoutEdges: layoutEdges,
+  };
+}
