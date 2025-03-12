@@ -21,7 +21,7 @@ case class SparkMetadataMetrics(
                                  memoryGbHour: Double,
                                  isAnySqlQueryFailed: Boolean,
                                  taskErrorRate: Double,
-                                 CoresWastedRatio: Double,
+                                 idleCoresRatio: Double,
                                  executorsDurationMs: Long,
                                  driverDurationMs: Long,
 

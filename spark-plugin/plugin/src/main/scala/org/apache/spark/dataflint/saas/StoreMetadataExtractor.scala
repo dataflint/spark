@@ -111,7 +111,7 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
 
     val totalTasksSlotsMs = computeExecutors.map(exec => executorDurationMs(exec).toDouble * exec.maxTasks).sum
     val totalTaskTime = computeExecutors.map(_.totalDuration).sum
-    val CoresWastedRatio = 100 - calculatePercentage(totalTaskTime, totalTasksSlotsMs)
+    val idleCoresRatio = 100 - calculatePercentage(totalTaskTime, totalTasksSlotsMs)
 
     val totalShuffleWriteBytes = onlyExecutors.map(exec => exec.totalShuffleWrite).sum
     val totalShuffleReadBytes = onlyExecutors.map(exec => exec.totalShuffleRead).sum
@@ -139,7 +139,7 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
       totalDCU = totalDCU,
       isAnySqlQueryFailed = isAnySqlQueryFailed,
       taskErrorRate = taskErrorRate,
-      CoresWastedRatio = CoresWastedRatio,
+      idleCoresRatio = idleCoresRatio,
       executorsDurationMs = executorsDurationMs,
       driverDurationMs = driverDurationMs,
       driverJvmPeakMemoryBytes = driverJvmPeakMemoryBytes,

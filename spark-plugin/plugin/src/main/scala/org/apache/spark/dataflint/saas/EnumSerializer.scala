@@ -1,7 +1,7 @@
 package org.apache.spark.dataflint.saas
 
 import org.apache.spark.dataflint.EnumValue
-import org.json4s.JsonAST.{JInt, JString}
+import org.json4s.{JInt, JString}
 import org.json4s.reflect.TypeInfo
 import org.json4s.{Formats, JValue, MappingException, Serializer}
 

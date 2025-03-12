@@ -108,6 +108,7 @@ lazy val example_3_4_1_remote = (project in file("example_3_4_1_remote"))
     crossScalaVersions := supportedScalaVersions,
       libraryDependencies += "org.apache.spark" %% "spark-core" % "3.4.1",
       libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.4.1",
-      publish / skip := true
+
+    publish / skip := true
   ).dependsOn()
 

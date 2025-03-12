@@ -3,15 +3,15 @@ package org.apache.spark.dataflint.api
 import org.apache.spark.dataflint.listener.DataflintStore
 import org.apache.spark.internal.Logging
 import org.apache.spark.ui.{SparkUI, WebUIPage}
-import org.json4s.{Extraction, JObject, JsonAST}
-import org.json4s.JsonAST.JValue
+import org.json4s.{Extraction, JObject}
+import org.json4s.JValue
 
 import javax.servlet.http.HttpServletRequest
 import scala.xml.Node
 
 class DataflintIcebergPage(ui: SparkUI, dataflintStore: DataflintStore)
   extends WebUIPage("iceberg") with Logging {
-  override def renderJson(request: HttpServletRequest): JsonAST.JValue = {
+  override def renderJson(request: HttpServletRequest): JValue = {
     try {
       val offset = request.getParameter("offset")
       val length = request.getParameter("length")

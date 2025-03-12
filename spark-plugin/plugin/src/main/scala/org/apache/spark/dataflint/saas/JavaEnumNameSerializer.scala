@@ -1,7 +1,7 @@
 package org.apache.spark.dataflint.saas
 
 import org.json4s.CustomSerializer
-import org.json4s.JsonAST.JString
+import org.json4s.JString
 
 // copied from json4s source code, because some spark version depends on json4s versions without this class
 class JavaEnumNameSerializer[E <: Enum[E]](implicit

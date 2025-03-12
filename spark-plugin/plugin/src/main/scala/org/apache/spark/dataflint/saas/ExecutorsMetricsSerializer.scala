@@ -3,7 +3,7 @@ package org.apache.spark.dataflint.saas
 import org.apache.spark.executor.ExecutorMetrics
 import org.apache.spark.metrics.ExecutorMetricType
 import org.json4s.{CustomSerializer, JLong, JNull, JObject}
-import org.json4s.JsonAST.JValue
+import org.json4s.JValue
 
 class ExecutorsMetricsSerializer extends CustomSerializer[ExecutorMetrics](implicit format => (
   {

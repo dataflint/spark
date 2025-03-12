@@ -1,17 +1,15 @@
 package org.apache.spark.dataflint.api
 
-import org.apache.spark.dataflint.listener.DataflintStore
 import org.apache.spark.internal.Logging
 import org.apache.spark.ui.{SparkUI, WebUIPage}
-import org.json4s.JsonAST.JValue
-import org.json4s.{JsonAST, _}
+import org.json4s.{Extraction, JObject, JValue}
 
 import javax.servlet.http.HttpServletRequest
 import scala.xml.Node
 
 class DataflintSQLStagesRddPage(ui: SparkUI)
   extends WebUIPage("stagesrdd") with Logging {
-  override def renderJson(request: HttpServletRequest): JsonAST.JValue = {
+  override def renderJson(request: HttpServletRequest): JValue = {
     try {
       val graphs = ui.store.stageList(null)
         .filter(_.submissionTime.isDefined) // filter skipped or pending stages

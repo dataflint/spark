@@ -4,10 +4,7 @@ import org.apache.spark.dataflint.listener.DataflintStore
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.ui.{SQLAppStatusListener, SQLAppStatusStore, SparkPlanGraph}
 import org.apache.spark.ui.{SparkUI, WebUIPage}
-import org.json4s.JsonAST.JValue
-import org.json4s.{JsonAST, _}
-
-import java.lang.reflect.Method
+import org.json4s.{Extraction, JArray, JObject, JValue}
 import javax.servlet.http.HttpServletRequest
 import scala.xml.Node
 
@@ -15,7 +12,7 @@ class DataflintSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListe
   extends WebUIPage("sqlplan") with Logging {
   private var sqlListenerCache: Option[SQLAppStatusListener] = None
 
-  override def renderJson(request: HttpServletRequest): JsonAST.JValue = {
+  override def renderJson(request: HttpServletRequest): JValue = {
     try {
       if (sqlListenerCache.isEmpty) {
         sqlListenerCache = sqlListener()

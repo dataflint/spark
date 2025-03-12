@@ -3,15 +3,15 @@ package org.apache.spark.dataflint.api
 import org.apache.spark.dataflint.listener.DataflintStore
 import org.apache.spark.internal.Logging
 import org.apache.spark.ui.{SparkUI, WebUIPage}
-import org.json4s.JsonAST.JValue
-import org.json4s.{Extraction, JObject, JsonAST}
+import org.json4s.JValue
+import org.json4s.{Extraction, JObject}
 
 import javax.servlet.http.HttpServletRequest
 import scala.xml.Node
 
 class DataflintApplicationInfoPage(ui: SparkUI, dataflintStore: DataflintStore)
   extends WebUIPage("applicationinfo") with Logging {
-  override def renderJson(request: HttpServletRequest): JsonAST.JValue = {
+  override def renderJson(request: HttpServletRequest): JValue = {
     try {
       val runIdConfigFromStore = ui.store.environmentInfo().sparkProperties.find(_._1 == "spark.dataflint.runId").map(_._2)
       val runIdPotentiallyFromConfig = if (runIdConfigFromStore.isEmpty) ui.conf.getOption("spark.dataflint.runId") else runIdConfigFromStore
