@@ -7,12 +7,12 @@ import {
   Typography
 } from "@mui/material";
 import React from "react";
-import { useAppSelector } from "../../Hooks";
+import { useAppSelector } from "../../../../Hooks";
 import {
   SQLNodeExchangeStageData,
   SQLNodeStageData
-} from "../../interfaces/AppStore";
-import ExceptionIcon from "../ExceptionIcon";
+} from '../../../../interfaces/AppStore';
+import ExceptionIcon from "../../../ExceptionIcon";
 
 function CircularProgressWithLabel(
   props: CircularProgressProps & { value: number },

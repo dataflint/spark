@@ -1,7 +1,7 @@
 import { ApexOptions } from "apexcharts";
 import React from "react";
 import ReactApexChart from "react-apexcharts";
-import { humanFileSize } from "../../utils/FormatUtils";
+import { humanFileSize } from "../../../utils/FormatUtils";
 
 export default function BytesDistributionChart({
   bytesDist,
