@@ -11,6 +11,33 @@ import { StageNodeName } from "../StageNode";
 const getPosition = (x = 0, y = 0) => ({ x, y });
 const getStageIdString = (id = "") => `stage-${id}`;
 
+const toFlowNode = (node: EnrichedSqlNode, sqlId: string) => ({
+  id: node.nodeId.toString(),
+  data: { sqlId, node: node },
+  type: StageNodeName,
+  position: getPosition(),
+});
+
+const toFlowGroupNode = (nodes: Node[], stageId: number) => ({
+  type: "group",
+  id: getStageIdString(stageId.toString()),
+  data: {
+    nodes,
+  },
+  position: getPosition(),
+});
+
+interface ToFlowEdgeParams {
+  fromId: string | number;
+  toId: string | number;
+}
+export const toFlowEdge = ({ fromId, toId }: ToFlowEdgeParams) => ({
+  id: uuidv4(),
+  source: fromId.toString(),
+  animated: true,
+  target: toId.toString(),
+});
+
 export const getFlowNodes = (
   sql: EnrichedSparkSQL,
   graphFilter: GraphFilter,
@@ -20,15 +47,10 @@ export const getFlowNodes = (
 
   return nodes
     .filter((node) => nodesIds.includes(node.nodeId))
-    .map((node: EnrichedSqlNode) => ({
-      id: node.nodeId.toString(),
-      data: { sqlId: sql.id, node: node },
-      type: StageNodeName,
-      position: getPosition(),
-    }));
+    .map((node: EnrichedSqlNode) => toFlowNode(node, sql.id));
 };
 
-export const getGroupNodes = (flowNodes: Node[]) => {
+const buildAllNodeGroups = (flowNodes: Node[]): Map<number, Node[]> => {
   const allGroupsWithNodes = flowNodes.reduce((stageGroups, node) => {
     const stageId = node.data.node.stage?.stageId;
 
@@ -43,27 +65,20 @@ export const getGroupNodes = (flowNodes: Node[]) => {
     return stageGroups;
   }, new Map<number, Node[]>());
 
-  return Array.from(allGroupsWithNodes)
-    .filter(([_, nodes]) => nodes.length > 1)
-    .map(([stageId, nodes]) => ({
-      id: getStageIdString(stageId.toString()),
-      data: {
-        nodes,
-      },
-      position: getPosition(),
-    }));
+  return allGroupsWithNodes;
 };
 
-interface ToFlowEdgeParams {
-  fromId: string | number;
-  toId: string | number;
-}
-export const toFlowEdge = ({ fromId, toId }: ToFlowEdgeParams) => ({
-  id: uuidv4(),
-  source: fromId.toString(),
-  animated: true,
-  target: toId.toString(),
-});
+export const getTopLevelNodes = (flowNodes: Node[]): Node[] => {
+  const allGroupsWithNodes = buildAllNodeGroups(flowNodes);
+
+  return Array.from(allGroupsWithNodes).map(([stageId, nodes]) => {
+    if (nodes.length === 1) {
+      return nodes[0];
+    } else {
+      return toFlowGroupNode(nodes, stageId);
+    }
+  });
+};
 
 const getNodeToGroupMap = (flowNodes: Node[]) =>
   flowNodes.reduce<Record<string, string>>((nodeToStageMap, node) => {
@@ -116,11 +131,12 @@ export const transformEdgesToGroupEdges = (
     });
 };
 
-export function getInternalEdges(
-  flowGroupNodes: Node[],
+export const getInternalEdges = (
+  topLevelNodes: Node[],
   originalEdges: EnrichedSqlEdge[],
-) {
-  return flowGroupNodes
+) =>
+  topLevelNodes
+    .filter((node) => node.type === "group")
     .map((node) => {
       const groupNodes = node.data.nodes;
       const groupNodeIds = new Set(groupNodes.map((node: Node) => node.id));
@@ -139,4 +155,3 @@ export function getInternalEdges(
         );
     })
     .flat();
-}
