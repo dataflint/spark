@@ -131,7 +131,7 @@ function handleAddedRemovedMetrics(
 }
 
 export const StageNode: FC<{
-  data: { sqlId: string; node: EnrichedSqlNode; isChildNode: boolean };
+  data: { sqlId: string; node: EnrichedSqlNode; };
 }> = ({ data }): JSX.Element => {
   const dispatch = useAppDispatch();
   const alerts = useAppSelector((state) => state.spark.alerts);
@@ -518,7 +518,7 @@ export const StageNode: FC<{
     <>
       <Handle
         type="target"
-        position={data.isChildNode ? Position.Top : Position.Left}
+        position={Position.Left}
         id="b"
       />
       <Box position="relative" width={280} height={280}>
@@ -614,7 +614,7 @@ export const StageNode: FC<{
           </Tooltip>
         </Box>
       </Box>
-      <Handle type="source" position={data.isChildNode ? Position.Bottom : Position.Right} id="a" />
+      <Handle type="source" position={Position.Right} id="a" />
     </>
   );
 };

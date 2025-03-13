@@ -6,7 +6,6 @@ import {
 } from "./dagreLayouts";
 import {
   getFlowNodes,
-  getInternalEdges,
   getTopLevelNodes,
   toFlowEdge,
   transformEdgesToGroupEdges,
@@ -37,7 +36,6 @@ export function sqlElementsToGroupedLayout(
 
   const flowNodes = getFlowNodes(sql, graphFilter);
   const topLevelNodes = getTopLevelNodes(flowNodes);
-  const innerLevelEdges = getInternalEdges(topLevelNodes, edges);
   const topLevelEdges = transformEdgesToGroupEdges(
     flowNodes,
     topLevelNodes,
@@ -47,7 +45,6 @@ export function sqlElementsToGroupedLayout(
   const { layoutNodes, layoutEdges } = getGroupedElementsLayout({
     topLevelNodes,
     topLevelEdges,
-    innerLevelEdges,
   });
 
   return {

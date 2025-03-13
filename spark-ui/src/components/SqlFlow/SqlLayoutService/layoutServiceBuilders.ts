@@ -6,6 +6,7 @@ import {
   EnrichedSqlNode,
   GraphFilter,
 } from "../../../interfaces/AppStore";
+import { StageGroupNodeName } from "../flowComponents/StageGroupNode/StageGroupNode";
 import { StageNodeName } from "../flowComponents/StageNode/StageNode";
 
 const getPosition = (x = 0, y = 0) => ({ x, y });
@@ -19,9 +20,10 @@ const toFlowNode = (node: EnrichedSqlNode, sqlId: string) => ({
 });
 
 const toFlowGroupNode = (nodes: Node[], stageId: number) => ({
-  type: "group",
+  type: StageGroupNodeName,
   id: getStageIdString(stageId.toString()),
   data: {
+    friendlyName: `Stage ${stageId}`,
     nodes,
   },
   position: getPosition(),
@@ -130,28 +132,3 @@ export const transformEdgesToGroupEdges = (
       return toFlowEdge({ fromId: resolvedFromId, toId: resolvedToId });
     });
 };
-
-export const getInternalEdges = (
-  topLevelNodes: Node[],
-  originalEdges: EnrichedSqlEdge[],
-) =>
-  topLevelNodes
-    .filter((node) => node.type === "group")
-    .map((node) => {
-      const groupNodes = node.data.nodes;
-      const groupNodeIds = new Set(groupNodes.map((node: Node) => node.id));
-
-      return originalEdges
-        .filter(
-          ({ fromId, toId }) =>
-            groupNodeIds.has(fromId.toString()) &&
-            groupNodeIds.has(toId.toString()),
-        )
-        .map(({ fromId, toId }) =>
-          toFlowEdge({
-            fromId,
-            toId,
-          }),
-        );
-    })
-    .flat();

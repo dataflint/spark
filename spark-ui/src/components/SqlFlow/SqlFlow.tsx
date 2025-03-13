@@ -20,16 +20,20 @@ import "reactflow/dist/style.css";
 import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
 import { setSelectedStage, setSQLMode } from "../../reducers/GeneralSlice";
+import StageIconDrawer from "./drawerComponents/StageIconDrawer";
+import StageGroupNode, {
+  StageGroupNodeName,
+} from "./flowComponents/StageGroupNode/StageGroupNode";
+import { StageNode, StageNodeName } from "./flowComponents/StageNode/StageNode";
 import {
   sqlElementsToFlatLayout,
   sqlElementsToGroupedLayout,
 } from "./SqlLayoutService/SqlLayoutService";
-import StageIconDrawer from "./drawerComponents/StageIconDrawer";
-import { StageNode, StageNodeName } from "./flowComponents/StageNode/StageNode";
 
 const options = { hideAttribution: true };
 const nodeTypes = {
   [StageNodeName]: StageNode,
+  [StageGroupNodeName]: StageGroupNode,
 };
 
 // this is a mock to allow for use of external configuration

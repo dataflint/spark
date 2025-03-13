@@ -1,5 +1,6 @@
 import dagre from "dagre";
 import { Edge, Node, Position } from "reactflow";
+import { isNodeAGroup } from "../flowComponents/StageGroupNode/StageGroupNode";
 
 const buildDagreGraph = (rankdir: "LR" | "TB" = "LR") => {
   const dagreGraph = new dagre.graphlib.Graph();
@@ -9,15 +10,11 @@ const buildDagreGraph = (rankdir: "LR" | "TB" = "LR") => {
   return dagreGraph;
 };
 
-const isNodeAGroup = (node: Node) => node.type === "group";
-
 const nodeSize = 280;
-const nodeWidth = nodeSize;
-const nodeHeight = nodeSize;
+export const nodeWidth = nodeSize;
+export const nodeHeight = nodeSize;
 const groupPadding = 40;
-const nodeMargin = 30;
 const groupWidth = nodeWidth + groupPadding * 2;
-const groupHeight = nodeHeight + groupPadding * 2;
 
 export const getFlatElementsLayout = (
   nodes: Node[],
@@ -54,12 +51,10 @@ export const getFlatElementsLayout = (
 interface GroupedElementsLayoutParams {
   topLevelNodes: Node[];
   topLevelEdges: Edge[];
-  innerLevelEdges: Edge[];
 }
 export const getGroupedElementsLayout = ({
   topLevelNodes,
   topLevelEdges,
-  innerLevelEdges,
 }: GroupedElementsLayoutParams): {
   layoutNodes: Node[];
   layoutEdges: Edge[];
@@ -68,34 +63,14 @@ export const getGroupedElementsLayout = ({
   const innerLevelGraph = buildDagreGraph("TB");
 
   topLevelNodes.forEach((node) => {
-    const nodeIsGroup = isNodeAGroup(node);
-
     topLevelGraph.setNode(node.id, {
-      width: nodeIsGroup ? groupWidth : nodeWidth,
-      height: nodeIsGroup ? groupHeight : nodeHeight,
+      width: isNodeAGroup(node) ? groupWidth : nodeWidth,
+      height: nodeHeight,
     });
-
-    if (nodeIsGroup) {
-      node.data.nodes.forEach((childNode: Node) => {
-        innerLevelGraph.setNode(childNode.id, {
-          width: nodeWidth,
-          height: nodeHeight,
-        });
-      });
-    }
   });
-
-  const innerLevelNodes = topLevelNodes
-    .filter(isNodeAGroup)
-    .map((node) => node.data.nodes)
-    .flat();
 
   topLevelEdges.forEach((edge) => {
     topLevelGraph.setEdge(edge.source, edge.target);
-  });
-
-  innerLevelEdges.forEach((edge) => {
-    innerLevelGraph.setEdge(edge.source, edge.target);
   });
 
   dagre.layout(topLevelGraph);
@@ -110,27 +85,10 @@ export const getGroupedElementsLayout = ({
       x: nodeWithPosition.x - nodeWidth / 2,
       y: nodeWithPosition.y - nodeHeight / 2,
     };
-
-    if (isNodeAGroup(topLevelNode)) {
-      topLevelNode.data.nodes.forEach((childNode: Node, index: number) => {
-        childNode.data.isChildNode = true;
-
-        childNode.targetPosition = Position.Top;
-        childNode.sourcePosition = Position.Bottom;
-
-        childNode.position = {
-          x: topLevelNode.position.x + groupPadding,
-          y:
-            topLevelNode.position.y +
-            index * (nodeHeight + nodeMargin) +
-            groupPadding,
-        };
-      });
-    }
   });
 
   return {
-    layoutNodes: [...topLevelNodes, ...innerLevelNodes],
-    layoutEdges: [...topLevelEdges, ...innerLevelEdges],
+    layoutNodes: topLevelNodes,
+    layoutEdges: topLevelEdges,
   };
 };
