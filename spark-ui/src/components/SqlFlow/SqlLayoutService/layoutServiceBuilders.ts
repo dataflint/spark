@@ -72,6 +72,19 @@ const getNodeToGroupMap = (flowNodes: Node[]) =>
     return nodeToStageMap;
   }, {});
 
+const getResolvedEdgeConnection = (
+  nodeId: number,
+  nodeIdToStageGroupId: Record<number, string>,
+  groupNodes: Node[],
+) => {
+  const stageGroupId = nodeIdToStageGroupId[nodeId];
+  const stageGroup = groupNodes.find((node) => node.id === stageGroupId);
+
+  return stageGroup && stageGroup.data.nodes.length > 1
+    ? stageGroupId
+    : String(nodeId);
+};
+
 export const transformEdgesToGroupEdges = (
   flowNodes: Node[],
   groupNodes: Node[],
@@ -80,31 +93,27 @@ export const transformEdgesToGroupEdges = (
   const nodeIdToStageGroupId = getNodeToGroupMap(flowNodes);
 
   return originalEdges
-    .map(({ fromId, toId }) => {
+    .filter(({ fromId, toId }) => {
       const fromStageGroupId = nodeIdToStageGroupId[fromId];
       const toStageGroupId = nodeIdToStageGroupId[toId];
 
-      if (fromStageGroupId === toStageGroupId) return;
-      const fromStageGroup = groupNodes.find(
-        (node) => node.id === fromStageGroupId,
-      );
-      const toStageGroup = groupNodes.find(
-        (node) => node.id === toStageGroupId,
-      );
-
-      const finalFromId =
-        fromStageGroup && fromStageGroup.data.nodes.length > 1
-          ? fromStageGroupId
-          : String(fromId);
-
-      const finalToId =
-        toStageGroup && toStageGroup.data.nodes.length > 1
-          ? toStageGroupId
-          : String(toId);
-
-      return toFlowEdge({ fromId: finalFromId, toId: finalToId });
+      return fromStageGroupId !== toStageGroupId;
     })
-    .filter(Boolean);
+    .map(({ fromId, toId }) => {
+      const resolvedFromId = getResolvedEdgeConnection(
+        fromId,
+        nodeIdToStageGroupId,
+        groupNodes,
+      );
+
+      const resolvedToId = getResolvedEdgeConnection(
+        toId,
+        nodeIdToStageGroupId,
+        groupNodes,
+      );
+
+      return toFlowEdge({ fromId: resolvedFromId, toId: resolvedToId });
+    });
 };
 
 export function getInternalEdges(
