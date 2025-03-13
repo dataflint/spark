@@ -24,8 +24,8 @@ import {
   sqlElementsToFlatLayout,
   sqlElementsToGroupedLayout,
 } from "./SqlLayoutService/SqlLayoutService";
-import StageIconDrawer from "./StageIconDrawer";
-import { StageNode, StageNodeName } from "./StageNode";
+import StageIconDrawer from "./drawerComponents/StageIconDrawer";
+import { StageNode, StageNodeName } from "./flowComponents/StageNode/StageNode";
 
 const options = { hideAttribution: true };
 const nodeTypes = {

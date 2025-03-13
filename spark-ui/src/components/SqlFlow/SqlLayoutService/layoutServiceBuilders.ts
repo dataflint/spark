@@ -6,7 +6,7 @@ import {
   EnrichedSqlNode,
   GraphFilter,
 } from "../../../interfaces/AppStore";
-import { StageNodeName } from "../StageNode";
+import { StageNodeName } from "../flowComponents/StageNode/StageNode";
 
 const getPosition = (x = 0, y = 0) => ({ x, y });
 const getStageIdString = (id = "") => `stage-${id}`;
