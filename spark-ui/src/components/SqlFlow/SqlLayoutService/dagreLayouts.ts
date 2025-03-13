@@ -16,14 +16,17 @@ export const nodeHeight = nodeSize;
 const groupPadding = 40;
 const groupWidth = nodeWidth + groupPadding * 2;
 
-export const getFlatElementsLayout = (
+export const getLayoutElements = (
   nodes: Node[],
   edges: Edge[],
 ): { layoutNodes: Node[]; layoutEdges: Edge[] } => {
   const dagreGraph = buildDagreGraph();
 
   nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+    dagreGraph.setNode(node.id, {
+      width: isNodeAGroup(node) ? groupWidth : nodeWidth,
+      height: nodeHeight,
+    });
   });
 
   edges.forEach((edge) => {
@@ -46,49 +49,4 @@ export const getFlatElementsLayout = (
   });
 
   return { layoutNodes: nodes, layoutEdges: edges };
-};
-
-interface GroupedElementsLayoutParams {
-  topLevelNodes: Node[];
-  topLevelEdges: Edge[];
-}
-export const getGroupedElementsLayout = ({
-  topLevelNodes,
-  topLevelEdges,
-}: GroupedElementsLayoutParams): {
-  layoutNodes: Node[];
-  layoutEdges: Edge[];
-} => {
-  const topLevelGraph = buildDagreGraph();
-  const innerLevelGraph = buildDagreGraph("TB");
-
-  topLevelNodes.forEach((node) => {
-    topLevelGraph.setNode(node.id, {
-      width: isNodeAGroup(node) ? groupWidth : nodeWidth,
-      height: nodeHeight,
-    });
-  });
-
-  topLevelEdges.forEach((edge) => {
-    topLevelGraph.setEdge(edge.source, edge.target);
-  });
-
-  dagre.layout(topLevelGraph);
-  dagre.layout(innerLevelGraph);
-
-  topLevelNodes.forEach((topLevelNode) => {
-    const nodeWithPosition = topLevelGraph.node(topLevelNode.id);
-    topLevelNode.targetPosition = Position.Left;
-    topLevelNode.sourcePosition = Position.Right;
-
-    topLevelNode.position = {
-      x: nodeWithPosition.x - nodeWidth / 2,
-      y: nodeWithPosition.y - nodeHeight / 2,
-    };
-  });
-
-  return {
-    layoutNodes: topLevelNodes,
-    layoutEdges: topLevelEdges,
-  };
 };

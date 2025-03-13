@@ -25,10 +25,7 @@ import StageGroupNode, {
   StageGroupNodeName,
 } from "./flowComponents/StageGroupNode/StageGroupNode";
 import { StageNode, StageNodeName } from "./flowComponents/StageNode/StageNode";
-import {
-  sqlElementsToFlatLayout,
-  sqlElementsToGroupedLayout,
-} from "./SqlLayoutService/SqlLayoutService";
+import { sqlElementsToLayout } from "./SqlLayoutService/SqlLayoutService";
 
 const options = { hideAttribution: true };
 const nodeTypes = {
@@ -54,9 +51,11 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   useEffect(() => {
     if (!sparkSQL) return;
 
-    const { layoutNodes, layoutEdges } = shouldUseGroupedLayout
-      ? sqlElementsToGroupedLayout(sparkSQL, graphFilter)
-      : sqlElementsToFlatLayout(sparkSQL, graphFilter);
+    const { layoutNodes, layoutEdges } = sqlElementsToLayout(
+      sparkSQL,
+      graphFilter,
+      shouldUseGroupedLayout,
+    );
 
     setNodes(layoutNodes);
     setEdges(layoutEdges);

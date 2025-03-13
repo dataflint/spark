@@ -1,9 +1,5 @@
-import { Edge, Node } from "reactflow";
 import { EnrichedSparkSQL, GraphFilter } from "../../../interfaces/AppStore";
-import {
-  getFlatElementsLayout,
-  getGroupedElementsLayout,
-} from "./dagreLayouts";
+import { getLayoutElements } from "./dagreLayouts";
 import {
   getFlowNodes,
   getTopLevelNodes,
@@ -11,27 +7,21 @@ import {
   transformEdgesToGroupEdges,
 } from "./layoutServiceBuilders";
 
-export function sqlElementsToFlatLayout(
+const getFlatFlowElements = (
   sql: EnrichedSparkSQL,
   graphFilter: GraphFilter,
-): { layoutNodes: Node[]; layoutEdges: Edge[] } {
+) => {
   const { edges } = sql.filters[graphFilter];
-
   const flowNodes = getFlowNodes(sql, graphFilter);
   const flowEdges = edges.map(toFlowEdge);
 
-  const { layoutNodes, layoutEdges } = getFlatElementsLayout(
-    flowNodes,
-    flowEdges,
-  );
+  return { flowNodes, flowEdges };
+};
 
-  return { layoutNodes, layoutEdges };
-}
-
-export function sqlElementsToGroupedLayout(
+const getGroupedFlowElements = (
   sql: EnrichedSparkSQL,
   graphFilter: GraphFilter,
-): { layoutNodes: Node[]; layoutEdges: Edge[] | [] } {
+) => {
   const { edges } = sql.filters[graphFilter];
 
   const flowNodes = getFlowNodes(sql, graphFilter);
@@ -42,13 +32,17 @@ export function sqlElementsToGroupedLayout(
     edges,
   );
 
-  const { layoutNodes, layoutEdges } = getGroupedElementsLayout({
-    topLevelNodes,
-    topLevelEdges,
-  });
+  return { flowNodes: topLevelNodes, flowEdges: topLevelEdges };
+};
 
-  return {
-    layoutNodes,
-    layoutEdges,
-  };
+export function sqlElementsToLayout(
+  sql: EnrichedSparkSQL,
+  graphFilter: GraphFilter,
+  useGroupedLayout: boolean,
+) {
+  const { flowNodes, flowEdges } = useGroupedLayout
+    ? getGroupedFlowElements(sql, graphFilter)
+    : getFlatFlowElements(sql, graphFilter);
+
+  return getLayoutElements(flowNodes, flowEdges);
 }
