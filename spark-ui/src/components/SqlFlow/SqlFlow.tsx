@@ -1,24 +1,41 @@
 import React, { FC, useCallback, useEffect, useState } from "react";
 import ReactFlow, {
+  addEdge,
   ConnectionLineType,
   Controls,
   ReactFlowInstance,
-  addEdge,
   useEdgesState,
   useNodesState,
 } from "reactflow";
 
-import { Box, Drawer, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
+import {
+  Box,
+  Drawer,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+} from "@mui/material";
 import "reactflow/dist/style.css";
 import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
-import { setSQLMode, setSelectedStage } from "../../reducers/GeneralSlice";
-import SqlLayoutService from "./SqlLayoutService";
-import StageIconDrawer from "./StageIconDrawer";
-import { StageNode, StageNodeName } from "./StageNode";
+import { setSelectedStage, setSQLMode } from "../../reducers/GeneralSlice";
+import StageIconDrawer from "./drawerComponents/StageIconDrawer";
+import StageGroupNode, {
+  StageGroupNodeName,
+} from "./flowComponents/StageGroupNode/StageGroupNode";
+import { StageNode, StageNodeName } from "./flowComponents/StageNode/StageNode";
+import { sqlElementsToLayout } from "./SqlLayoutService/SqlLayoutService";
 
 const options = { hideAttribution: true };
-const nodeTypes = { [StageNodeName]: StageNode };
+const nodeTypes = {
+  [StageNodeName]: StageNode,
+  [StageGroupNodeName]: StageGroupNode,
+};
+
+// this is a mock to allow for use of external configuration
+// const shouldUseGroupedLayout = true;
+const shouldUseGroupedLayout = false;
 
 const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   sparkSQL,
@@ -31,34 +48,24 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const graphFilter = useAppSelector((state) => state.general.sqlMode);
   const selectedStage = useAppSelector((state) => state.general.selectedStage);
 
-  React.useEffect(() => {
-    if (!sparkSQL) return;
-    const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
-      sparkSQL,
-      graphFilter,
-    );
-
-    setNodes(layoutNodes);
-  }, [sparkSQL.metricUpdateId]);
-
   useEffect(() => {
     if (!sparkSQL) return;
-    const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
+
+    const { layoutNodes, layoutEdges } = sqlElementsToLayout(
       sparkSQL,
       graphFilter,
+      shouldUseGroupedLayout,
     );
 
     setNodes(layoutNodes);
     setEdges(layoutEdges);
-  }, [sparkSQL.uniqueId, graphFilter]);
+  }, [sparkSQL.metricUpdateId, sparkSQL.uniqueId, graphFilter]);
 
   useEffect(() => {
     if (instance) {
       setTimeout(instance.fitView, 20);
     }
   }, [instance, edges]);
-
-  useEffect(() => { }, [nodes]);
 
   const onConnect = useCallback(
     (params: any) =>
@@ -119,10 +126,11 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
           <Drawer
             anchor={"right"}
             open={selectedStage !== undefined}
-            onClose={() => dispatch(setSelectedStage({ selectedStage: undefined }))}
+            onClose={() =>
+              dispatch(setSelectedStage({ selectedStage: undefined }))
+            }
           >
-            <Box sx={{ minWidth: "400px" }}
-            >
+            <Box sx={{ minWidth: "400px" }}>
               <StageIconDrawer stage={selectedStage} />
             </Box>
           </Drawer>

@@ -1,7 +1,7 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BuildIcon from "@mui/icons-material/Build";
 import { Box, Fade, IconButton, Tooltip, Typography } from "@mui/material";
-import * as React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import SqlFlow from "../components/SqlFlow/SqlFlow";
 import SqlTable from "../components/SqlTable/SqlTable";
 import SummaryBar from "../components/SummaryBar";
@@ -13,19 +13,20 @@ import { getBaseAppUrl } from "../utils/UrlUtils";
 
 export default function SummaryTab() {
   const sql = useAppSelector((state) => state.spark.sql);
-  const [selectedSqlId, setSelectedSqlId] = React.useState<string | undefined>(
+  const [selectedSqlId, setSelectedSqlId] = useState<string | undefined>(
     undefined,
   );
-  const selectedSql =
-    selectedSqlId === undefined
-      ? undefined
-      : sql?.sqls.find((sql) => sql.id === selectedSqlId);
 
-  React.useEffect(() => {
+  const selectedSql = useMemo(
+    () => sql?.sqls.find((sql) => sql.id === selectedSqlId),
+    [selectedSqlId],
+  );
+
+  useEffect(() => {
     MixpanelService.TrackPageView();
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     function handleEscapeKey(event: KeyboardEvent) {
       if (event.code === "Escape") {
         setSelectedSqlId(undefined);

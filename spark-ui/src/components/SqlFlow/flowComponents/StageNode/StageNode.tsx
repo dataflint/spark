@@ -5,20 +5,20 @@ import React, { FC } from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { Handle, Position } from "reactflow";
-import { useAppDispatch, useAppSelector } from "../../Hooks";
-import { EnrichedSqlNode } from "../../interfaces/AppStore";
-import { SqlMetric } from "../../interfaces/SparkSQLs";
-import { setSelectedStage } from '../../reducers/GeneralSlice';
-import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
+import { useAppDispatch, useAppSelector } from "../../../../Hooks";
+import { EnrichedSqlNode } from "../../../../interfaces/AppStore";
+import { SqlMetric } from "../../../../interfaces/SparkSQLs";
+import { setSelectedStage } from '../../../../reducers/GeneralSlice';
+import { truncateMiddle } from "../../../../reducers/PlanParsers/PlanParserUtils";
 import {
   calculatePercentage,
   humanFileSize,
   humanizeTimeDiff,
   parseBytesString,
-} from "../../utils/FormatUtils";
-import AlertBadge, { TransperantTooltip } from "../AlertBadge/AlertBadge";
-import { ConditionalWrapper } from "../InfoBox/InfoBox";
-import StageIcon from "./StageIcon";
+} from "../../../../utils/FormatUtils";
+import AlertBadge, { TransperantTooltip } from "../../../AlertBadge/AlertBadge";
+import { ConditionalWrapper } from "../../../InfoBox/InfoBox";
+import StageIcon from './StageIcon';
 import styles from "./node-style.module.css";
 
 export const StageNodeName: string = "stageNode";
@@ -131,7 +131,7 @@ function handleAddedRemovedMetrics(
 }
 
 export const StageNode: FC<{
-  data: { sqlId: string; node: EnrichedSqlNode };
+  data: { sqlId: string; node: EnrichedSqlNode; };
 }> = ({ data }): JSX.Element => {
   const dispatch = useAppDispatch();
   const alerts = useAppSelector((state) => state.spark.alerts);
@@ -516,7 +516,11 @@ export const StageNode: FC<{
 
   return (
     <>
-      <Handle type="target" position={Position.Left} id="b" />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="b"
+      />
       <Box position="relative" width={280} height={280}>
         <div className={styles.node}>
           <div className={styles.textWrapper}>

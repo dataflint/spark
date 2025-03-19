@@ -2,7 +2,7 @@ import { ApexOptions } from "apexcharts";
 import { duration } from "moment";
 import React from "react";
 import ReactApexChart from "react-apexcharts";
-import { humanizeTimeDiff } from "../../utils/FormatUtils";
+import { humanizeTimeDiff } from "../../../utils/FormatUtils";
 
 export default function DurationDistributionChart({
   durationDist,

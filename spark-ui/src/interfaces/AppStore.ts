@@ -274,6 +274,7 @@ export interface EnrichedSqlNode {
 
 export interface SQLNodeExchangeStageData {
   type: "exchange";
+  stageId: number;
   writeStage: number;
   readStage: number;
   status: string;

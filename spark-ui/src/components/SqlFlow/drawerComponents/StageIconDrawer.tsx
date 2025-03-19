@@ -7,18 +7,18 @@ import {
 } from "@mui/material";
 import { duration } from "moment";
 import React from "react";
-import { useAppSelector } from "../../Hooks";
+import { useAppSelector } from "../../../Hooks";
 import {
     SQLNodeExchangeStageData,
     SQLNodeStageData,
     SparkStageStore,
-} from "../../interfaces/AppStore";
-import { humanFileSize, humanizeTimeDiff } from "../../utils/FormatUtils";
-import { BASE_CURRENT_PAGE } from "../../utils/UrlConsts";
-import { getBaseAppUrl } from "../../utils/UrlUtils";
+} from "../../../interfaces/AppStore";
+import { humanFileSize, humanizeTimeDiff } from "../../../utils/FormatUtils";
+import { BASE_CURRENT_PAGE } from "../../../utils/UrlConsts";
+import { getBaseAppUrl } from "../../../utils/UrlUtils";
 import BytesDistributionChart from "./BytesDistributionChart";
-import DurationDistributionChart from "./DurationDistributionChart";
 import NumbersDistributionChart from "./NumbersDistributionChart";
+import DurationDistributionChart from "./DurationDistributionChart";
 
 const linkToStage = (stageId: number) => {
     window.open(
