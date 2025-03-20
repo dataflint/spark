@@ -87,7 +87,7 @@ function MultiStageIconTooltip({
                 {writeStage.spillDiskDistriution !== undefined && writeStage.spillDiskDistriution.some(x => x !== 0) ? <NumbersDistributionChart title="Spill disk (bytes)" numbersDist={writeStage.spillDiskDistriution} /> : undefined}
             </Box>}
             {readStage === undefined ? undefined : <Box sx={{ m: 1 }}>
-                <Typography variant="h6" sx={{ textAlign: "center", margin: "0 auto" }} >Write Stage</Typography>
+                <Typography variant="h6" sx={{ textAlign: "center", margin: "0 auto" }} >Read Stage</Typography>
                 <LinearProgressWithLabel numTasks={readStage.numTasks} runningTasks={readStage.activeTasks} completedTasks={readStage.completedTasks}></LinearProgressWithLabel>
                 <StageSummary stageData={readStage} />
                 {readStage.durationDistribution !== undefined ? <DurationDistributionChart durationDist={readStage.durationDistribution} /> : undefined}

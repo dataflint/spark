@@ -46,7 +46,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
     return node;
   });
   nodes = nodes.map((node) => {
-    if (node.nodeName === "AQEShuffleRead") {
+    if (node.nodeName === "AQEShuffleRead" || node.nodeName === "Coalesce") {
       const nextNode = findNextNode(node.nodeId);
       if (nextNode !== undefined && nextNode.stage !== undefined) {
         return { ...node, stage: nextNode.stage };

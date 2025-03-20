@@ -17,6 +17,7 @@ import {
   timeStrToEpocTime,
   timeStringToMilliseconds,
 } from "../utils/FormatUtils";
+import { parseCoalesce } from "./PlanParsers/CoalesceParser";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
 import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
@@ -111,6 +112,11 @@ export function parseNodePlan(
         return {
           type: "CollectLimit",
           plan: parseCollectLimit(plan.planDescription),
+        };
+      case "Coalesce":
+        return {
+          type: "Coalesce",
+          plan: parseCoalesce(plan.planDescription),
         };
       case "Execute InsertIntoHadoopFsRelationCommand":
         return {

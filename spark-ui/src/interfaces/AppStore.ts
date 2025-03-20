@@ -235,6 +235,10 @@ export type ParsedSortPlan = {
   fields: string[];
 };
 
+export interface ParsedCoalescePlan {
+  partitionNum: number;
+}
+
 export type ParsedNodePlan =
   | { type: "HashAggregate"; plan: ParsedHashAggregatePlan }
   | { type: "TakeOrderedAndProject"; plan: ParsedTakeOrderedAndProjectPlan }
@@ -246,7 +250,9 @@ export type ParsedNodePlan =
   | { type: "Exchange"; plan: ParsedExchangePlan }
   | { type: "Join"; plan: ParsedJoinPlan }
   | { type: "Sort"; plan: ParsedSortPlan }
-  | { type: "Window"; plan: ParsedWindowPlan };
+  | { type: "Window"; plan: ParsedWindowPlan }
+  | { type: "Coalesce"; plan: ParsedCoalescePlan };
+
 
 export interface ExchangeMetrics {
   writeDuration: number;

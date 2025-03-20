@@ -135,6 +135,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   CometHashJoin: "join",
   CometBroadcastHashJoin: "join",
   CometSortMergeJoin: "join",
+  Coalesce: "shuffle",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -194,6 +195,7 @@ const nodeRenamerDict: Record<string, string> = {
   CometHashJoin: "Join (Comet)",
   CometBroadcastHashJoin: "Join (Broadcast Hash) (Comet)",
   CometSortMergeJoin: "Join (Sort Merge) (Comet)",
+  Coalesce: "Coalesce",
 };
 
 export function extractTotalFromStatisticsMetric(

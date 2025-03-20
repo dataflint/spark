@@ -255,6 +255,12 @@ export const StageNode: FC<{
           parsedPlan.plan.condition,
         );
         break;
+      case "Coalesce":
+        dataTable.push({
+          name: "Partitions",
+          value: parsedPlan.plan.partitionNum.toString(),
+        });
+        break;
       case "TakeOrderedAndProject":
         dataTable.push({
           name: "Limit",
