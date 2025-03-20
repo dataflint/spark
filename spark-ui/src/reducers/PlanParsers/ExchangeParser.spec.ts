@@ -7,6 +7,7 @@ describe("parseExchange", () => {
     expect(parseExchange(input)).toEqual({
       type: "hashpartitioning",
       fields: ["ss_quantity"],
+      isBroadcast: false,
     });
   });
 
@@ -16,6 +17,7 @@ describe("parseExchange", () => {
     expect(parseExchange(input)).toEqual({
       type: "SinglePartition",
       fields: [],
+      isBroadcast: false,
     });
   });
 
@@ -25,6 +27,17 @@ describe("parseExchange", () => {
     expect(parseExchange(input)).toEqual({
       type: "rangepartitioning",
       fields: ["ca_county ASC NULLS FIRST"],
+      isBroadcast: false,
+    });
+  });
+
+  test("parses broadcast correctly", () => {
+    const input =
+      "Exchange SinglePartition, EXECUTOR_BROADCAST, [plan_id=270]";
+    expect(parseExchange(input)).toEqual({
+      type: "SinglePartition",
+      fields: [],
+      isBroadcast: true,
     });
   });
 

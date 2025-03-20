@@ -252,7 +252,10 @@ export function nodeEnrichedNameBuilder(
             : "")
         );
       case "Exchange":
-        if (plan.plan.type === "hashpartitioning") {
+        if (plan.plan.isBroadcast) {
+          return "Broadcast";
+        }
+        else if (plan.plan.type === "hashpartitioning") {
           return `Repartition By Hash`;
         } else if (plan.plan.type === "rangepartitioning") {
           return `Repartition By Range`;

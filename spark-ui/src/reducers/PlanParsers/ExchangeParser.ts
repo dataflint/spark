@@ -17,5 +17,7 @@ export function parseExchange(input: string): ParsedExchangePlan {
 
   const type = typeMatch ? typeMatch[1] : "";
 
-  return { type, fields: allFields };
+  const isBroadcast = input.includes("EXECUTOR_BROADCAST");
+
+  return { type, fields: allFields, isBroadcast: isBroadcast };
 }

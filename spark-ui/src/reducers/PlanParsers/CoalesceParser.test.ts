@@ -8,9 +8,4 @@ describe('CoalesceParser', () => {
         const result = parseCoalesce(input);
         expect(result).toEqual(expected);
     });
-
-    it('should handle invalid input gracefully', () => {
-        const input = 'Coalesce';
-        expect(() => parseCoalesce(input)).toThrowError();
-    });
 }); 

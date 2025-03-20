@@ -203,6 +203,7 @@ export type ParseFilterPlan = {
 export type ParsedExchangePlan = {
   type: string;
   fields: string[] | undefined;
+  isBroadcast: boolean;
 };
 
 export type ParsedWindowPlan = {
