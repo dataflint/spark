@@ -237,6 +237,9 @@ export function nodeEnrichedNameBuilder(
   if (plan !== undefined) {
     switch (plan.type) {
       case "HashAggregate":
+        if (plan.plan.functions.length == 0) {
+          return "Distinct";
+        }
         return (
           "Aggregate" +
           (plan.plan.operations.length > 0 && plan.plan.operations.length < 3

@@ -366,7 +366,7 @@ export const StageNode: FC<{
         ) {
           addTruncatedCodeTooltipMultiline(
             dataTable,
-            "Aggregate By",
+            parsedPlan.plan.functions.length === 0 ? "Distinct By" : "Aggregate By",
             parsedPlan.plan.keys,
           );
         }
