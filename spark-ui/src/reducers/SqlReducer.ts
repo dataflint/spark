@@ -14,6 +14,7 @@ import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import {
+  calculatePercentage,
   timeStrToEpocTime,
   timeStringToMilliseconds,
 } from "../utils/FormatUtils";
@@ -258,9 +259,10 @@ function calculateSql(
       node.nodeName,
       node.metrics,
     );
+    const graph = generateGraph(enrichedSql.edges, enrichedSql.nodes);
     return {
       ...node,
-      metrics: calcNodeMetrics(node.type, node.metrics),
+      metrics: updateNodeMetrics(node, node.metrics, graph, onlyGraphNodes),
       exchangeMetrics: exchangeMetrics,
       exchangeBroadcastDuration: exchangeBroadcastDuration,
     };
@@ -425,7 +427,9 @@ export function updateSqlNodeMetrics(
       return node;
     }
 
-    const metrics = calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics);
+    // TODO: cache the graph
+    const graph = generateGraph(runningSql.edges, runningSql.nodes);
+    const metrics = updateNodeMetrics(node, matchedMetricsNodes[0].metrics, graph, runningSql.nodes);
     const exchangeMetrics = calcExchangeMetrics(node.nodeName, metrics);
 
     // TODO: maybe do a smarter replacement, or send only the initialized metrics
@@ -502,4 +506,89 @@ function calcBroadcastExchangeDuration(
     return duration;
   }
   return undefined;
+}
+
+function updateNodeMetrics(
+  node: EnrichedSqlNode,
+  metrics: EnrichedSqlMetric[],
+  graph: Graph,
+  allNodes: EnrichedSqlNode[],
+): EnrichedSqlMetric[] {
+
+  const updatedOriginalMetrics = calcNodeMetrics(node.type, metrics);
+  const filterRatio = addFilterRatioMetric(node, updatedOriginalMetrics, graph, allNodes);
+
+  return [
+    ...updatedOriginalMetrics,
+    ...(filterRatio !== null
+      ? [{ name: "Rows Filtered", value: filterRatio }]
+      : []),
+  ];
+}
+
+function findLastNodeWithInputRows(
+  node: EnrichedSqlNode,
+  graph: Graph,
+  allNodes: EnrichedSqlNode[],
+): EnrichedSqlNode | null {
+  const inputEdges = graph.inEdges(node.nodeId.toString());
+
+  if (!inputEdges || inputEdges.length !== 1) {
+    return null;
+  }
+  const inputEdge = inputEdges[0];
+  const inputNode = allNodes.find((n) => n.nodeId.toString() === inputEdge.v);
+
+  if (!inputNode) {
+    return null;
+  }
+  // if node is of type without row count but it does not effect the row count, we need to go more nodes back
+  if (inputNode.nodeName === "Project" || inputNode.nodeName === "AQEShuffleRead" || inputNode.nodeName === "Coalesce") {
+    return findLastNodeWithInputRows(inputNode, graph, allNodes);
+  } else {
+    return inputNode;
+  }
+}
+
+
+function addFilterRatioMetric(
+  node: EnrichedSqlNode,
+  updatedMetrics: EnrichedSqlMetric[],
+  graph: Graph,
+  allNodes: EnrichedSqlNode[],
+): string | null {
+  if (node.nodeName.includes("Filter") || node.enrichedName === "Distinct") {
+    let inputRows = 0;
+    const inputNode = findLastNodeWithInputRows(node, graph, allNodes);
+
+    if (inputNode) {
+      const inputRowsMetric = inputNode.metrics?.find((m) =>
+        m.name === "rows" || m.name.includes("shuffle records written")
+      );
+      if (inputRowsMetric) {
+        const foundInputRows = parseFloat(inputRowsMetric.value.replace(/,/g, ""));
+        if (!isNaN(inputRows)) {
+          inputRows = foundInputRows;
+        }
+      }
+    }
+
+    if (inputRows === 0) {
+      return null;
+    }
+
+    const outputRowsMetric = updatedMetrics.find((m) => m.name.includes("rows"));
+    if (!outputRowsMetric) {
+      return null;
+    }
+
+    const outputRows = parseFloat(outputRowsMetric.value.replace(/,/g, ""));
+    if (isNaN(outputRows)) {
+      return null;
+    }
+
+    const filteredRowsPercentage = calculatePercentage(inputRows - outputRows, inputRows).toFixed(2);
+    return filteredRowsPercentage.toString() + "%";
+  }
+  return null;
 }
