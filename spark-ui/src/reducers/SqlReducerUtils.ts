@@ -49,6 +49,7 @@ const metricsValueTransformer: Record<
 > = {
   "size of files read": extractTotalFromStatisticsMetric,
   "shuffle bytes written": extractTotalFromStatisticsMetric,
+  "num bytes read": extractTotalFromStatisticsMetric,
   "spill size": extractTotalFromStatisticsMetric,
   "total data file size (bytes)": bytesToHumanReadableSize,
   "number of dynamic part": (value: string) => {
@@ -136,6 +137,8 @@ const nodeTypeDict: Record<string, NodeType> = {
   CometBroadcastHashJoin: "join",
   CometSortMergeJoin: "join",
   Coalesce: "shuffle",
+  PhotonBroadcastExchange: "broadcast",
+  PhotonBroadcastHashJoin: "join",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -196,6 +199,8 @@ const nodeRenamerDict: Record<string, string> = {
   CometBroadcastHashJoin: "Join (Broadcast Hash) (Comet)",
   CometSortMergeJoin: "Join (Sort Merge) (Comet)",
   Coalesce: "Coalesce",
+  PhotonBroadcastExchange: "Broadcast (Photon)",
+  PhotonBroadcastHashJoin: "Join (Broadcast Hash) (Photon)",
 };
 
 export function extractTotalFromStatisticsMetric(
