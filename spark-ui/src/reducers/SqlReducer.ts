@@ -563,7 +563,7 @@ function addFilterRatioMetric(
 
     if (inputNode) {
       const inputRowsMetric = inputNode.metrics?.find((m) =>
-        m.name === "rows" || m.name.includes("shuffle records written")
+        m.name.includes("rows") || m.name.includes("shuffle records written")
       );
       if (inputRowsMetric) {
         const foundInputRows = parseFloat(inputRowsMetric.value.replace(/,/g, ""));
