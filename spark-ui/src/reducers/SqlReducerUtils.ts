@@ -96,7 +96,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   ShuffleHashJoin: "join",
   Filter: "transformation",
   Union: "join",
-  "Join(Skew=true)": "join",
+  "SortMergeJoin(skew=true)": "join",
   Exchange: "shuffle",
   AQEShuffleRead: "shuffle",
   HashAggregate: "transformation",
@@ -139,6 +139,8 @@ const nodeTypeDict: Record<string, NodeType> = {
   Coalesce: "shuffle",
   PhotonBroadcastExchange: "broadcast",
   PhotonBroadcastHashJoin: "join",
+  CartesianProduct: "join",
+  InMemoryTableScan: "transformation",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -150,7 +152,7 @@ const nodeRenamerDict: Record<string, string> = {
   "Execute CreateDataSourceTableAsSelectCommand": "Create table with Select",
   "Execute DropTableCommand": "Drop table",
   "Execute AddJarsCommand": "Add jars",
-  "Join(Skew=true)": "Join (Skew)",
+  "SortMergeJoin(skew=true)": "Join (Sort Merge) (Skew)",
   SetCatalogAndNamespace: "Set database",
   TakeOrderedAndProject: "Take Ordered",
   CollectLimit: "Collect",
@@ -201,6 +203,8 @@ const nodeRenamerDict: Record<string, string> = {
   Coalesce: "Coalesce",
   PhotonBroadcastExchange: "Broadcast (Photon)",
   PhotonBroadcastHashJoin: "Join (Broadcast Hash) (Photon)",
+  CartesianProduct: "Join (Cartesian Product)",
+  InMemoryTableScan: "Cache",
 };
 
 export function extractTotalFromStatisticsMetric(

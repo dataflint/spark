@@ -1,7 +1,7 @@
 package org.apache.spark.dataflint
 
 import org.apache.spark.SparkContext
-import org.apache.spark.dataflint.api.{DataFlintTab, DataflintApplicationInfoPage, DataflintIcebergPage, DataflintJettyUtils, DataflintSQLMetricsPage, DataflintSQLPlanPage, DataflintSQLStagesRddPage}
+import org.apache.spark.dataflint.api.{DataFlintTab, DataflintApplicationInfoPage, DataflintCachedStoragePage, DataflintIcebergPage, DataflintJettyUtils, DataflintSQLMetricsPage, DataflintSQLPlanPage, DataflintSQLStagesRddPage}
 import org.apache.spark.dataflint.listener.{DataflintEnvironmentInfo, DataflintEnvironmentInfoEvent}
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker.isMetricLoaderInRightClassLoader
@@ -11,7 +11,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.SparkListenerInterface
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.ui.SQLAppStatusListener
-import org.apache.spark.status.ElementTrackingStore
+import org.apache.spark.status.{ElementTrackingStore, LiveRDDsListener}
 import org.apache.spark.ui.SparkUI
 
 class DataflintSparkUIInstaller extends Logging {
@@ -48,6 +48,7 @@ class DataflintSparkUIInstaller extends Logging {
     val isDatabricks = context.conf.getOption("spark.databricks.clusterUsageTags.cloudProvider").isDefined
     val icebergInstalled = context.conf.get("spark.sql.extensions", "").contains("org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
     val icebergEnabled = context.conf.getBoolean("spark.dataflint.iceberg.enabled", defaultValue = true)
+    val cacheObservabilityEnabled = context.conf.getBoolean("spark.dataflint.cacheObservability.enabled", defaultValue = true)
     val icebergAuthCatalogDiscovery = context.conf.getBoolean("spark.dataflint.iceberg.autoCatalogDiscovery", defaultValue = false)
     if(icebergInstalled && icebergEnabled) {
       if(icebergAuthCatalogDiscovery && isMetricLoaderInRightClassLoader()) {
@@ -80,6 +81,11 @@ class DataflintSparkUIInstaller extends Logging {
             .asInstanceOf[Unit]
         else (listener: SparkListenerInterface, queue: String) => context.listenerBus.addToQueue(listener, queue)
       addToQueueMethod(dataflintListener, "dataflint")
+
+      if(cacheObservabilityEnabled) {
+        val rddListener = new LiveRDDsListener(context.statusStore.store.asInstanceOf[ElementTrackingStore])
+        addToQueueMethod(rddListener, "dataflint")
+      }
       context.listenerBus.post(DataflintEnvironmentInfoEvent(environmentInfo))
       if (isDatabricks) {
         addToQueueMethod(DataflintDatabricksLiveListener(context.listenerBus), "dataflint")
@@ -106,6 +112,7 @@ class DataflintSparkUIInstaller extends Logging {
     tab.attachPage(new DataflintSQLStagesRddPage(ui))
     tab.attachPage(new DataflintApplicationInfoPage(ui, dataflintStore))
     tab.attachPage(new DataflintIcebergPage(ui, dataflintStore))
+    tab.attachPage(new DataflintCachedStoragePage(ui,  dataflintStore))
     ui.attachTab(tab)
     ui.webUrl
   }

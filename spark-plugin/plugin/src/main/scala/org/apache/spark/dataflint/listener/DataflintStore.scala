@@ -24,4 +24,9 @@ class DataflintStore(val store: KVStore) {
   def environmentInfo(): Option[DataflintEnvironmentInfo] = {
     mapToSeq(store.view(classOf[DataflintEnvironmentInfoWrapper]))(_.info).headOption
   }
+
+  def rddStorageInfo(): Seq[DataflintRDDStorageInfo] = {
+    mapToSeq(store.view(classOf[DataflintRDDStorageInfoWrapper]))(_.info)
+  }
+
 }

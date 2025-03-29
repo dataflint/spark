@@ -8,7 +8,9 @@ import {
   ExchangeMetrics,
   ParsedNodePlan,
   SparkSQLStore,
+  SparkStagesStore,
 } from "../interfaces/AppStore";
+import { RddStorageInfo } from "../interfaces/CachedStorage";
 import { IcebergCommitsInfo, IcebergInfo } from "../interfaces/IcebergInfo";
 import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
@@ -197,6 +199,7 @@ function calculateSql(
   sql: SparkSQL,
   plan: SQLPlan | undefined,
   icebergCommit: IcebergCommitsInfo | undefined,
+  stages: SparkStagesStore,
 ): EnrichedSparkSQL {
   const enrichedSql = sql as EnrichedSparkSQL;
   const originalNumOfNodes = enrichedSql.nodes.length;
@@ -337,13 +340,14 @@ function calculateSqls(
   sqls: SparkSQLs,
   plans: SQLPlans,
   icebergInfo: IcebergInfo,
+  stages: SparkStagesStore,
 ): EnrichedSparkSQL[] {
   return sqls.map((sql) => {
     const plan = plans.find((plan) => plan.executionId === parseInt(sql.id));
     const icebergCommit = icebergInfo.commitsInfo.find(
       (plan) => plan.executionId === parseInt(sql.id),
     );
-    return calculateSql(sql, plan, icebergCommit);
+    return calculateSql(sql, plan, icebergCommit, stages);
   });
 }
 
@@ -352,9 +356,10 @@ export function calculateSqlStore(
   sqls: SparkSQLs,
   plans: SQLPlans,
   icebergInfo: IcebergInfo,
+  stages: SparkStagesStore,
 ): SparkSQLStore {
   if (currentStore === undefined) {
-    return { sqls: calculateSqls(sqls, plans, icebergInfo) };
+    return { sqls: calculateSqls(sqls, plans, icebergInfo, stages) };
   }
 
   const sqlIds = sqls.map((sql) => parseInt(sql.id));
@@ -379,18 +384,18 @@ export function calculateSqlStore(
 
     // case 1: SQL does not exist, we add it
     if (currentSql === undefined) {
-      updatedSqls.push(calculateSql(newSql, plan, icebergCommit));
+      updatedSqls.push(calculateSql(newSql, plan, icebergCommit, stages));
       // From here currentSql must not be null
       // case 2: plan status changed from running to completed, so we need to update the SQL
     } else if (
       newSql.status === SqlStatus.Completed.valueOf() ||
       newSql.status === SqlStatus.Failed.valueOf()
     ) {
-      updatedSqls.push(calculateSql(newSql, plan, icebergCommit));
+      updatedSqls.push(calculateSql(newSql, plan, icebergCommit, stages));
       // From here newSql.status must be RUNNING
       // case 3: running SQL structure, so we need to update the plan
     } else if (currentSql.originalNumOfNodes !== newSql.nodes.length) {
-      updatedSqls.push(calculateSql(newSql, plan, icebergCommit));
+      updatedSqls.push(calculateSql(newSql, plan, icebergCommit, stages));
     } else {
       // case 4: SQL is running, but the structure haven't changed, so we update only relevant fields
       updatedSqls.push({
@@ -410,6 +415,7 @@ export function updateSqlNodeMetrics(
   currentStore: SparkSQLStore,
   sqlId: string,
   sqlMetrics: NodesMetrics,
+  stages: SparkStagesStore,
 ): SparkSQLStore {
   const runningSqls = currentStore.sqls.filter((sql) => sql.id === sqlId);
   if (runningSqls.length === 0) {
@@ -417,7 +423,6 @@ export function updateSqlNodeMetrics(
     return currentStore;
   }
 
-  const notEffectedSqls = currentStore.sqls.filter((sql) => sql.id !== sqlId);
   const runningSql = runningSqls[0];
   const nodes = runningSql.nodes.map((node) => {
     const matchedMetricsNodes = sqlMetrics.filter(
@@ -456,10 +461,18 @@ export function updateSqlNodeMetrics(
       codegenDuration: codegenDuration,
     };
   });
+  const nodesWithStorageInfo = calculateNodeToStorageInfo(stages, nodes);
+  const nodesEnrichedWithStorageInfo = nodes.map(node => {
+    const storageInfo = nodesWithStorageInfo.find((nodeWithStorage) => nodeWithStorage.nodeId === node.nodeId)?.storageInfo;
+    return storageInfo === undefined ? node : {
+      ...node,
+      storageInfo: storageInfo,
+    };
+  })
 
   const updatedSql = {
     ...runningSql,
-    nodes: nodes,
+    nodes: nodesEnrichedWithStorageInfo,
     codegenNodes: codegenNodes,
     metricUpdateId: uuidv4(),
   };
@@ -474,6 +487,28 @@ export function updateSqlNodeMetrics(
     sqls: [...notEffectedSqlsBefore, updatedSql, ...notEffectedSqlsAfter],
   };
 }
+interface NodeStorageInfo {
+  nodeId: number;
+  storageInfo: RddStorageInfo | undefined;
+}
+
+export function calculateNodeToStorageInfo(stages: SparkStagesStore, nodes: EnrichedSqlNode[]): NodeStorageInfo[] {
+  const stagesWithCachesStorage = stages.filter(stage => stage.cachedStorage !== undefined);
+  const nodesWithStorageInfo = stagesWithCachesStorage.flatMap(stage => {
+    const cachedStorage = stage.cachedStorage;
+    const cacheNodes = nodes.filter(node => node.nodeName == "InMemoryTableScan" && node.stage !== undefined && node.stage.type == "onestage" && node.stage.stageId === stage.stageId);
+    if (cachedStorage && cacheNodes.length > 0) {
+      return cacheNodes.map((node, index) => ({
+        nodeId: node.nodeId,
+        storageInfo: index < cachedStorage.length ? cachedStorage[index] : undefined
+      }));
+    } else {
+      return [];
+    }
+  });
+  return nodesWithStorageInfo;
+}
+
 function calcCodegenDuration(metrics: EnrichedSqlMetric[]): number | undefined {
   return getMetricDuration("duration", metrics);
 }

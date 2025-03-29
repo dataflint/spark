@@ -12,6 +12,7 @@ import {
   SparkStagesStore,
   StatusStore,
 } from "../interfaces/AppStore";
+import { CachedStorage } from "../interfaces/CachedStorage";
 import { SparkJobs } from "../interfaces/SparkJobs";
 import { SqlStatus } from "../interfaces/SparkSQLs";
 import { SparkStage, SparkStages } from "../interfaces/SparkStages";
@@ -37,6 +38,7 @@ interface ResourceUsage {
 export function calculateStagesStore(
   existingStore: SparkStagesStore | undefined,
   stagesRdd: StagesRdd,
+  cachedStorage: CachedStorage,
   stages: SparkStages,
 ): SparkStagesStore {
   //  stages with status SKIPPED does not have metrics, or in the case of numTasks has a "wrong" value
@@ -90,6 +92,7 @@ export function calculateStagesStore(
         ),
         failureReason: stage.failureReason,
         stagesRdd: stagesRdd[stage.stageId],
+        cachedStorage: cachedStorage[stage.stageId],
         hasPartitionSkew:
           partitionSkew === undefined
             ? undefined

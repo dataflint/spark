@@ -64,3 +64,12 @@ class DataflintEnvironmentInfoWrapper(val info: DataflintEnvironmentInfo) {
   @JsonIgnore
   def id: String = "environment_info"
 }
+
+case class DataflintExecutorStorageInfo(memoryUsed: Long, memoryRemaining: Long, memoryUsagePercentage: Double)
+
+case class DataflintRDDStorageInfo(rddId: Int, memoryUsed: Long, diskUsed: Long, numOfPartitions: Int, storageLevel: String, maxMemoryExecutorInfo: Option[DataflintExecutorStorageInfo])
+
+class DataflintRDDStorageInfoWrapper(val info: DataflintRDDStorageInfo) {
+  @KVIndex
+  def id: Int = info.rddId
+}

@@ -6,7 +6,7 @@ import {
   SparkStagesStore,
   SQLNodeStageData,
 } from "../interfaces/AppStore";
-import { generateGraph } from "./SqlReducer";
+import { calculateNodeToStorageInfo, generateGraph } from "./SqlReducer";
 
 export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
   let nodes = sql.nodes;
@@ -287,5 +287,13 @@ export function calculateSqlStage(
       };
     },
   );
-  return { ...calculatedStageSql, nodes: nodesWithDuration };
+
+  const nodesToStorageInfo = calculateNodeToStorageInfo(stages, nodesWithDuration);
+  const nodesWithStorageInfo = nodesWithDuration.map((node) => {
+    const stageToStorageInfo = nodesToStorageInfo.find(
+      (nodeToStorageInfo) => nodeToStorageInfo.nodeId === node.nodeId,
+    );
+    return { ...node, cachedStorage: stageToStorageInfo?.storageInfo };
+  });
+  return { ...calculatedStageSql, nodes: nodesWithStorageInfo };
 }

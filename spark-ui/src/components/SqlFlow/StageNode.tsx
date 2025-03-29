@@ -146,6 +146,52 @@ export const StageNode: FC<{
     (metric: SqlMetric) => !!metric.value,
   ) as MetricWithTooltip[];
 
+  if (data.node.cachedStorage !== undefined) {
+    const cachedStorage = data.node.cachedStorage;
+    if (cachedStorage.memoryUsed !== undefined) {
+      dataTable.push({
+        name: "bytes cached in memory",
+        value: humanFileSize(cachedStorage.memoryUsed),
+      });
+    }
+    if (cachedStorage.diskUsed !== undefined && cachedStorage.diskUsed !== 0) {
+      dataTable.push({
+        name: "bytes cached in disk",
+        value: humanFileSize(cachedStorage.diskUsed),
+      });
+    }
+    if (cachedStorage.numOfPartitions !== undefined) {
+      dataTable.push({
+        name: "num of partitions cached",
+        value: cachedStorage.numOfPartitions.toString(),
+      });
+    }
+    if (cachedStorage.memoryUsed !== undefined && cachedStorage.memoryUsed !== 0 && cachedStorage.numOfPartitions !== undefined && cachedStorage.numOfPartitions !== 0) {
+      dataTable.push({
+        name: "avg cached partition size",
+        value: humanFileSize(cachedStorage.memoryUsed / cachedStorage.numOfPartitions),
+      });
+    }
+    if (cachedStorage.maxMemoryExecutorInfo !== undefined) {
+      if (cachedStorage.maxMemoryExecutorInfo.memoryUsed !== undefined && cachedStorage.maxMemoryExecutorInfo.memoryRemaining !== undefined && cachedStorage.maxMemoryExecutorInfo.memoryUsagePercentage !== undefined) {
+        addTruncatedSmallTooltipMultiLine(
+          dataTable,
+          "max executor memory usage",
+          [`${cachedStorage.maxMemoryExecutorInfo.memoryUsagePercentage.toFixed(2)}% - ${humanFileSize(cachedStorage.maxMemoryExecutorInfo.memoryUsed)} / ${humanFileSize(cachedStorage.maxMemoryExecutorInfo.memoryRemaining)}`,],
+          200)
+      }
+    }
+    // consider returning and parsing to something more human readable
+    // if (cachedStorage.storageLevel !== undefined) {
+    //   addTruncatedSmallTooltipMultiLine(
+    //     dataTable,
+    //     "storage level",
+    //     [cachedStorage.storageLevel],
+    //     100)
+    // }
+  }
+
+
   if (data.node.icebergCommit !== undefined) {
     const commit = data.node.icebergCommit;
     const metrics = commit.metrics;

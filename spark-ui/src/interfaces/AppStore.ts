@@ -1,4 +1,5 @@
 import { EnvironmentInfo } from './ApplicationInfo';
+import { RddStorageInfo } from './CachedStorage';
 import { IcebergCommitsInfo } from "./IcebergInfo";
 
 export type NodeType =
@@ -277,6 +278,7 @@ export interface EnrichedSqlNode {
   exchangeMetrics: ExchangeMetrics | undefined;
   rddScopeId: string | undefined;
   icebergCommit: IcebergCommitsInfo | undefined;
+  cachedStorage: RddStorageInfo | undefined;
 }
 
 export interface SQLNodeExchangeStageData {
@@ -359,6 +361,7 @@ export interface SparkStageStore {
   numTasks: number;
   name: string;
   stagesRdd: Record<string, string> | undefined;
+  cachedStorage: RddStorageInfo[] | undefined;
   failureReason: string | undefined;
   stageRealTimeDurationMs: number | undefined;
   hasPartitionSkew: boolean | undefined;

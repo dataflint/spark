@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { EnvironmentInfo } from '../interfaces/ApplicationInfo';
 import { AppStore, StatusStore } from "../interfaces/AppStore";
+import { CachedStorage } from "../interfaces/CachedStorage";
 import { IcebergInfo } from "../interfaces/IcebergInfo";
 import { Attempt } from "../interfaces/SparkApplications";
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
@@ -28,7 +30,6 @@ import {
   calculateSqlIdleTime,
   calculateStageStatus,
 } from "./StatusReducer";
-import { EnvironmentInfo } from '../interfaces/ApplicationInfo';
 
 export const initialState: AppStore = {
   isConnected: false,
@@ -90,7 +91,7 @@ const sparkSlice = createSlice({
     },
     setStages: (
       state,
-      action: PayloadAction<{ value: SparkStages; stagesRdd: StagesRdd }>,
+      action: PayloadAction<{ value: SparkStages; stagesRdd: StagesRdd; cachedStorage: CachedStorage }>,
     ) => {
       if (state.status === undefined) {
         return;
@@ -103,6 +104,7 @@ const sparkSlice = createSlice({
         const stageStore = calculateStagesStore(
           state.stages,
           action.payload.stagesRdd,
+          action.payload.cachedStorage,
           action.payload.value,
         );
         state.status.stages = stageStatus;
@@ -163,6 +165,7 @@ const sparkSlice = createSlice({
           state.sql,
           action.payload.sqlId,
           action.payload.value,
+          state.stages,
         );
         state.sql = calculateSqlQueryLevelMetricsReducer(
           state.config,
@@ -211,7 +214,7 @@ const sparkSlice = createSlice({
         icebergInfo: IcebergInfo;
       }>,
     ) => {
-      if (state.status === undefined) {
+      if (state.status === undefined || state.stages === undefined) {
         return;
       }
 
@@ -220,6 +223,7 @@ const sparkSlice = createSlice({
         action.payload.sqls,
         action.payload.plans,
         action.payload.icebergInfo,
+        state.stages,
       );
       if (state.config && state.jobs && state.executors && state.stages) {
         state.sql = calculateSqlQueryLevelMetricsReducer(

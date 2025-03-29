@@ -1,4 +1,5 @@
 import { ApplicationInfo } from "../interfaces/ApplicationInfo";
+import { CachedStorage } from "../interfaces/CachedStorage";
 import { IcebergInfo } from "../interfaces/IcebergInfo";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
@@ -104,6 +105,10 @@ class SparkAPI {
   }
   private applicationinfoPath(): string {
     return `${this.baseCurrentPage}/applicationinfo/json/`;
+  }
+
+  private cachedstoragePath(): string {
+    return `${this.baseCurrentPage}/cachedstorage/json/`;
   }
 
   private get executorsPath(): string {
@@ -251,7 +256,7 @@ class SparkAPI {
             appId: currentApplication.id,
             attempt: currentAttempt,
             epocCurrentTime: Date.now(),
-            environmentInfo: appInfo.environmentInfo ?? { driverXmxBytes: 0 }, 
+            environmentInfo: appInfo.environmentInfo ?? { driverXmxBytes: 0 },
           }),
         );
       } else {
@@ -260,7 +265,9 @@ class SparkAPI {
 
       const stagesRdd: StagesRdd = await this.queryData(this.buildStageRdd());
       const sparkStages: SparkStages = await this.queryData(this.stagesPath);
-      this.dispatch(setStages({ value: sparkStages, stagesRdd: stagesRdd }));
+      const cachedStorage: CachedStorage = await this.queryData(this.cachedstoragePath());
+
+      this.dispatch(setStages({ value: sparkStages, stagesRdd: stagesRdd, cachedStorage: cachedStorage }));
 
       const sparkExecutors: SparkExecutors = await this.queryData(
         this.executorsPath,
