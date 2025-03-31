@@ -10,7 +10,9 @@ case class SparkMetadataMetrics(
                                  totalSpillBytes: Long,
                                  totalShuffleWriteBytes: Long,
                                  totalShuffleReadBytes: Long,
-                                 executorPeakMemoryBytes: Long,
+                                 totalCachedMemoryBytes: Long,
+                                 totalCachedDiskBytes: Long,
+                                 maxExecutorCachedMemoryUsagePercentage: Double,                            executorPeakMemoryBytes: Long,
                                  containerPeakMemoryBytes: Long,
                                  executorJvmMemoryUsage: Double,
                                  driverJvmPeakMemoryBytes: Long,
@@ -22,6 +24,7 @@ case class SparkMetadataMetrics(
                                  isAnySqlQueryFailed: Boolean,
                                  taskErrorRate: Double,
                                  idleCoresRatio: Double,
+                                 CoresWastedRatio: Double,
                                  executorsDurationMs: Long,
                                  driverDurationMs: Long,
 

@@ -122,6 +122,11 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
     val executorJvmMemoryUsage = calculatePercentage(executorJvmPeakMemoryBytes, executorJvmMemoryGb * 1024 * 1024 * 1024)
     val driverJvmMemoryUsage = calculatePercentage(driverJvmPeakMemoryBytes, driverMemoryBytesConf.toDouble)
 
+    val rddStorageInfos = dataflintStore.rddStorageInfo()
+    val totalCachedMemoryBytes = rddStorageInfos.map(_.memoryUsed).sum
+    val totalCachedDiskBytes = rddStorageInfos.map(_.diskUsed).sum
+    val maxExecutorCachedMemoryUsagePercentage = rddStorageInfos.map(rddStorageInfo => rddStorageInfo.maxMemoryExecutorInfo.map(_.memoryUsagePercentage).getOrElse(0.0)).max
+
     SparkMetadataMetrics(
       containerMemoryGb = containerMemoryGb,
       executorJvmMemoryGb = executorJvmMemoryGb,
@@ -140,10 +145,14 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
       isAnySqlQueryFailed = isAnySqlQueryFailed,
       taskErrorRate = taskErrorRate,
       idleCoresRatio = idleCoresRatio,
+      CoresWastedRatio = idleCoresRatio, // for backward compatibility
       executorsDurationMs = executorsDurationMs,
       driverDurationMs = driverDurationMs,
       driverJvmPeakMemoryBytes = driverJvmPeakMemoryBytes,
-      driverJvmMemoryUsage = driverJvmMemoryUsage
+      driverJvmMemoryUsage = driverJvmMemoryUsage,
+      totalCachedMemoryBytes =totalCachedMemoryBytes,
+      totalCachedDiskBytes = totalCachedDiskBytes,
+      maxExecutorCachedMemoryUsagePercentage = maxExecutorCachedMemoryUsagePercentage
     )
   }
 }
