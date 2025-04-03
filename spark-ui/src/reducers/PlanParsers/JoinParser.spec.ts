@@ -61,6 +61,18 @@ describe("parseJoin", () => {
     expect(parseJoin(input)).toEqual(expected);
   });
 
+  it("should parse BroadcastNestedLoopJoin with Cross and condition", () => {
+    const input = "BroadcastNestedLoopJoin BuildRight, Inner, (id1#4 > id2#10)";
+    const expected: ParsedJoinPlan = {
+      joinType: "BroadcastNestedLoopJoin",
+      leftKeys: undefined,
+      rightKeys: undefined,
+      joinSideType: "Cross",
+      joinCondition: "id1 > id2",
+    };
+    expect(parseJoin(input)).toEqual(expected);
+  });
+
   it("should parse BroadcastHashJoin with Inner and condition", () => {
     const input =
       "BroadcastHashJoin [customer_id#21060], [customer_id#21229], Inner, BuildRight, (CASE WHEN (year_total#21078 > 0.000000) THEN (year_total#21217 / year_total#21078) END > CASE WHEN (year_total#21088 > 0.000000) THEN (year_total#21237 / year_total#21088) END), false";

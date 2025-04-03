@@ -8,7 +8,14 @@ import {
 
 export function parseJoin(input: string): ParsedJoinPlan {
   if (input.startsWith("BroadcastNestedLoopJoin")) {
-    return { joinType: "BroadcastNestedLoopJoin", joinSideType: "Cross" };
+    const regex = /BroadcastNestedLoopJoin(?:\s+\w+)?,\s+(\w+)(?:,\s*\((.*)\))?/;
+    const match = hashNumbersRemover(input).match(regex);
+    if (!match) {
+      throw new Error("Invalid input format");
+    }
+    const [, , conditionStr] = match;
+    let joinCondition = conditionStr ? conditionStr.trim() : undefined;
+    return { joinType: "BroadcastNestedLoopJoin", joinSideType: "Cross", joinCondition };
   }
 
   const regex = /^(\w+)\s+\[(.*?)\], \[(.*?)\], (\w+)(?:,\s+(.*))?$/;

@@ -552,11 +552,18 @@ function updateNodeMetrics(
 
   const updatedOriginalMetrics = calcNodeMetrics(node.type, metrics);
   const filterRatio = addFilterRatioMetric(node, updatedOriginalMetrics, graph, allNodes);
-
+  const crossJoinFilterRatio = addCrossJoinFilterRatioMetric(node, updatedOriginalMetrics, graph, allNodes);
+  const joinMetrics = addJoinMetrics(node, updatedOriginalMetrics, graph, allNodes);
   return [
     ...updatedOriginalMetrics,
     ...(filterRatio !== null
-      ? [{ name: "Rows Filtered", value: filterRatio }]
+      ? [filterRatio]
+      : []),
+    ...(crossJoinFilterRatio !== null
+      ? crossJoinFilterRatio
+      : []),
+    ...(joinMetrics !== null
+      ? joinMetrics
       : []),
   ];
 }
@@ -578,33 +585,39 @@ function findLastNodeWithInputRows(
     return null;
   }
   // if node is of type without row count but it does not effect the row count, we need to go more nodes back
-  if (inputNode.nodeName === "Project" || inputNode.nodeName === "AQEShuffleRead" || inputNode.nodeName === "Coalesce") {
+  if (inputNode.nodeName === "Project" || inputNode.nodeName === "AQEShuffleRead" || inputNode.nodeName === "Coalesce" || inputNode.nodeName === "Sort" || inputNode.nodeName === "Exchange") {
     return findLastNodeWithInputRows(inputNode, graph, allNodes);
   } else {
     return inputNode;
   }
 }
 
+function getRowsFromMetrics(metrics: EnrichedSqlMetric[] | undefined): number | null {
+  if (!metrics) return null;
+  const rowsMetric = metrics.find((m) =>
+    m.name.includes("rows") || m.name.includes("shuffle records written")
+  );
+  if (!rowsMetric) return null;
+
+  const rows = parseFloat(rowsMetric.value.replace(/,/g, ""));
+  return isNaN(rows) ? null : rows;
+}
 
 function addFilterRatioMetric(
   node: EnrichedSqlNode,
   updatedMetrics: EnrichedSqlMetric[],
   graph: Graph,
   allNodes: EnrichedSqlNode[],
-): string | null {
+): EnrichedSqlMetric | null {
   if (node.nodeName.includes("Filter") || node.enrichedName === "Distinct") {
     let inputRows = 0;
     const inputNode = findLastNodeWithInputRows(node, graph, allNodes);
 
     if (inputNode) {
-      const inputRowsMetric = inputNode.metrics?.find((m) =>
-        m.name.includes("rows") || m.name.includes("shuffle records written")
-      );
-      if (inputRowsMetric) {
-        const foundInputRows = parseFloat(inputRowsMetric.value.replace(/,/g, ""));
-        if (!isNaN(inputRows)) {
-          inputRows = foundInputRows;
-        }
+
+      const foundInputRows = getRowsFromMetrics(inputNode.metrics);
+      if (foundInputRows !== null) {
+        inputRows = foundInputRows;
       }
     }
 
@@ -623,7 +636,93 @@ function addFilterRatioMetric(
     }
 
     const filteredRowsPercentage = calculatePercentage(inputRows - outputRows, inputRows).toFixed(2);
-    return filteredRowsPercentage.toString() + "%";
+    return { name: "Rows Filtered", value: filteredRowsPercentage.toString() + "%" };
+  }
+  return null;
+}
+
+function addCrossJoinFilterRatioMetric(
+  node: EnrichedSqlNode,
+  updatedMetrics: EnrichedSqlMetric[],
+  graph: Graph,
+  allNodes: EnrichedSqlNode[],
+): EnrichedSqlMetric[] | null {
+  if (node.nodeName === "BroadcastNestedLoopJoin" || node.nodeName === "CartesianProduct") {
+    const inputEdges = graph.inEdges(node.nodeId.toString());
+    if (!inputEdges || inputEdges.length !== 2) {
+      return null;
+    }
+    const inputNodes = inputEdges.map(edge => allNodes.find(n => n.nodeId.toString() === edge.v));
+    const inputNodesRows = inputNodes.map(node => getRowsFromMetrics(node?.metrics)).filter(row => row !== null);
+    if (inputNodesRows.length !== 2) {
+      return null;
+    }
+
+    const crossJoinRows = getRowsFromMetrics(updatedMetrics);
+    if (crossJoinRows === null || inputNodesRows[0] === null || inputNodesRows[1] === null) {
+      return null;
+    }
+    const crossJoinScannedRows = inputNodesRows[0] * inputNodesRows[1];
+    const crossJoinFilteredRatio = (100.0 - calculatePercentage(crossJoinRows, crossJoinScannedRows)).toFixed(2);
+    return [
+      { name: "Cross Join Scanned Rows", value: crossJoinScannedRows.toString() },
+      { name: "Rows Filtered", value: crossJoinFilteredRatio.toString() + "%" }
+    ];
+  }
+  return null;
+}
+
+function addJoinMetrics(
+  node: EnrichedSqlNode,
+  updatedMetrics: EnrichedSqlMetric[],
+  graph: Graph,
+  allNodes: EnrichedSqlNode[],
+): EnrichedSqlMetric[] | null {
+  if (node.nodeName === "BroadcastHashJoin" || node.nodeName === "SortMergeJoin" || node.nodeName === "ShuffleHashJoin") {
+    const inputEdges = graph.inEdges(node.nodeId.toString());
+    if (!inputEdges || inputEdges.length !== 2) {
+      return null;
+    }
+    const inputRows = inputEdges.map(edge => {
+      const node = allNodes.find(n => n.nodeId.toString() === edge.v)
+      if (node === undefined) {
+        return null;
+      }
+      const nodeWithRows = findLastNodeWithInputRows(node, graph, allNodes);
+      if (nodeWithRows === null) {
+        return null;
+      }
+      const rows = getRowsFromMetrics(nodeWithRows.metrics);
+      if (rows === null) {
+        return null;
+      }
+      return rows
+    }).filter(rows => rows !== null);
+    if (inputRows.length !== 2) {
+      return null;
+    }
+
+    const joinOutputRows = getRowsFromMetrics(updatedMetrics);
+    if (joinOutputRows === null || inputRows[0] === null || inputRows[1] === null) {
+      return null;
+    }
+
+    const maxInputRows = Math.max(inputRows[0], inputRows[1]);
+
+    const joinRatio = maxInputRows !== 0 ? joinOutputRows / maxInputRows : 0
+
+    if (joinRatio > 1) {
+      const joinRatioPercentage = joinRatio.toFixed(1);
+      return [
+        { name: "join rows increase ratio", value: joinRatioPercentage.toString() + "X" },
+      ];
+    } else {
+      const joinRatioPercentage = calculatePercentage(joinOutputRows, maxInputRows).toFixed(2);
+      return [
+        { name: "join rows filtered", value: joinRatioPercentage.toString() + "%" },
+      ];
+    }
+
   }
   return null;
 }
