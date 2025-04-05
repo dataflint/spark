@@ -12,6 +12,7 @@ import { reduceIcebergReplaces } from "./Alerts/IcebergReplacesReducer";
 import { reduceJoinToBroadcastAlert } from "./Alerts/JoinToBroadcastAlert";
 import { reduceLargeCrossJoinScanAlert } from "./Alerts/LargeCrossJoinScanAlert";
 import { reduceLongFilterConditions } from "./Alerts/LongFilterConditions";
+import { reduceMaxPartitionToBigAlert } from "./Alerts/MaxPartitionToBigAlert";
 import { reduceMemoryAlerts } from "./Alerts/MemoryAlertsReducer";
 import { reduceSQLInputOutputAlerts } from "./Alerts/MemorySQLInputOutputAlerts";
 import { reducePartitionSkewAlert } from "./Alerts/PartitionSkewAlert";
@@ -37,6 +38,8 @@ export function reduceAlerts(
   reduceBroadcastTooLargeAlert(sqlStore, alerts);
   reduceJoinToBroadcastAlert(sqlStore, alerts);
   reduceLargeCrossJoinScanAlert(sqlStore, alerts);
+  reduceMaxPartitionToBigAlert(sqlStore, stageStore, alerts);
+
   return {
     alerts: alerts,
   };
