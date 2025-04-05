@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSqlNode } from "../../interfaces/AppStore";
 import { SqlMetric } from "../../interfaces/SparkSQLs";
 import { setSelectedStage } from '../../reducers/GeneralSlice';
+import { getSizeFromMetrics } from '../../reducers/PlanGraphUtils';
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
 import {
   calculatePercentage,
@@ -519,6 +520,24 @@ export const StageNode: FC<{
             parsedPlan.plan.selectFields,
           );
         }
+    }
+  }
+
+  if (data.node.nodeName === "Exchange") {
+    const partitionsMetric = parseFloat(
+      data.node.metrics
+        .find((metric) => metric.name === "partitions")
+        ?.value?.replaceAll(",", "") ?? "0"
+    );
+    const shuffleWriteMetric = getSizeFromMetrics(data.node.metrics)
+
+    if (partitionsMetric && shuffleWriteMetric) {
+      const avgPartitionSize = shuffleWriteMetric / partitionsMetric;
+      const avgPartitionSizeString = humanFileSize(avgPartitionSize);
+      dataTable.push({
+        name: "Average Write Partition Size",
+        value: avgPartitionSizeString
+      });
     }
   }
 
