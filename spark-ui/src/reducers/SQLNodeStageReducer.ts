@@ -6,7 +6,8 @@ import {
   SparkStagesStore,
   SQLNodeStageData,
 } from "../interfaces/AppStore";
-import { calculateNodeToStorageInfo, generateGraph } from "./SqlReducer";
+import { generateGraph } from "./PlanGraphUtils";
+import { calculateNodeToStorageInfo } from "./SqlReducer";
 
 export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
   let nodes = sql.nodes;
