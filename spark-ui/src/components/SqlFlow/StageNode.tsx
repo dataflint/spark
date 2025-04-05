@@ -541,6 +541,41 @@ export const StageNode: FC<{
     }
   }
 
+  if (data.node.nodeName === "Exchange") {
+    const partitionsMetric = parseFloat(
+      data.node.metrics
+        .find((metric) => metric.name === "partitions")
+        ?.value?.replaceAll(",", "") ?? "0"
+    );
+    const shuffleWriteMetric = getSizeFromMetrics(data.node.metrics)
+
+    if (partitionsMetric && shuffleWriteMetric) {
+      const avgPartitionSize = shuffleWriteMetric / partitionsMetric;
+      const avgPartitionSizeString = humanFileSize(avgPartitionSize);
+      dataTable.push({
+        name: "Average Write Partition Size",
+        value: avgPartitionSizeString
+      });
+    }
+  }
+
+  if (data.node.nodeName === "AQEShuffleRead") {
+    const partitionsMetric = parseFloat(
+      data.node.metrics
+        .find((metric) => metric.name === "partitions")
+        ?.value?.replaceAll(",", "") ?? "0"
+    );
+    const bytesReadMetric = getSizeFromMetrics(data.node.metrics)
+    if (partitionsMetric && bytesReadMetric) {
+      const avgPartitionSize = bytesReadMetric / partitionsMetric;
+      const avgPartitionSizeString = humanFileSize(avgPartitionSize);
+      dataTable.push({
+        name: "Average Read Partition Size",
+        value: avgPartitionSizeString
+      });
+    }
+  }
+
   if (data.node.type === "input") {
     const filesReadMetric = parseFloat(
       data.node.metrics

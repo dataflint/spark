@@ -36,6 +36,7 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "num bytes read",
     "num bytes written",
     "output columnar batches",
+    "partition data size"
   ],
 
   broadcast: ["number of output rows", "data size", "output columnar batches"],
@@ -52,6 +53,7 @@ const metricsValueTransformer: Record<
   "num bytes read": extractTotalFromStatisticsMetric,
   "spill size": extractTotalFromStatisticsMetric,
   "total data file size (bytes)": bytesToHumanReadableSize,
+  "partition data size": extractTotalFromStatisticsMetric,
   "number of dynamic part": (value: string) => {
     // if dynamic part is 0 we want to remove it from metrics
     if (value === "0") {
@@ -82,6 +84,7 @@ const metricsRenamer: Record<string, string> = {
   "total data manifests": "data manifests read",
   "number of file splits read": "files read",
   "output columnar batches": "output batches",
+  "partition data size": "data size",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {

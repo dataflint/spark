@@ -84,7 +84,9 @@ export function getSizeFromMetrics(metrics: EnrichedSqlMetric[] | undefined): nu
     if (!metrics) return null;
     const metric = metrics.find((metric) =>
         metric.name === "bytes written" ||
-        metric.name === "shuffle write"
+        metric.name === "shuffle write" ||
+        metric.name === "partition size" ||
+        metric.name === "data size"
     );
     const metricValue = metric?.value;
     if (!metricValue) return null;
