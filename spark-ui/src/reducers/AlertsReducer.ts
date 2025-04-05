@@ -10,6 +10,7 @@ import {
 import { reduceBroadcastTooLargeAlert } from "./Alerts/BroadcastTooLargeAlert";
 import { reduceIcebergReplaces } from "./Alerts/IcebergReplacesReducer";
 import { reduceJoinToBroadcastAlert } from "./Alerts/JoinToBroadcastAlert";
+import { reduceLargeCrossJoinScanAlert } from "./Alerts/LargeCrossJoinScanAlert";
 import { reduceLongFilterConditions } from "./Alerts/LongFilterConditions";
 import { reduceMemoryAlerts } from "./Alerts/MemoryAlertsReducer";
 import { reduceSQLInputOutputAlerts } from "./Alerts/MemorySQLInputOutputAlerts";
@@ -35,6 +36,7 @@ export function reduceAlerts(
   reduceLongFilterConditions(sqlStore, alerts);
   reduceBroadcastTooLargeAlert(sqlStore, alerts);
   reduceJoinToBroadcastAlert(sqlStore, alerts);
+  reduceLargeCrossJoinScanAlert(sqlStore, alerts);
   return {
     alerts: alerts,
   };
