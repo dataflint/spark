@@ -5,8 +5,8 @@ import {
 } from "../../interfaces/AppStore";
 import { humanFileSize } from "../../utils/FormatUtils";
 
-// 20GB threshold in bytes
-const MAX_PARTITION_SIZE_THRESHOLD = 1;
+// 5GB threshold in bytes
+const MAX_PARTITION_SIZE_THRESHOLD = 5 * 1024 * 1024 * 1024;
 
 export function reduceMaxPartitionToBigAlert(
     sql: SparkSQLStore,
@@ -53,13 +53,8 @@ function checkStageForLargePartitions(
         let maxPartitionSize = 0;
         let dataType = "";
 
-        if (stageData.shuffleWriteDistribution && stageData.shuffleWriteDistribution.length > 10 && stageData.shuffleWriteDistribution[10] > MAX_PARTITION_SIZE_THRESHOLD) {
-            // The last element (index 10) is the maximum value
-            maxPartitionSize = stageData.shuffleWriteDistribution[10];
-            dataType = "shuffle write";
-        }
         // If no shuffle write, check output distribution
-        else if (stageData.outputDistribution && stageData.outputDistribution.length > 10 && stageData.outputDistribution[10] > MAX_PARTITION_SIZE_THRESHOLD) {
+        if (stageData.outputDistribution && stageData.outputDistribution.length > 10 && stageData.outputDistribution[10] > MAX_PARTITION_SIZE_THRESHOLD) {
             maxPartitionSize = stageData.outputDistribution[10];
             dataType = "output";
         }
@@ -67,6 +62,15 @@ function checkStageForLargePartitions(
         else if (stageData.inputDistribution && stageData.inputDistribution.length > 10 && stageData.inputDistribution[10] > MAX_PARTITION_SIZE_THRESHOLD) {
             maxPartitionSize = stageData.inputDistribution[10];
             dataType = "input";
+        }
+        else if (stageData.shuffleWriteDistribution && stageData.shuffleWriteDistribution.length > 10 && stageData.shuffleWriteDistribution[10] > MAX_PARTITION_SIZE_THRESHOLD) {
+            // The last element (index 10) is the maximum value
+            maxPartitionSize = stageData.shuffleWriteDistribution[10];
+            dataType = "shuffle write";
+        } else if (stageData.shuffleReadDistribution && stageData.shuffleReadDistribution.length > 10 && stageData.shuffleReadDistribution[10] > MAX_PARTITION_SIZE_THRESHOLD) {
+            // The last element (index 10) is the maximum value
+            maxPartitionSize = stageData.shuffleReadDistribution[10];
+            dataType = "shuffle read";
         }
 
         // If the maximum partition size exceeds our threshold, add an alert
