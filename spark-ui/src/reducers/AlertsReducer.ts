@@ -18,6 +18,7 @@ import { reduceSQLInputOutputAlerts } from "./Alerts/MemorySQLInputOutputAlerts"
 import { reducePartitionSkewAlert } from "./Alerts/PartitionSkewAlert";
 import { reduceSmallTasksAlert } from "./Alerts/SmallTasksAlert";
 import { reduceWastedCoresAlerts } from "./Alerts/WastedCoresAlertsReducer";
+import { parseAlertDisabledConfig } from "../utils/ConfigParser";
 
 export function reduceAlerts(
   sqlStore: SparkSQLStore,
@@ -39,8 +40,9 @@ export function reduceAlerts(
   reduceJoinToBroadcastAlert(sqlStore, alerts);
   reduceLargeCrossJoinScanAlert(sqlStore, alerts);
   reduceMaxPartitionToBigAlert(sqlStore, stageStore, alerts);
-
+  const disabledAlerts = parseAlertDisabledConfig(config.alertDisabled);
+  const filteredAlerts = alerts.filter(alert => !disabledAlerts.has(alert.name));
   return {
-    alerts: alerts,
+    alerts: filteredAlerts,
   };
 }

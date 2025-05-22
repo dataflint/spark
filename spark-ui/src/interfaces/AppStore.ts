@@ -87,6 +87,7 @@ export interface ConfigEntry {
 export type ConfigEntries = ConfigEntry[];
 
 export interface ConfigStore {
+  alertDisabled: string | undefined;
   resourceControlType: ResourceMode;
   configs: ConfigEntries;
   executorMemoryBytes: number;

@@ -134,6 +134,7 @@ export function extractConfig(
   const resourceControlType = findResourceControlType(sparkPropertiesObj);
 
   const appName = sparkPropertiesObj["spark.app.name"];
+  const alertDisabled = sparkPropertiesObj["spark.dataflint.alert.disabled"] || undefined;
   const config: ConfigEntries = [
     {
       name: "app name",
@@ -381,6 +382,7 @@ export function extractConfig(
   return [
     appName,
     {
+      alertDisabled: alertDisabled,
       resourceControlType: resourceControlType,
       configs: config,
       executorMemoryOverheadViaConfigString: memoryOverheadViaConfigString,
