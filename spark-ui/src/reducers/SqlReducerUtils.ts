@@ -26,7 +26,7 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
   ],
   join: ["number of output rows", "output columnar batches",
   ],
-  transformation: ["number of output rows", "output columnar batches", "output rows",
+  transformation: ["number of output rows", "output columnar batches", "output rows", "data sent to Python workers", "data returned from Python workers"
   ],
   shuffle: [
     "number of partitions",
@@ -85,6 +85,8 @@ const metricsRenamer: Record<string, string> = {
   "number of file splits read": "files read",
   "output columnar batches": "output batches",
   "partition data size": "data size",
+  "data sent to Python workers": "data sent",
+  "data returned from Python workers": "data returned",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -144,6 +146,9 @@ const nodeTypeDict: Record<string, NodeType> = {
   PhotonBroadcastHashJoin: "join",
   CartesianProduct: "join",
   InMemoryTableScan: "transformation",
+  MapInPandas: "transformation",
+  ArrowEvalPython: "transformation",
+  FlatMapGroupsInPandas: "transformation",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -208,6 +213,9 @@ const nodeRenamerDict: Record<string, string> = {
   PhotonBroadcastHashJoin: "Join (Broadcast Hash) (Photon)",
   CartesianProduct: "Join (Cartesian Product)",
   InMemoryTableScan: "Cache",
+  MapInPandas: "Select (with Pandas)",
+  ArrowEvalPython: "Select (with Arrow)",
+  FlatMapGroupsInPandas: "Select Flat (with Pandas)",
 };
 
 export function extractTotalFromStatisticsMetric(
