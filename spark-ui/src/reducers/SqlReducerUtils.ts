@@ -54,6 +54,8 @@ const metricsValueTransformer: Record<
   "spill size": extractTotalFromStatisticsMetric,
   "total data file size (bytes)": bytesToHumanReadableSize,
   "partition data size": extractTotalFromStatisticsMetric,
+  "data sent to Python workers": extractTotalFromStatisticsMetric,
+  "data returned from Python workers": extractTotalFromStatisticsMetric,
   "number of dynamic part": (value: string) => {
     // if dynamic part is 0 we want to remove it from metrics
     if (value === "0") {
@@ -149,6 +151,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   MapInPandas: "transformation",
   ArrowEvalPython: "transformation",
   FlatMapGroupsInPandas: "transformation",
+  BatchEvalPython: "transformation",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -216,6 +219,7 @@ const nodeRenamerDict: Record<string, string> = {
   MapInPandas: "Select (with Pandas)",
   ArrowEvalPython: "Select (with Arrow)",
   FlatMapGroupsInPandas: "Select Flat (with Pandas)",
+  BatchEvalPython: "Run Python UDF",
 };
 
 export function extractTotalFromStatisticsMetric(

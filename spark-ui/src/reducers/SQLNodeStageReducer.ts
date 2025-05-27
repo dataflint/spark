@@ -93,7 +93,8 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     return node;
   });
   nodes = nodes.map((node) => {
-    if (node.nodeName === "AQEShuffleRead" || node.nodeName === "Coalesce") {
+    if (node.nodeName === "AQEShuffleRead" || node.nodeName === "Coalesce" ||
+      node.nodeName === "BatchEvalPython" || node.nodeName === "MapInPandas" || node.nodeName === "ArrowEvalPython" || node.nodeName === "FlatMapGroupsInPandas") {
       const nextNode = findNextNode(node.nodeId);
       if (nextNode !== undefined && nextNode.stage !== undefined) {
         return { ...node, stage: nextNode.stage };

@@ -244,6 +244,7 @@ function calculateSql(
     const lastNode = aqeFilteredNodes[aqeFilteredNodes.length - 1];
     lastNode.type = "output";
   }
+  const graph = generateGraph(enrichedSql.edges, enrichedSql.nodes);
 
   const metricEnrichedNodes: EnrichedSqlNode[] = onlyGraphNodes.map((node) => {
     const exchangeMetrics = calcExchangeMetrics(node.nodeName, node.metrics);
@@ -251,10 +252,11 @@ function calculateSql(
       node.nodeName,
       node.metrics,
     );
-    const graph = generateGraph(enrichedSql.edges, enrichedSql.nodes);
+
     return {
       ...node,
       metrics: updateNodeMetrics(node, node.metrics, graph, onlyGraphNodes),
+      enrichedName: updateNodeEnrichedName(node, onlyGraphNodes, graph),
       exchangeMetrics: exchangeMetrics,
       exchangeBroadcastDuration: exchangeBroadcastDuration,
     };
@@ -532,13 +534,58 @@ function calcBroadcastExchangeDuration(
   return undefined;
 }
 
+function updateNodeEnrichedName(
+  node: EnrichedSqlNode,
+  allNodes: EnrichedSqlNode[],
+  graph: Graph): string {
+  if (node.enrichedName === "Distinct") {
+    const nextNodeAfterDistinct = graph.outEdges(node.nodeId.toString());
+    if (!nextNodeAfterDistinct || nextNodeAfterDistinct.length !== 1) {
+      return node.enrichedName;
+    }
+    const nextEdge = nextNodeAfterDistinct[0];
+    const nextNode = allNodes.find((n) => n.nodeId.toString() === nextEdge.w);
+    if (!nextNode || nextNode.nodeName !== "Exchange") {
+      return node.enrichedName;
+    }
+
+    const nextNodeAfterExchange = graph.outEdges(nextNode.nodeId.toString());
+    if (!nextNodeAfterExchange || nextNodeAfterExchange.length !== 1) {
+      return node.enrichedName;
+    }
+    const nextExchangeEdge = nextNodeAfterExchange[0];
+    const nextNodeAfterExchangeNode = allNodes.find((n) => n.nodeId.toString() === nextExchangeEdge.w);
+    if (!nextNodeAfterExchangeNode) {
+      return node.enrichedName;
+    }
+    if (nextNodeAfterExchangeNode.enrichedName === "Distinct") {
+      return "Distinct Within Partition";
+    }
+
+    if (nextNodeAfterExchangeNode.nodeName === "AQEShuffleRead") {
+      const nextNodeAfterRead = graph.outEdges(nextNodeAfterExchangeNode.nodeId.toString());
+      if (!nextNodeAfterRead || nextNodeAfterRead.length !== 1) {
+        return node.enrichedName;
+      }
+      const nextEdge = nextNodeAfterRead[0];
+      const nextNode = allNodes.find((n) => n.nodeId.toString() === nextEdge.w);
+      if (!nextNode || nextNode.enrichedName !== "Distinct") {
+        return node.enrichedName;
+      }
+      return "Distinct Within Partition";
+    }
+
+    return node.enrichedName;
+  }
+  return node.enrichedName;
+}
+
 function updateNodeMetrics(
   node: EnrichedSqlNode,
   metrics: EnrichedSqlMetric[],
   graph: Graph,
   allNodes: EnrichedSqlNode[],
 ): EnrichedSqlMetric[] {
-
   const updatedOriginalMetrics = calcNodeMetrics(node.type, metrics);
   const filterRatio = addFilterRatioMetric(node, updatedOriginalMetrics, graph, allNodes);
   const crossJoinFilterRatio = addCrossJoinFilterRatioMetric(node, updatedOriginalMetrics, graph, allNodes);
@@ -589,8 +636,9 @@ function addFilterRatioMetric(
       return null;
     }
 
-    const filteredRowsPercentage = calculatePercentage(inputRows - outputRows, inputRows).toFixed(2);
-    return { name: "Rows Filtered", value: filteredRowsPercentage.toString() + "%" };
+    const ratio = calculatePercentage(inputRows - outputRows, inputRows);
+    const filteredRows = formatJoinRatioPercentage(ratio)
+    return { name: "Rows Filtered", value: filteredRows.toString() + "%" };
   }
   return null;
 }
@@ -617,7 +665,8 @@ function addCrossJoinFilterRatioMetric(
       return null;
     }
     const crossJoinScannedRows = inputNodesRows[0] * inputNodesRows[1];
-    const crossJoinFilteredRatio = (100.0 - calculatePercentage(crossJoinRows, crossJoinScannedRows)).toFixed(2);
+    const ratio = 100.0 - calculatePercentage(crossJoinRows, crossJoinScannedRows);
+    const crossJoinFilteredRatio = formatJoinRatioPercentage(ratio)
     return [
       { name: "Cross Join Scanned Rows", value: crossJoinScannedRows.toString() },
       { name: "Rows Filtered", value: crossJoinFilteredRatio.toString() + "%" }
@@ -671,12 +720,20 @@ function addJoinMetrics(
         { name: "join rows increase ratio", value: joinRatioPercentage.toString() + "X" },
       ];
     } else {
-      const joinRatioPercentage = calculatePercentage(joinOutputRows, maxInputRows).toFixed(2);
+      const joinRatioPercentage = calculatePercentage(joinOutputRows, maxInputRows)
+      const joinRatioPercentageStr = formatJoinRatioPercentage(joinRatioPercentage);
       return [
-        { name: "join rows filtered", value: joinRatioPercentage.toString() + "%" },
+        { name: "join rows filtered", value: joinRatioPercentageStr.toString() + "%" },
       ];
     }
 
   }
   return null;
+}
+
+function formatJoinRatioPercentage(percentage: number): string {
+  if (percentage < 0.01 && percentage > 0) {
+    return percentage.toFixed(4);
+  }
+  return percentage.toFixed(1);
 }
