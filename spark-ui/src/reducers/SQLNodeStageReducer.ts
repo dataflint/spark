@@ -9,7 +9,7 @@ import {
 import { generateGraph } from "./PlanGraphUtils";
 import { calculateNodeToStorageInfo } from "./SqlReducer";
 
-export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
+export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkStagesStore): EnrichedSparkSQL {
   let nodes = sql.nodes;
 
   function findNode(id: number): EnrichedSqlNode {
@@ -17,6 +17,34 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
   }
 
   const graph = generateGraph(sql.edges, nodes);
+
+  function findSingleRootNode(): EnrichedSqlNode | undefined {
+    const nodesWithoutInEdges = nodes.filter(node => {
+      const inEdges = graph.inEdges(node.nodeId.toString());
+      return !inEdges || inEdges.length === 0;
+    });
+
+    // if there is only one node without in edges, it is a sql with a single start node
+    if (nodesWithoutInEdges.length === 1) {
+      return nodesWithoutInEdges[0];
+    }
+    return undefined;
+  }
+
+  function findSingleLastNode(): EnrichedSqlNode | undefined {
+    const nodesWithoutOutEdges = nodes.filter(node => {
+      const outEdges = graph.outEdges(node.nodeId.toString());
+      return !outEdges || outEdges.length === 0;
+    });
+
+    // if there is only one node without in edges, it is a sql with a single start node
+    if (nodesWithoutOutEdges.length === 1) {
+      return nodesWithoutOutEdges[0];
+    }
+    return undefined;
+  }
+
+
 
   function findNextNode(id: number): EnrichedSqlNode | undefined {
     const inputEdges = graph.outEdges(id.toString());
@@ -32,6 +60,24 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
       return findNode(parseInt(inputEdges[0].v));
     }
     return undefined;
+  }
+
+  const singleRootNode = findSingleRootNode();
+  if (singleRootNode !== undefined) {
+    const minStageId = Math.min(...sqlStages.map(stage => stage.stageId));
+    if (minStageId !== undefined && isFinite(minStageId)) {
+      nodes = nodes.map((node) => singleRootNode.nodeId == node.nodeId ?
+        { ...node, stage: stageDataFromStage(minStageId, sqlStages) } : node)
+    };
+  }
+
+  const singleLastNode = findSingleLastNode();
+  if (singleLastNode !== undefined) {
+    const maxStageId = Math.max(...sqlStages.map(stage => stage.stageId));
+    if (maxStageId !== undefined && isFinite(maxStageId)) {
+      nodes = nodes.map((node) => singleLastNode.nodeId == node.nodeId ?
+        { ...node, stage: stageDataFromStage(maxStageId, sqlStages) } : node)
+    };
   }
 
   nodes = nodes.map((node) => {
@@ -65,11 +111,11 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
           stage: {
             type: "exchange",
             writeStage:
+              nextNode.stage?.type === "onestage" ? nextNode.stage.stageId : -1,
+            readStage:
               previousNode.stage?.type === "onestage"
                 ? previousNode.stage.stageId
                 : -1,
-            readStage:
-              nextNode.stage?.type === "onestage" ? nextNode.stage.stageId : -1,
             status:
               previousNode.stage?.status === "ACTIVE"
                 ? previousNode.stage?.status
@@ -82,7 +128,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
     return node;
   });
   nodes = nodes.map((node) => {
-    if (node.type === "input") {
+    if (node.type === "input" && node.stage === undefined) {
       const nextNode = findNextNode(node.nodeId);
       if (nextNode !== undefined && nextNode.stage !== undefined) {
         return { ...node, stage: nextNode.stage };
@@ -191,7 +237,7 @@ export function calculateSqlStage(
     metricUpdateId: uuidv4(),
   };
 
-  const calculatedStageSql = calculateSQLNodeStage(knownStageSql);
+  const calculatedStageSql = calculateSQLNodeStage(knownStageSql, sqlStages);
 
   const otherStageDuration = sqlStages.map((stage) => {
     const id = stage.stageId;
