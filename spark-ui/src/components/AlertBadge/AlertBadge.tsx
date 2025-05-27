@@ -9,18 +9,18 @@ type InfoBoxProps = {
   alert?: DataflintAlert;
   margin?: string;
   placement?:
-    | "top"
-    | "right"
-    | "bottom"
-    | "left"
-    | "bottom-end"
-    | "bottom-start"
-    | "left-end"
-    | "left-start"
-    | "right-end"
-    | "right-start"
-    | "top-end"
-    | "top-start";
+  | "top"
+  | "right"
+  | "bottom"
+  | "left"
+  | "bottom-end"
+  | "bottom-start"
+  | "left-end"
+  | "left-start"
+  | "right-end"
+  | "right-start"
+  | "top-end"
+  | "top-start";
 };
 
 export const TransperantTooltip = styled(
@@ -45,6 +45,14 @@ export default function AlertBadge({ alert, margin, placement }: InfoBoxProps) {
           >
             <AlertTitle>{alert.title}</AlertTitle>
             {alert.message}
+            {alert.shortSuggestion !== undefined && (
+              <>
+                <br />
+                <b>Recommended Fix:</b>
+                <br />
+                {alert.shortSuggestion}
+              </>
+            )}
           </Alert>
         </React.Fragment>
       }

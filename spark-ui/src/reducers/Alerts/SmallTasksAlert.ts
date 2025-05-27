@@ -46,6 +46,7 @@ export function reduceSmallTasksAlert(
   2. Instead of repartition, you can run .coallese(${recommendedTaskNum}) to decrease the number of tasks without shuffling on the expense of less parallelism
   3. If you need to hash-partition, call repartition like this: .repartition(${recommendedTaskNum}, "hash_key1", "hash_key2")
 `,
+          shortSuggestion: `.repartition(${recommendedTaskNum}) before this transformation`,
           type: "warning",
           source: {
             type: "sql",

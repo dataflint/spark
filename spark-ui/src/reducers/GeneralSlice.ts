@@ -5,7 +5,7 @@ export const initialState: {
   sqlMode: GraphFilter;
   selectedStage: SQLNodeStageData | SQLNodeExchangeStageData | undefined;
 } = {
-  sqlMode: "basic",
+  sqlMode: "advanced",
   selectedStage: undefined
 };
 

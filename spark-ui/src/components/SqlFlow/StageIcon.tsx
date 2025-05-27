@@ -51,13 +51,14 @@ const getStatusIcon = (
   status: string,
   failureReason: string | undefined,
   progress: number | undefined,
+  hasAttempts: boolean = false,
 ): JSX.Element => {
   switch (status) {
     case "ACTIVE":
       return <CircularProgressWithLabel value={progress ?? 0} />;
     case "COMPLETE":
       return (
-        <CheckIcon color="success" style={{ width: "30px", height: "30px" }} />
+        <CheckIcon color={hasAttempts ? "warning" : "success"} style={{ width: "30px", height: "30px" }} />
       );
     case "FAILED":
       return <ExceptionIcon failureReason={failureReason ?? ""} />;
@@ -106,6 +107,14 @@ function SingleStageIconTooltip({
     (currentStage) =>
       stage.type === "onestage" && stage.stageId === currentStage.stageId,
   );
+
+  const stagesData = stages?.filter(
+    (currentStage) =>
+      stage.type === "onestage" && stage.stageId === currentStage.stageId,
+  );
+
+  const hasAttempts = stagesData !== undefined && stagesData.length > 1
+
   if (stageData === undefined) return <div></div>;
 
   return (
@@ -113,6 +122,7 @@ function SingleStageIconTooltip({
       stage.status,
       stageData?.failureReason,
       stageData?.stageProgress,
+      hasAttempts
     ))
 }
 

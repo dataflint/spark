@@ -20,9 +20,9 @@ import BytesDistributionChart from "./BytesDistributionChart";
 import DurationDistributionChart from "./DurationDistributionChart";
 import NumbersDistributionChart from "./NumbersDistributionChart";
 
-const linkToStage = (stageId: number) => {
+const linkToStage = (stageId: number, attemptId: number) => {
     window.open(
-        `${getBaseAppUrl(BASE_CURRENT_PAGE)}/stages/stage/?id=${stageId}&attempt=0`, // TODO: fetch attempts from store config
+        `${getBaseAppUrl(BASE_CURRENT_PAGE)}/stages/stage/?id=${stageId}&attempt=${attemptId}`,
         "_blank",
     );
 };
@@ -66,14 +66,14 @@ function MultiStageIconTooltip({
                 {writeStage === undefined ? undefined : <Link
                     color="inherit"
                     sx={{ textAlign: "center", margin: "0 auto" }}
-                    onClick={(evn) => linkToStage(stage.writeStage)}
+                    onClick={(evn) => linkToStage(stage.writeStage, 0)}
                 >
                     Write Stage - {stage.writeStage}
                 </Link>}
                 {readStage === undefined ? undefined : <Link
                     color="inherit"
                     sx={{ textAlign: "center", margin: "0 auto" }}
-                    onClick={(evn) => linkToStage(stage.readStage)}
+                    onClick={(evn) => linkToStage(stage.readStage, 0)}
                 >
                     Read Stage - {stage.readStage}
                 </Link>}
@@ -104,25 +104,31 @@ function SingleStageIconTooltip({
     stage: SQLNodeStageData;
 }): JSX.Element {
     const stages = useAppSelector((state) => state.spark.stages);
-    const stageData = stages?.find(
+    const stagesData = stages?.filter(
         (currentStage) =>
             stage.type === "onestage" && stage.stageId === currentStage.stageId,
     );
-    if (stageData === undefined) return <div></div>;
+
+    if (stagesData === undefined || stagesData.length === 0) return <div></div>;
+
+    const hasFailures = stagesData.length > 1
 
     return (
-        <Box sx={{ m: 1 }} display="flex" flexDirection="column" gap={1}>
-            <Link color="inherit" onClick={(evn) => linkToStage(stage.stageId)} sx={{ textAlign: "center", margin: "0 auto" }}>
-                Stage {stage.stageId}
-            </Link>
-            <LinearProgressWithLabel numTasks={stageData.numTasks} runningTasks={stageData.activeTasks} completedTasks={stageData.completedTasks}></LinearProgressWithLabel>
-            <StageSummary stageData={stageData} />
-            {stageData.durationDistribution !== undefined ? <DurationDistributionChart durationDist={stageData.durationDistribution} /> : undefined}
-            {stageData.inputDistribution !== undefined && stageData.inputDistribution.some(x => x !== 0) ? <BytesDistributionChart title="input bytes" bytesDist={stageData.inputDistribution} /> : undefined}
-            {stageData.inputRowsDistribution !== undefined && stageData.inputRowsDistribution.some(x => x !== 0) ? <NumbersDistributionChart title="input rows" numbersDist={stageData.inputRowsDistribution} /> : undefined}
-            {stageData.outputDistribution !== undefined && stageData.outputDistribution.some(x => x !== 0) ? <BytesDistributionChart title="output bytes" bytesDist={stageData.outputDistribution} /> : undefined}
-            {stageData.outputRowsDistribution !== undefined && stageData.outputRowsDistribution.some(x => x !== 0) ? <NumbersDistributionChart title="output rows" numbersDist={stageData.outputRowsDistribution} /> : undefined}
-            {stageData.spillDiskDistriution !== undefined && stageData.spillDiskDistriution.some(x => x !== 0) ? <NumbersDistributionChart title="output rows" numbersDist={stageData.spillDiskDistriution} /> : undefined}
+        <Box>
+            {stagesData.map(stageData => (
+                <Box id={`stage-${stageData.stageId}-${stageData.attemptId}`} sx={{ m: 1 }} display="flex" flexDirection="column" gap={1}>
+                    <Link color="inherit" onClick={(evn) => linkToStage(stage.stageId, stageData.attemptId)} sx={{ textAlign: "center", margin: "0 auto" }}>
+                        Stage {stage.stageId} {hasFailures ? `(attempt ${stageData.attemptId})` : ""}
+                    </Link>
+                    <LinearProgressWithLabel numTasks={stageData.numTasks} runningTasks={stageData.activeTasks} completedTasks={stageData.completedTasks}></LinearProgressWithLabel>
+                    <StageSummary stageData={stageData} />
+                    {stageData.durationDistribution !== undefined ? <DurationDistributionChart durationDist={stageData.durationDistribution} /> : undefined}
+                    {stageData.inputDistribution !== undefined && stageData.inputDistribution.some(x => x !== 0) ? <BytesDistributionChart title="input bytes" bytesDist={stageData.inputDistribution} /> : undefined}
+                    {stageData.inputRowsDistribution !== undefined && stageData.inputRowsDistribution.some(x => x !== 0) ? <NumbersDistributionChart title="input rows" numbersDist={stageData.inputRowsDistribution} /> : undefined}
+                    {stageData.outputDistribution !== undefined && stageData.outputDistribution.some(x => x !== 0) ? <BytesDistributionChart title="output bytes" bytesDist={stageData.outputDistribution} /> : undefined}
+                    {stageData.outputRowsDistribution !== undefined && stageData.outputRowsDistribution.some(x => x !== 0) ? <NumbersDistributionChart title="output rows" numbersDist={stageData.outputRowsDistribution} /> : undefined}
+                    {stageData.spillDiskDistriution !== undefined && stageData.spillDiskDistriution.some(x => x !== 0) ? <NumbersDistributionChart title="output rows" numbersDist={stageData.spillDiskDistriution} /> : undefined}
+                </Box>))}
         </Box>
     )
 }

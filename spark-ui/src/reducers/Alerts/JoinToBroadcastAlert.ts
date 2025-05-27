@@ -51,6 +51,7 @@ export function reduceJoinToBroadcastAlert(sql: SparkSQLStore, alerts: Alerts) {
                         suggestion: `
     1. Use broadcast(small_table_df) hint on the smaller table
     2. Set spark.sql.autoBroadcastJoinThreshold to a value larger than ${humanFileSize(smallTable)}`,
+                        shortSuggestion: `broadcast(small_table_df small table before join`,
                         type: "warning",
                         source: {
                             type: "sql",

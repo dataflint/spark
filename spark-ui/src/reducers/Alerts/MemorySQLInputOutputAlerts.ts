@@ -41,6 +41,7 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
     1. Ask the data owner to increase the file size
     2. Decrease number of executors, so each executor will read more small files and reduce the resource overhead
                         `,
+            shortSuggestion: `Ask the data owner to increase the file size`,
             type: "warning",
             source: {
               type: "sql",
@@ -108,6 +109,7 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
         1. Do a repartition by your partition key before writing the data, by running .repartition(${partitionKeysStringParam}) before writing the dataframe. Avg file size after this change should be ${expectedAvgFileSize}
         2. Choose different partition key${partitionKeysText.length === 1 ? "" : "s"
                 } instead of ${partitionKeysText} with lower cardinality`,
+              shortSuggestion: `.repartition(${partitionKeysStringParam}) before writing`,
               type: "warning",
               source: {
                 type: "sql",
@@ -130,6 +132,7 @@ export function reduceSQLInputOutputAlerts(sql: SparkSQLStore, alerts: Alerts) {
               message: `The average file size is ${avgFileSizeString}, which is too small and can cause performance issues`,
               suggestion: `
         1. Do a repartition before writing the data, by running .repartition(${idealFileCount}). After repartition avg file size should be ${fileSizeAfterRepartition}`,
+              shortSuggestion: `.repartition(${idealFileCount}) before write`,
               type: "warning",
               source: {
                 type: "sql",

@@ -51,6 +51,7 @@ export function calculateStagesStore(
 
       return {
         stageId: stage.stageId,
+        attemptId: stage.attemptId,
         name: stage.name,
         status: stage.status,
         numTasks: stage.numTasks,

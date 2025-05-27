@@ -50,6 +50,7 @@ export interface Alert {
   title: string;
   message: string;
   location: string;
+  shortSuggestion?: string | undefined;
   suggestion: string;
   type: AlertType;
   source: StatusAlertSourceData | SQLAlertSourceData;
@@ -359,6 +360,7 @@ export type SparkStagesStore = SparkStageStore[];
 export interface SparkStageStore {
   status: string;
   stageId: number;
+  attemptId: number;
   numTasks: number;
   name: string;
   stagesRdd: Record<string, string> | undefined;
