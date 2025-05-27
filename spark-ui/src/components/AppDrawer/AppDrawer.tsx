@@ -106,14 +106,27 @@ export const AppDrawer: FC<{
       <DrawerHeader>
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            position: "relative",
             width: "100%",
+            display: "flex",
+            alignItems: "center",
           }}
         >
-          {open && <img width={167} height={28.5} src="./logo.png" />}
-          <IconButton onClick={handleDrawerChanged}>
+          {open && (
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 25,
+                display: "flex",
+                justifyContent: "center",
+                pointerEvents: "none",
+              }}
+            >
+              <img width={167} height={28.5} src="./logo.png" style={{ pointerEvents: "auto" }} />
+            </div>
+          )}
+          <IconButton onClick={handleDrawerChanged} style={{ marginLeft: "auto", zIndex: 1 }}>
             {open ? <ChevronLeftIcon /> : <ChevronRightIcon />}
           </IconButton>
         </div>
