@@ -62,7 +62,9 @@ export function findLastInputNodeSize(
         return inputSizeBytes;
         // if node is of type without row size but it does not effect the row size, we need to go more nodes back
         // Filter is a special case, it does not effect the row size but it does not have a row size metric. So if the logic works, it will work for large size as well.
-    } else if (inputNode.nodeName === "AQEShuffleRead" || inputNode.nodeName === "Coalesce" || inputNode.nodeName === "Sort" || inputNode.nodeName === "Exchange" || inputNode.nodeName === "Filter") {
+    } else if (inputNode.nodeName === "AQEShuffleRead" || inputNode.nodeName === "Coalesce" || inputNode.nodeName === "Sort" || inputNode.nodeName === "Exchange" || inputNode.nodeName === "Filter"
+        || (inputNode.enrichedName === "Distinct") // becasue Distinct reduce data size it's also allowed
+    ) {
         return findLastInputNodeSize(inputNode, graph, allNodes);
     } else {
         return null;
