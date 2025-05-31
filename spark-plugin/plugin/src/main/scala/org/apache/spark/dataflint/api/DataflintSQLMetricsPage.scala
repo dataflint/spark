@@ -5,7 +5,7 @@ import org.apache.spark.sql.execution.ui.{SQLAppStatusListener, SQLAppStatusStor
 import org.apache.spark.ui.{SparkUI, WebUIPage}
 import org.json4s.{Extraction, JObject, JValue}
 
-import javax.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletRequest
 import scala.xml.Node
 
 class DataflintSQLMetricsPage(ui: SparkUI, sqlListener: () => Option[SQLAppStatusListener])

@@ -1,13 +1,13 @@
 package org.apache.spark.dataflint.api
 
+import jakarta.servlet.http.HttpServletRequest
 import org.apache.spark.internal.Logging
 import org.apache.spark.ui.{SparkUI, WebUIPage}
 import org.json4s.{Extraction, JObject, JValue}
 
-import jakarta.servlet.http.HttpServletRequest
 import scala.xml.Node
 
-class DataflintSQLStagesRddPage(ui: SparkUI)
+class DataFlintPage(ui: SparkUI, pageName: String, renderer: HttpServletRequest => JValue)
   extends WebUIPage("stagesrdd") with Logging {
   override def renderJson(request: HttpServletRequest): JValue = {
     try {

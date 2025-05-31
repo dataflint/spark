@@ -2,7 +2,6 @@ package org.apache.spark.dataflint.api
 
 import org.apache.spark.ui.SparkUI
 
-import javax.servlet.Servlet
 import scala.language.implicitConversions
 
 object DataflintJettyUtils {
@@ -36,7 +35,7 @@ object DataflintJettyUtils {
     setInitParameterMethod.invoke(contextHandler, "org.eclipse.jetty.servlet.Default.gzip", "false")
 
     val staticHandler = defaultServletClass.getDeclaredConstructor().newInstance()
-    val servletHolderConstructor = servletHolderClass.getConstructor(classOf[Servlet])
+    val servletHolderConstructor = servletHolderClass.getConstructor(Class.forName("jakarta.servlet.Servlet"))
     val holder = servletHolderConstructor.newInstance(staticHandler.asInstanceOf[Object])
 
     Option(this.getClass.getClassLoader.getResource(resourceBase)) match {

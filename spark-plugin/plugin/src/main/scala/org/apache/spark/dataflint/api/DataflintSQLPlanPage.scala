@@ -4,8 +4,9 @@ import org.apache.spark.dataflint.listener.DataflintStore
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.ui.{SQLAppStatusListener, SQLAppStatusStore, SparkPlanGraph}
 import org.apache.spark.ui.{SparkUI, WebUIPage}
-import org.json4s.{Extraction, JArray, JObject, JValue}
-import javax.servlet.http.HttpServletRequest
+import org.json4s.{Extraction, JArray, JObject}
+import org.json4s.JValue
+import jakarta.servlet.http.HttpServletRequest
 import scala.xml.Node
 
 class DataflintSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListener: () => Option[SQLAppStatusListener])

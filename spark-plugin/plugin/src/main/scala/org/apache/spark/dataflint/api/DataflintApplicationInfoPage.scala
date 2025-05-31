@@ -6,7 +6,7 @@ import org.apache.spark.ui.{SparkUI, WebUIPage}
 import org.json4s.JValue
 import org.json4s.{Extraction, JObject}
 
-import javax.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletRequest
 import scala.xml.Node
 
 class DataflintApplicationInfoPage(ui: SparkUI, dataflintStore: DataflintStore)
