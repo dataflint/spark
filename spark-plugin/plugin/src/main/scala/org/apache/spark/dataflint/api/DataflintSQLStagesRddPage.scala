@@ -2,14 +2,14 @@ package org.apache.spark.dataflint.api
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.ui.{SparkUI, WebUIPage}
-import org.json4s.{Extraction, JObject, JValue}
+import org.json4s.{Extraction, JObject}
 
 import javax.servlet.http.HttpServletRequest
 import scala.xml.Node
 
 class DataflintSQLStagesRddPage(ui: SparkUI)
   extends WebUIPage("stagesrdd") with Logging {
-  override def renderJson(request: HttpServletRequest): JValue = {
+  override def renderJson(request: HttpServletRequest) = {
     try {
       val graphs = ui.store.stageList(null)
         .filter(_.submissionTime.isDefined) // filter skipped or pending stages
@@ -17,7 +17,7 @@ class DataflintSQLStagesRddPage(ui: SparkUI)
           ui.store.operationGraphForStage(stage.stageId).rootCluster.childClusters
             .map(rdd => Tuple2(rdd.id, rdd.name)).toMap))
         .toMap
-      val jsonValue: JValue = Extraction.decompose(graphs)(org.json4s.DefaultFormats)
+      val jsonValue = Extraction.decompose(graphs)(org.json4s.DefaultFormats)
       jsonValue
     }
     catch {
