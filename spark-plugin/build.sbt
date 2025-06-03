@@ -1,6 +1,6 @@
 import xerial.sbt.Sonatype._
 
-lazy val versionNum: String = "0.4.1-SNAPSHOT"
+lazy val versionNum: String = "0.4.1"
 lazy val scala212 = "2.12.18"
 lazy val scala213 = "2.13.12"
 lazy val supportedScalaVersions = List(scala212, scala213)
@@ -22,7 +22,7 @@ lazy val dataflint = project
 
 lazy val plugin = (project in file("plugin"))
   .settings(
-    name := "dataflint-spark-dbr-14-plus",
+    name := "spark",
     organization := "io.dataflint",
     crossScalaVersions := supportedScalaVersions,
     version      := (if (git.gitCurrentTags.value.exists(_.startsWith("v"))) {
