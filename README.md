@@ -109,17 +109,27 @@ The plugin exposes an additional HTTP resoures for additional metrics not availa
 
 For more information, see [how it works docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/how-it-works)
 
-## Medium Articles
+## Articles
 
-*  [Fixing small files performance issues in Apache Spark using DataFlint](https://medium.com/@menishmueli/fixing-small-files-performance-issues-in-apache-spark-using-dataflint-49ffe3eb755f)
+*  [AWS engineering blog post featuring DataFlint - Centralize Apache Spark observability on Amazon EMR on EKS with external Spark History Server](https://aws.amazon.com/blogs/big-data/centralize-apache-spark-observability-on-amazon-emr-on-eks-with-external-spark-history-server/)
 
-*  [Are Long Filter Conditions in Apache Spark Leading to Performance Issues?](https://medium.com/@menishmueli/are-long-filter-conditions-in-apache-spark-leading-to-performance-issues-0b5bc6c0f94a)
+*  [Wix engineering blog post featuring DataFlint - How Wix Built the Ultimate Spark-as-a-Service Platform](https://www.wix.engineering/post/how-wix-built-the-ultimate-spark-as-a-service-platform-part1)
 
-*  [Optimizing update operations to Apache Iceberg tables using DataFlint](https://medium.com/dev-genius/optimizing-update-operations-to-apache-iceberg-tables-using-dataflint-e4e372e75b8a)
+*  [Cloudera Community - How to integrated DataFlint in CDP](https://community.cloudera.com/t5/Community-Articles/How-to-integrated-DataFlint-in-CDP/ta-p/383681)
 
-*  [Did you know that your Apache Spark logs might be leaking PIIs?](https://medium.com/system-weakness/did-you-know-that-your-apache-spark-logs-might-be-leaking-piis-06f2a0e8a82c)
+*  [Dataminded engineering blog post featuring DataFlint - Running thousands of Spark applications without losing your cool](https://medium.com/datamindedbe/running-thousands-of-spark-applications-without-losing-your-cool-969208a2d655)
 
-*  [Cost vs Speed: measuring Apache Spark performance with DataFlint](https://medium.com/@menishmueli/cost-vs-speed-measuring-apache-spark-performance-with-dataflint-c5f909ebe229)
+*  [Data Engineering Weekly #156 - Featuring DataFlint](https://www.dataengineeringweekly.com/p/data-engineering-weekly-156)
+
+*  [Medium Blog Post - Fixing small files performance issues in Apache Spark using DataFlint](https://medium.com/@menishmueli/fixing-small-files-performance-issues-in-apache-spark-using-dataflint-49ffe3eb755f)
+
+*  [Medium Blog Post - Are Long Filter Conditions in Apache Spark Leading to Performance Issues?](https://medium.com/@menishmueli/are-long-filter-conditions-in-apache-spark-leading-to-performance-issues-0b5bc6c0f94a)
+
+*  [Medium Blog Post - Optimizing update operations to Apache Iceberg tables using DataFlint](https://medium.com/dev-genius/optimizing-update-operations-to-apache-iceberg-tables-using-dataflint-e4e372e75b8a)
+
+*  [Medium Blog Post - Did you know that your Apache Spark logs might be leaking PIIs?](https://medium.com/system-weakness/did-you-know-that-your-apache-spark-logs-might-be-leaking-piis-06f2a0e8a82c)
+
+*  [Medium Blog Post - Cost vs Speed: measuring Apache Spark performance with DataFlint](https://medium.com/@menishmueli/cost-vs-speed-measuring-apache-spark-performance-with-dataflint-c5f909ebe229)
 
 
 ## Compatibility Matrix
@@ -133,7 +143,7 @@ DataFlint require spark version 3.2 and up, and supports both scala versions 2.1
 | Standalone                |       ✅            |           ✅             |
 | Kubernetes Spark Operator |       ✅            |           ✅             |
 | EMR                       |       ✅            |           ✅             |
-| Dataproc                  |       ✅            |           ❓             |
+| Dataproc                  |       ✅            |           ✅             |
 | HDInsights                |       ✅            |           ❓             |
 | Databricks                |       ✅            |           ❌             |
 
