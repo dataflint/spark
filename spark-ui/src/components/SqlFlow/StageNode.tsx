@@ -338,6 +338,11 @@ export const StageNode: FC<{
         }
         break;
       case "FileScan":
+        const bytesPrunedMetric = parseBytesString(
+          data.node.metrics
+            .find((metric) => metric.name === "bytes pruned")?.value ?? "0",
+        );
+
         if (parsedPlan.plan.PushedFilters !== undefined && parsedPlan.plan.PushedFilters.length > 0) {
           addTruncatedCodeTooltipMultiline(
             dataTable,
@@ -357,7 +362,12 @@ export const StageNode: FC<{
               false
             );
           }
-          else {
+          else if (bytesPrunedMetric !== 0) {
+            dataTable.push({
+              name: "Partition Filters",
+              value: "Pruning",
+            });
+          } else {
             dataTable.push({
               name: "Partition Filters",
               value: "Full Scan",
@@ -570,12 +580,26 @@ export const StageNode: FC<{
       "0",
     );
 
+    const bytesPrunedMetric = parseBytesString(
+      data.node.metrics
+        .find((metric) => metric.name === "bytes pruned")
+        ?.value ?? "0",
+    );
+
+
     if (filesReadMetric && bytesReadMetric) {
       const avgFileSize = bytesReadMetric / filesReadMetric;
       const avgFileSizeString = humanFileSize(avgFileSize);
       dataTable.push({
         name: "Average File Size",
         value: avgFileSizeString,
+      });
+    }
+    if (bytesPrunedMetric && bytesReadMetric) {
+      const prunePercentage = calculatePercentage(bytesPrunedMetric, bytesReadMetric + bytesPrunedMetric);
+      dataTable.push({
+        name: "bytes pruned ratio",
+        value: prunePercentage.toFixed(2) + "%",
       });
     }
   }

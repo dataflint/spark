@@ -17,6 +17,8 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "total data manifests",
     "number of file splits read",
     "output columnar batches",
+    "number of bytes pruned",
+    "number of files pruned"
   ],
   output: [
     "number of written files",
@@ -89,6 +91,8 @@ const metricsRenamer: Record<string, string> = {
   "partition data size": "data size",
   "data sent to Python workers": "data sent",
   "data returned from Python workers": "data returned",
+  "number of bytes pruned": "bytes pruned",
+  "number of files pruned": "files pruned",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
