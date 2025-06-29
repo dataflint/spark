@@ -6,6 +6,7 @@ import {
   EnrichedSqlMetric,
   EnrichedSqlNode,
   ExchangeMetrics,
+  ParsedBatchEvalPythonPlan,
   ParsedNodePlan,
   SparkSQLStore,
   SparkStagesStore,
@@ -32,6 +33,7 @@ import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWindow } from "./PlanParsers/WindowParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
+import { parseBatchEvalPython } from "./PlanParsers/batchEvalPythonParser";
 import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
 import {
   calcNodeMetrics,
@@ -151,6 +153,11 @@ export function parseNodePlan(
           type: "Window",
           plan: parseWindow(plan.planDescription),
         };
+      case "BatchEvalPython":
+        return {
+          type: "BatchEvalPython",
+          plan: parseBatchEvalPython(plan.planDescription),
+        };
     }
     if (node.nodeName.includes("Scan")) {
       return {
@@ -257,6 +264,7 @@ function calculateSql(
       ...node,
       metrics: updateNodeMetrics(node, node.metrics, graph, onlyGraphNodes),
       enrichedName: updateNodeEnrichedName(node, onlyGraphNodes, graph),
+      parsedPlan: updateParsedPlan(node, onlyGraphNodes, graph),
       exchangeMetrics: exchangeMetrics,
       exchangeBroadcastDuration: exchangeBroadcastDuration,
     };
@@ -578,6 +586,111 @@ function updateNodeEnrichedName(
     return node.enrichedName;
   }
   return node.enrichedName;
+}
+
+function findBatchEvalPythonInputNode(
+  node: EnrichedSqlNode,
+  allNodes: EnrichedSqlNode[],
+  graph: Graph,
+): EnrichedSqlNode | null {
+  const inputEdges = graph.inEdges(node.nodeId.toString());
+  if (!inputEdges || inputEdges.length !== 1) {
+    return null;
+  }
+  const inputEdge = inputEdges[0];
+  const inputNode = allNodes.find((n) => n.nodeId.toString() === inputEdge.v);
+  if (!inputNode) {
+    return null;
+  }
+
+  // Check if the direct input is BatchEvalPython
+  if (inputNode.nodeName === "BatchEvalPython") {
+    const inputNodePlan = inputNode.parsedPlan;
+    if (inputNodePlan && inputNodePlan.type === "BatchEvalPython") {
+      return inputNode;
+    }
+  }
+
+  // If the direct input is Filter or Project, check one level deeper
+  if (inputNode.nodeName === "Filter" || inputNode.nodeName === "Project") {
+    const secondLevelInputEdges = graph.inEdges(inputNode.nodeId.toString());
+    if (!secondLevelInputEdges || secondLevelInputEdges.length !== 1) {
+      return null;
+    }
+    const secondLevelInputEdge = secondLevelInputEdges[0];
+    const secondLevelInputNode = allNodes.find((n) => n.nodeId.toString() === secondLevelInputEdge.v);
+    if (!secondLevelInputNode || secondLevelInputNode.nodeName !== "BatchEvalPython") {
+      return null;
+    }
+    const secondLevelInputNodePlan = secondLevelInputNode.parsedPlan;
+    if (!secondLevelInputNodePlan || secondLevelInputNodePlan.type !== "BatchEvalPython") {
+      return null;
+    }
+    return secondLevelInputNode;
+  }
+
+  return null;
+}
+
+function createUdfToFunctionMap(batchEvalPythonPlan: ParsedBatchEvalPythonPlan): { [key: string]: string } {
+  const udfToFunctionMap: { [key: string]: string } = {};
+  for (let i = 0; i < batchEvalPythonPlan.udfNames.length; i++) {
+    udfToFunctionMap[batchEvalPythonPlan.udfNames[i]] = batchEvalPythonPlan.functionNames[i];
+  }
+  return udfToFunctionMap;
+}
+
+function replaceUdfsInString(text: string, udfToFunctionMap: { [key: string]: string }): string {
+  let result = text;
+  for (const udf in udfToFunctionMap) {
+    result = result.replace(new RegExp(udf, 'g'), udfToFunctionMap[udf]);
+  }
+  return result;
+}
+
+function updateParsedPlan(
+  node: EnrichedSqlNode,
+  allNodes: EnrichedSqlNode[],
+  graph: Graph,
+): ParsedNodePlan | undefined {
+  if (node.nodeName == "Filter" && node.parsedPlan?.type === "Filter") {
+    const batchEvalPythonNode = findBatchEvalPythonInputNode(node, allNodes, graph);
+    if (!batchEvalPythonNode || !batchEvalPythonNode.parsedPlan || batchEvalPythonNode.parsedPlan.type !== "BatchEvalPython") {
+      return node.parsedPlan;
+    }
+
+    const udfToFunctionMap = createUdfToFunctionMap(batchEvalPythonNode.parsedPlan.plan);
+    const condition = node.parsedPlan.plan.condition.replace("(", "").replace(")", "");
+    const updatedCondition = replaceUdfsInString(condition, udfToFunctionMap);
+
+    return {
+      ...node.parsedPlan,
+      plan: {
+        ...node.parsedPlan.plan,
+        condition: updatedCondition
+      }
+    };
+
+  } else if (node.nodeName == "Project" && node.parsedPlan?.type === "Project") {
+    const batchEvalPythonNode = findBatchEvalPythonInputNode(node, allNodes, graph);
+    if (!batchEvalPythonNode || !batchEvalPythonNode.parsedPlan || batchEvalPythonNode.parsedPlan.type !== "BatchEvalPython") {
+      return node.parsedPlan;
+    }
+
+    const udfToFunctionMap = createUdfToFunctionMap(batchEvalPythonNode.parsedPlan.plan);
+    const updatedFields = node.parsedPlan.plan.fields.map(field =>
+      replaceUdfsInString(field, udfToFunctionMap)
+    );
+
+    return {
+      ...node.parsedPlan,
+      plan: {
+        ...node.parsedPlan.plan,
+        fields: updatedFields
+      }
+    };
+  }
+  return node.parsedPlan;
 }
 
 function updateNodeMetrics(

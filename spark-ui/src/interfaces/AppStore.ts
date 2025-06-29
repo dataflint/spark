@@ -243,6 +243,11 @@ export interface ParsedCoalescePlan {
   partitionNum: number;
 }
 
+export type ParsedBatchEvalPythonPlan = {
+  functionNames: string[];
+  udfNames: string[];
+};
+
 export type ParsedNodePlan =
   | { type: "HashAggregate"; plan: ParsedHashAggregatePlan }
   | { type: "TakeOrderedAndProject"; plan: ParsedTakeOrderedAndProjectPlan }
@@ -255,7 +260,8 @@ export type ParsedNodePlan =
   | { type: "Join"; plan: ParsedJoinPlan }
   | { type: "Sort"; plan: ParsedSortPlan }
   | { type: "Window"; plan: ParsedWindowPlan }
-  | { type: "Coalesce"; plan: ParsedCoalescePlan };
+  | { type: "Coalesce"; plan: ParsedCoalescePlan }
+  | { type: "BatchEvalPython"; plan: ParsedBatchEvalPythonPlan };
 
 
 export interface ExchangeMetrics {

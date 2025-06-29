@@ -530,6 +530,19 @@ export const StageNode: FC<{
             parsedPlan.plan.selectFields,
           );
         }
+        break;
+      case "BatchEvalPython":
+        if (
+          parsedPlan.plan.functionNames !== undefined &&
+          parsedPlan.plan.functionNames.length > 0
+        ) {
+          addTruncatedCodeTooltipMultiline(
+            dataTable,
+            "Functions",
+            parsedPlan.plan.functionNames,
+          );
+        }
+        break;
     }
   }
 
