@@ -66,10 +66,10 @@ export default function Footer() {
                 }}
             >
                 <Typography variant="body2" sx={{ fontSize: "11px", fontWeight: "bold" }}>
-                    Learn more on
+                    Learn more about
                 </Typography>
                 <img
-                    src="/dataflint-logo.png"
+                    src="./logo.png"
                     alt="DataFlint"
                     style={{ height: "14px", width: "auto" }}
                 />
