@@ -13,6 +13,7 @@ import { getSizeFromMetrics } from '../../reducers/PlanGraphUtils';
 import { truncateMiddle } from "../../reducers/PlanParsers/PlanParserUtils";
 import {
   calculatePercentage,
+  capitalizeWords,
   humanFileSize,
   humanizeTimeDiff,
   parseBytesString,
@@ -678,6 +679,8 @@ export const StageNode: FC<{
     });
   }
 
+  const dataTableWithCapitalizedNames = dataTable.map(metric => ({ ...metric, name: capitalizeWords(metric.name) }))
+
   return (
     <>
       <Handle type="target" position={Position.Left} id="b" />
@@ -695,7 +698,7 @@ export const StageNode: FC<{
             >
               {data.node.enrichedName}
             </Typography>
-            {dataTable.map((metric) => (
+            {dataTableWithCapitalizedNames.map((metric) => (
               <ConditionalWrapper
                 key={metric.name}
                 condition={metric.tooltip !== undefined}

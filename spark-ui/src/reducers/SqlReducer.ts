@@ -18,6 +18,7 @@ import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
 import {
   calculatePercentage,
+  capitalizeWords,
   timeStrToEpocTime,
   timeStringToMilliseconds,
 } from "../utils/FormatUtils";
@@ -222,7 +223,7 @@ function calculateSql(
       rddScopeId: nodePlan?.rddScopeId,
       type: type,
       parsedPlan: parsedPlan,
-      enrichedName: nodeEnrichedNameBuilder(node.nodeName, parsedPlan),
+      enrichedName: capitalizeWords(nodeEnrichedNameBuilder(node.nodeName, parsedPlan)),
       isCodegenNode: isCodegenNode,
       wholeStageCodegenId: isCodegenNode
         ? extractCodegenId()
@@ -702,6 +703,36 @@ function updateParsedPlan(
   return node.parsedPlan;
 }
 
+function addGenerateMetrics(
+  node: EnrichedSqlNode,
+  updatedMetrics: EnrichedSqlMetric[],
+  graph: Graph,
+  allNodes: EnrichedSqlNode[],
+): EnrichedSqlMetric | null {
+  if (node.nodeName === "Generate") {
+    const inputNode = findLastNodeWithInputRows(node, graph, allNodes);
+    if (!inputNode) {
+      return null;
+    }
+
+    const inputRows = getRowsFromMetrics(inputNode.metrics);
+    if (inputRows === null || inputRows === 0) {
+      return null;
+    }
+
+    const outputRows = getRowsFromMetrics(updatedMetrics);
+    if (outputRows === null) {
+      return null;
+    }
+
+    const ratio = outputRows / inputRows;
+    const ratioFormatted = ratio.toFixed(2);
+
+    return { name: `${node.enrichedName} Ratio`, value: `${ratioFormatted}X` };
+  }
+  return null;
+}
+
 function updateNodeMetrics(
   node: EnrichedSqlNode,
   metrics: EnrichedSqlMetric[],
@@ -712,6 +743,7 @@ function updateNodeMetrics(
   const filterRatio = addFilterRatioMetric(node, updatedOriginalMetrics, graph, allNodes);
   const crossJoinFilterRatio = addCrossJoinFilterRatioMetric(node, updatedOriginalMetrics, graph, allNodes);
   const joinMetrics = addJoinMetrics(node, updatedOriginalMetrics, graph, allNodes);
+  const generateMetrics = addGenerateMetrics(node, updatedOriginalMetrics, graph, allNodes);
   return [
     ...updatedOriginalMetrics,
     ...(filterRatio !== null
@@ -722,6 +754,9 @@ function updateNodeMetrics(
       : []),
     ...(joinMetrics !== null
       ? joinMetrics
+      : []),
+    ...(generateMetrics !== null
+      ? [generateMetrics]
       : []),
   ];
 }
