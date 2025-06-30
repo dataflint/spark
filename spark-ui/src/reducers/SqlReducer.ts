@@ -154,6 +154,9 @@ export function parseNodePlan(
           plan: parseWindow(plan.planDescription),
         };
       case "BatchEvalPython":
+      case "ArrowEvalPython":
+      case "MapInPandas":
+      case "FlatMapGroupsInPandas":
         return {
           type: "BatchEvalPython",
           plan: parseBatchEvalPython(plan.planDescription),

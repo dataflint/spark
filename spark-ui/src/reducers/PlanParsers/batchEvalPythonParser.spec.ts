@@ -57,14 +57,26 @@ describe("parseBatchEvalPython", () => {
     it("should throw an error for invalid input format", () => {
         const input = "InvalidInput";
         expect(() => parseBatchEvalPython(input)).toThrowError(
-            "Invalid BatchEvalPython input format"
+            "Invalid Python evaluation input format"
         );
     });
 
     it("should throw an error for malformed BatchEvalPython", () => {
         const input = "BatchEvalPython [udf1], missing_second_list";
         expect(() => parseBatchEvalPython(input)).toThrowError(
-            "Invalid BatchEvalPython input format"
+            "Invalid Python evaluation input format"
         );
+    });
+
+    it("should parse ArrowEvalPython with complex function and additional parameters", () => {
+        const input =
+            "ArrowEvalPython [tokenize_js_pandas(CASE WHEN (isnull(splitted#43) OR (size(splitted#43, true) <= 2)) THEN  ELSE concat( , array_join(transform(slice(splitted#43, 2, size(splitted#43, true)), lambdafunction(split(lambda x#52, </script>, 2)[0], lambda x#52, false)),  , None)) END)#67], [pythonUDF0#116], 200";
+        const expected: ParsedBatchEvalPythonPlan = {
+            functionNames: [
+                "tokenize_js_pandas(CASE WHEN (isnull(splitted) OR (size(splitted, true) <= 2)) THEN  ELSE concat( , array_join(transform(slice(splitted, 2, size(splitted, true)), lambdafunction(split(lambda x, </script>, 2)[0], lambda x, false)),  , None)) END)"
+            ],
+            udfNames: ["pythonUDF0"],
+        };
+        expect(parseBatchEvalPython(input)).toEqual(expected);
     });
 }); 
