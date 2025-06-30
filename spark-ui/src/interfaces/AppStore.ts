@@ -248,6 +248,13 @@ export type ParsedBatchEvalPythonPlan = {
   udfNames: string[];
 };
 
+export type ParsedGeneratePlan = {
+  operation: string;
+  explodeByField: string;
+  explodeField: string[];
+  selectedFields: string[];
+};
+
 export type ParsedNodePlan =
   | { type: "HashAggregate"; plan: ParsedHashAggregatePlan }
   | { type: "TakeOrderedAndProject"; plan: ParsedTakeOrderedAndProjectPlan }
@@ -261,7 +268,8 @@ export type ParsedNodePlan =
   | { type: "Sort"; plan: ParsedSortPlan }
   | { type: "Window"; plan: ParsedWindowPlan }
   | { type: "Coalesce"; plan: ParsedCoalescePlan }
-  | { type: "BatchEvalPython"; plan: ParsedBatchEvalPythonPlan };
+  | { type: "BatchEvalPython"; plan: ParsedBatchEvalPythonPlan }
+  | { type: "Generate"; plan: ParsedGeneratePlan };
 
 
 export interface ExchangeMetrics {

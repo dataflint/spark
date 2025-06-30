@@ -543,6 +543,44 @@ export const StageNode: FC<{
           );
         }
         break;
+      case "Generate":
+        if (
+          parsedPlan.plan.selectedFields !== undefined &&
+          parsedPlan.plan.selectedFields.length > 0
+        ) {
+          addTruncatedSmallTooltipMultiLine(
+            dataTable,
+            "Selected Fields",
+            parsedPlan.plan.selectedFields,
+          );
+        }
+
+        if (
+          parsedPlan.plan.explodeField !== undefined &&
+          parsedPlan.plan.explodeField.length > 0
+        ) {
+          if (parsedPlan.plan.explodeField.length === 1) {
+            addTruncatedSmallTooltip(
+              dataTable,
+              `${parsedPlan.plan.operation} Field`,
+              parsedPlan.plan.explodeField[0],
+            );
+          } else {
+            addTruncatedSmallTooltipMultiLine(
+              dataTable,
+              `${parsedPlan.plan.operation} Fields`,
+              parsedPlan.plan.explodeField,
+            );
+          }
+        }
+        if (parsedPlan.plan.explodeByField !== undefined) {
+          addTruncatedSmallTooltip(
+            dataTable,
+            `${parsedPlan.plan.operation} By`,
+            parsedPlan.plan.explodeByField,
+          );
+        }
+        break;
     }
   }
 

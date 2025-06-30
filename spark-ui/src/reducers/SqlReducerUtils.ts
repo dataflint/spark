@@ -156,6 +156,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   ArrowEvalPython: "transformation",
   FlatMapGroupsInPandas: "transformation",
   BatchEvalPython: "transformation",
+  Generate: "transformation",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -274,6 +275,11 @@ export function nodeEnrichedNameBuilder(
             ? ` (${plan.plan.operations.join(", ")})`
             : "")
         );
+      case "Generate":
+        if (plan?.plan?.operation !== undefined) {
+          return plan.plan.operation;
+        }
+        return "Generate";
       case "Exchange":
         if (plan.plan.isBroadcast) {
           return "Broadcast";

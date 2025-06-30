@@ -26,6 +26,7 @@ import { parseCoalesce } from "./PlanParsers/CoalesceParser";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
 import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
+import { parseGenerate } from "./PlanParsers/GenerateParser";
 import { parseJoin } from "./PlanParsers/JoinParser";
 import { parseProject } from "./PlanParsers/ProjectParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
@@ -160,6 +161,11 @@ export function parseNodePlan(
         return {
           type: "BatchEvalPython",
           plan: parseBatchEvalPython(plan.planDescription),
+        };
+      case "Generate":
+        return {
+          type: "Generate",
+          plan: parseGenerate(plan.planDescription),
         };
     }
     if (node.nodeName.includes("Scan")) {
