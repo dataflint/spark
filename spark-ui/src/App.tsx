@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import * as React from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AppDrawer } from "./components/AppDrawer/AppDrawer";
+import Footer from "./components/Footer";
 import DisconnectedModal from "./components/Modals/DisconnectedModal";
 import Progress from "./components/Progress";
 import { useAppDispatch, useAppSelector } from "./Hooks";
@@ -71,9 +72,14 @@ export default function App() {
           flexGrow: 1,
           height: "100vh",
           overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        <Outlet />
+        <Box sx={{ flexGrow: 1, overflow: "hidden" }}>
+          <Outlet />
+        </Box>
+        <Footer />
       </Box>
     </Box>
   );
