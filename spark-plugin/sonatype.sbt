@@ -1,7 +1,7 @@
 
 import xerial.sbt.Sonatype._
 
-ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
+ThisBuild / sonatypeCredentialHost := "central.sonatype.com"
 
 sonatypeProfileName := "io.dataflint"
 
