@@ -2,6 +2,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BuildIcon from "@mui/icons-material/Build";
 import { Box, Fade, IconButton, Tooltip, Typography } from "@mui/material";
 import * as React from "react";
+import { useSearchParams } from "react-router-dom";
 import SqlFlow from "../components/SqlFlow/SqlFlow";
 import SqlTable from "../components/SqlTable/SqlTable";
 import SummaryBar from "../components/SummaryBar";
@@ -13,13 +14,17 @@ import { getBaseAppUrl } from "../utils/UrlUtils";
 
 export default function SummaryTab() {
   const sql = useAppSelector((state) => state.spark.sql);
-  const [selectedSqlId, setSelectedSqlId] = React.useState<string | undefined>(
-    undefined,
-  );
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const selectedSqlId = searchParams.get("sqlid") || undefined;
   const selectedSql =
     selectedSqlId === undefined
       ? undefined
-      : sql?.sqls.find((sql) => sql.id === selectedSqlId);
+      : sql?.sqls.find((sql) => {
+        const sqlIdNum = parseInt(sql.id, 10);
+        const selectedIdNum = parseInt(selectedSqlId, 10);
+        return sqlIdNum === selectedIdNum;
+      });
 
   React.useEffect(() => {
     MixpanelService.TrackPageView();
@@ -28,13 +33,15 @@ export default function SummaryTab() {
   React.useEffect(() => {
     function handleEscapeKey(event: KeyboardEvent) {
       if (event.code === "Escape") {
-        setSelectedSqlId(undefined);
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("sqlid");
+        setSearchParams(newParams);
       }
     }
 
     document.addEventListener("keydown", handleEscapeKey);
     return () => document.removeEventListener("keydown", handleEscapeKey);
-  }, []);
+  }, [searchParams, setSearchParams]);
 
   const onSparkUiSQLClick = (): void => {
     window.open(
@@ -44,7 +51,10 @@ export default function SummaryTab() {
   };
 
   const onSelectingSql = (id: string) => {
-    setSelectedSqlId(id);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("sqlid", id);
+    setSearchParams(newParams);
+
     const currentSql = sql?.sqls.find((sql) => sql.id === id);
 
     MixpanelService.Track(MixpanelEvents.SqlSummarySelected, {
@@ -54,6 +64,12 @@ export default function SummaryTab() {
       sqlSubmissionTime: currentSql?.submissionTime,
       sqlDuration: currentSql?.duration,
     });
+  };
+
+  const onBackClick = () => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("sqlid");
+    setSearchParams(newParams);
   };
 
   const tableDisplay = selectedSqlId === undefined ? "flex" : "none";
@@ -89,7 +105,7 @@ export default function SummaryTab() {
             <Tooltip title="Back">
               <IconButton
                 color="primary"
-                onClick={() => setSelectedSqlId(undefined)}
+                onClick={onBackClick}
               >
                 <ArrowBackIcon style={{ width: "40px", height: "40px" }} />
               </IconButton>

@@ -10,6 +10,18 @@
   border-radius: 10px;
 }
 
+.nodeHighlighted {
+  display: flex;
+  justify-content: center;
+  width: 280px;
+  height: 280px;
+  color: black;
+  padding: 8px;
+  background: white;
+  border: 5px solid #FF9800;
+  border-radius: 10px;
+}
+
 .textWrapper {
   display: flex;
   flex-direction: column;

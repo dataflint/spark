@@ -2,6 +2,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Box, Tooltip, Typography } from "@mui/material";
 import { duration } from "moment";
 import React, { FC } from "react";
+import { useSearchParams } from "react-router-dom";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { Handle, Position } from "reactflow";
@@ -136,7 +137,18 @@ export const StageNode: FC<{
   data: { sqlId: string; node: EnrichedSqlNode };
 }> = ({ data }): JSX.Element => {
   const dispatch = useAppDispatch();
+  const [searchParams] = useSearchParams();
   const alerts = useAppSelector((state) => state.spark.alerts);
+
+  // Parse nodeIds from URL parameters
+  const nodeIdsParam = searchParams.get('nodeids');
+  const highlightedNodeIds = nodeIdsParam
+    ? nodeIdsParam.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id))
+    : [];
+
+  // Check if current node should be highlighted
+  const isHighlighted = highlightedNodeIds.includes(data.node.nodeId);
+
   const sqlNodeAlert = alerts?.alerts.find(
     (alert) =>
       alert.source.type === "sql" &&
@@ -685,7 +697,7 @@ export const StageNode: FC<{
     <>
       <Handle type="target" position={Position.Left} id="b" />
       <Box position="relative" width={280} height={280}>
-        <div className={styles.node}>
+        <div className={isHighlighted ? styles.nodeHighlighted : styles.node}>
           <div className={styles.textWrapper}>
             <Typography
               style={{

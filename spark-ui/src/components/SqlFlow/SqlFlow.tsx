@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useRef, useState } from "react";
 import ReactFlow, {
   ConnectionLineType,
   Controls,
@@ -9,6 +9,7 @@ import ReactFlow, {
 } from "reactflow";
 
 import { Box, Drawer, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
+import { useSearchParams } from "react-router-dom";
 import "reactflow/dist/style.css";
 import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
@@ -26,6 +27,9 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const [instance, setInstace] = useState<ReactFlowInstance | undefined>();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [searchParams] = useSearchParams();
+  const nodeIdsParam = searchParams.get('nodeids');
+  const initialFocusApplied = useRef<string | null>(null);
 
   const dispatch = useAppDispatch();
   const graphFilter = useAppSelector((state) => state.general.sqlMode);
@@ -52,11 +56,52 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     setEdges(layoutEdges);
   }, [sparkSQL.uniqueId, graphFilter]);
 
+  // Handle initial focus only when instance or search params change
   useEffect(() => {
     if (instance) {
-      setTimeout(instance.fitView, 20);
+      const nodeIdsParam = searchParams.get('nodeids');
+      const currentParamKey = nodeIdsParam || 'default';
+
+      // Only apply focus if we haven't done it for these parameters yet
+      if (initialFocusApplied.current !== currentParamKey) {
+        const applyFocus = () => {
+          if (nodes.length > 0) {
+            const highlightedNodeIds = nodeIdsParam
+              ? nodeIdsParam.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id))
+              : [];
+
+            if (highlightedNodeIds.length > 0) {
+              // Find the first highlighted node
+              const firstHighlightedNodeId = highlightedNodeIds[0];
+              const targetNode = nodes.find(node => parseInt(node.id) === firstHighlightedNodeId);
+
+              if (targetNode) {
+                // Focus on the first highlighted node
+                const nodeWidth = 280;
+                const nodeHeight = 280;
+                const centerX = targetNode.position.x + nodeWidth / 2;
+                const centerY = targetNode.position.y + nodeHeight / 2;
+
+                instance.setCenter(centerX, centerY, { zoom: 0.75 });
+                initialFocusApplied.current = currentParamKey;
+                return;
+              }
+            }
+
+            // Default behavior - fit all nodes in view
+            instance.fitView();
+            initialFocusApplied.current = currentParamKey;
+          } else {
+            // Retry if nodes aren't ready yet
+            setTimeout(applyFocus, 50);
+          }
+        };
+
+        // Small delay to ensure layout is complete
+        setTimeout(applyFocus, 100);
+      }
     }
-  }, [instance, edges]);
+  }, [instance, edges, nodeIdsParam]);
 
   useEffect(() => { }, [nodes]);
 
