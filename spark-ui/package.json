@@ -1,6 +1,6 @@
 {
   "name": "dataflint-ui",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "homepage": "./",
   "private": true,
   "dependencies": {
