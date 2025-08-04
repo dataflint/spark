@@ -125,7 +125,14 @@ class StoreMetadataExtractor(store: AppStatusStore, sqlStore: SQLAppStatusStore,
     val rddStorageInfos = dataflintStore.rddStorageInfo()
     val totalCachedMemoryBytes = rddStorageInfos.map(_.memoryUsed).sum
     val totalCachedDiskBytes = rddStorageInfos.map(_.diskUsed).sum
-    val maxExecutorCachedMemoryUsagePercentage = rddStorageInfos.map(rddStorageInfo => rddStorageInfo.maxMemoryExecutorInfo.map(_.memoryUsagePercentage).getOrElse(0.0)).max
+    val maxExecutorCachedMemoryUsagePercentage =
+      if (rddStorageInfos.isEmpty) {
+        0.0
+      } else {
+        rddStorageInfos.map(rddStorageInfo =>
+          rddStorageInfo.maxMemoryExecutorInfo.map(_.memoryUsagePercentage).getOrElse(0.0)
+        ).max
+      }
 
     SparkMetadataMetrics(
       containerMemoryGb = containerMemoryGb,
