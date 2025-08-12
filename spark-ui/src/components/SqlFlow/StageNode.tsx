@@ -443,7 +443,7 @@ export const StageNode: FC<{
         ) {
           addTruncatedCodeTooltipMultiline(
             dataTable,
-            parsedPlan.plan.functions.length === 0 ? "Distinct By" : "Aggregate By",
+            parsedPlan.plan.functions.length === 0 ? "Distinct By" : "Group By",
             parsedPlan.plan.keys,
           );
         }
