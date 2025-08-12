@@ -422,11 +422,18 @@ export const StageNode: FC<{
         break;
       case "Project":
         if (parsedPlan.plan.fields !== undefined) {
-          addTruncatedCodeTooltipMultiline(
-            dataTable,
-            "Selected Fields",
-            parsedPlan.plan.fields,
-          );
+          if (parsedPlan.plan.fields.length === 0) {
+            dataTable.push({
+              name: "Selected Fields",
+              value: "*",
+            });
+          } else {
+            addTruncatedCodeTooltipMultiline(
+              dataTable,
+              "Selected Fields",
+              parsedPlan.plan.fields,
+            );
+          }
         }
         break;
       case "HashAggregate":
