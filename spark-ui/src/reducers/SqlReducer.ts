@@ -26,6 +26,7 @@ import { findLastNodeWithInputRows, generateGraph, getRowsFromMetrics } from "./
 import { parseCoalesce } from "./PlanParsers/CoalesceParser";
 import { parseCollectLimit } from "./PlanParsers/CollectLimitParser";
 import { parseExchange } from "./PlanParsers/ExchangeParser";
+import { parseExpand } from "./PlanParsers/ExpandParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
 import { parseGenerate } from "./PlanParsers/GenerateParser";
 import { parseJoin } from "./PlanParsers/JoinParser";
@@ -167,6 +168,11 @@ export function parseNodePlan(
         return {
           type: "Generate",
           plan: parseGenerate(plan.planDescription),
+        };
+      case "Expand":
+        return {
+          type: "Expand",
+          plan: parseExpand(plan.planDescription),
         };
     }
     if (node.nodeName.includes("Scan")) {
@@ -733,6 +739,36 @@ function addGenerateMetrics(
   return null;
 }
 
+function addExpandMetrics(
+  node: EnrichedSqlNode,
+  updatedMetrics: EnrichedSqlMetric[],
+  graph: Graph,
+  allNodes: EnrichedSqlNode[],
+): EnrichedSqlMetric | null {
+  if (node.nodeName === "Expand") {
+    const inputNode = findLastNodeWithInputRows(node, graph, allNodes);
+    if (!inputNode) {
+      return null;
+    }
+
+    const inputRows = getRowsFromMetrics(inputNode.metrics);
+    if (inputRows === null || inputRows === 0) {
+      return null;
+    }
+
+    const outputRows = getRowsFromMetrics(updatedMetrics);
+    if (outputRows === null) {
+      return null;
+    }
+
+    const ratio = outputRows / inputRows;
+    const ratioFormatted = ratio.toFixed(2);
+
+    return { name: `Expand Ratio`, value: `${ratioFormatted}X` };
+  }
+  return null;
+}
+
 function updateNodeMetrics(
   node: EnrichedSqlNode,
   metrics: EnrichedSqlMetric[],
@@ -744,6 +780,7 @@ function updateNodeMetrics(
   const crossJoinFilterRatio = addCrossJoinFilterRatioMetric(node, updatedOriginalMetrics, graph, allNodes);
   const joinMetrics = addJoinMetrics(node, updatedOriginalMetrics, graph, allNodes);
   const generateMetrics = addGenerateMetrics(node, updatedOriginalMetrics, graph, allNodes);
+  const expandMetrics = addExpandMetrics(node, updatedOriginalMetrics, graph, allNodes);
   return [
     ...updatedOriginalMetrics,
     ...(filterRatio !== null
@@ -757,6 +794,9 @@ function updateNodeMetrics(
       : []),
     ...(generateMetrics !== null
       ? [generateMetrics]
+      : []),
+    ...(expandMetrics !== null
+      ? [expandMetrics]
       : []),
   ];
 }

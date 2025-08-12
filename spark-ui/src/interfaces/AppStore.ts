@@ -255,6 +255,11 @@ export type ParsedGeneratePlan = {
   selectedFields: string[];
 };
 
+export type ParsedExpandPlan = {
+  fields: string[];
+  idField: string;
+};
+
 export type ParsedNodePlan =
   | { type: "HashAggregate"; plan: ParsedHashAggregatePlan }
   | { type: "TakeOrderedAndProject"; plan: ParsedTakeOrderedAndProjectPlan }
@@ -269,7 +274,8 @@ export type ParsedNodePlan =
   | { type: "Window"; plan: ParsedWindowPlan }
   | { type: "Coalesce"; plan: ParsedCoalescePlan }
   | { type: "BatchEvalPython"; plan: ParsedBatchEvalPythonPlan }
-  | { type: "Generate"; plan: ParsedGeneratePlan };
+  | { type: "Generate"; plan: ParsedGeneratePlan }
+  | { type: "Expand"; plan: ParsedExpandPlan };
 
 
 export interface ExchangeMetrics {

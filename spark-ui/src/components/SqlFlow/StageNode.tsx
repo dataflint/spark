@@ -594,6 +594,29 @@ export const StageNode: FC<{
           );
         }
         break;
+      case "Expand":
+        if (
+          parsedPlan.plan.fields !== undefined &&
+          parsedPlan.plan.fields.length > 0
+        ) {
+          addTruncatedCodeTooltipMultiline(
+            dataTable,
+            "Expanded Fields",
+            parsedPlan.plan.fields,
+          );
+        }
+        if (parsedPlan.plan.idField !== undefined) {
+          addTruncatedSmallTooltip(
+            dataTable,
+            "ID Field",
+            parsedPlan.plan.idField,
+            25,
+            true,
+            false,
+            false,
+          );
+        }
+        break;
     }
   }
 

@@ -157,6 +157,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   FlatMapGroupsInPandas: "transformation",
   BatchEvalPython: "transformation",
   Generate: "transformation",
+  Expand: "transformation",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -225,6 +226,7 @@ const nodeRenamerDict: Record<string, string> = {
   ArrowEvalPython: "Select (with Arrow)",
   FlatMapGroupsInPandas: "Select Flat (with Pandas)",
   BatchEvalPython: "Run Python UDF",
+  Expand: "Expand",
 };
 
 export function extractTotalFromStatisticsMetric(
@@ -280,6 +282,8 @@ export function nodeEnrichedNameBuilder(
           return plan.plan.operation;
         }
         return "Generate";
+      case "Expand":
+        return "Expand";
       case "Exchange":
         if (plan.plan.isBroadcast) {
           return "Broadcast";
