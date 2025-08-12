@@ -18,7 +18,7 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "number of file splits read",
     "output columnar batches",
     "number of bytes pruned",
-    "number of files pruned"
+    "number of files pruned",
   ],
   output: [
     "number of written files",
@@ -26,9 +26,13 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "written output",
     "number of dynamic part",
   ],
-  join: ["number of output rows", "output columnar batches",
-  ],
-  transformation: ["number of output rows", "output columnar batches", "output rows", "data sent to Python workers", "data returned from Python workers"
+  join: ["number of output rows", "output columnar batches"],
+  transformation: [
+    "number of output rows",
+    "output columnar batches",
+    "output rows",
+    "data sent to Python workers",
+    "data returned from Python workers",
   ],
   shuffle: [
     "number of partitions",
@@ -38,7 +42,7 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "num bytes read",
     "num bytes written",
     "output columnar batches",
-    "partition data size"
+    "partition data size",
   ],
 
   broadcast: ["number of output rows", "data size", "output columnar batches"],
@@ -261,6 +265,22 @@ export function bytesToHumanReadableSize(
   }
 }
 
+function getCommonOperationPrefix(operations: string[]): string | null {
+  if (operations.length === 0) {
+    return null;
+  }
+
+  if (operations.length === 1) {
+    return operations[0];
+  }
+
+  // Check if all operations are the same
+  const firstOperation = operations[0];
+  const allSame = operations.every((op) => op === firstOperation);
+
+  return allSame ? firstOperation : null;
+}
+
 export function nodeEnrichedNameBuilder(
   name: string,
   plan: ParsedNodePlan | undefined,
@@ -271,12 +291,43 @@ export function nodeEnrichedNameBuilder(
         if (plan.plan.functions.length == 0) {
           return "Distinct";
         }
-        return (
-          "Aggregate" +
-          (plan.plan.operations.length > 0 && plan.plan.operations.length < 3
-            ? ` (${plan.plan.operations.join(", ")})`
-            : "")
-        );
+
+        // Build enriched name based on operations
+        if (plan.plan.operations.length > 0) {
+          // Extract common prefix from all operations
+          const commonPrefix = getCommonOperationPrefix(plan.plan.operations);
+
+          if (commonPrefix) {
+            // Use common prefix as the operation name
+            let operationName: string;
+            if (commonPrefix.startsWith("partial_")) {
+              operationName = commonPrefix.substring(8) + " within partition"; // Remove "partial_" and add suffix
+            } else if (commonPrefix.startsWith("merge_")) {
+              operationName = commonPrefix.substring(6) + " by merge"; // Remove "merge_" and add suffix
+            } else if (commonPrefix.startsWith("finalmerge_")) {
+              operationName = commonPrefix.substring(11) + " by merge"; // Remove "finalmerge_" and add suffix
+            } else {
+              operationName = commonPrefix;
+            }
+            return `${operationName}`;
+          } else if (plan.plan.operations.length < 3) {
+            // Fallback to showing individual operations if no common prefix and few operations
+            const formattedOperations = plan.plan.operations.map((op) => {
+              if (op.startsWith("partial_")) {
+                return op.substring(8) + " within partition";
+              } else if (op.startsWith("merge_")) {
+                return op.substring(6) + " by merge";
+              } else if (op.startsWith("finalmerge_")) {
+                return op.substring(11) + " by merge";
+              } else {
+                return op;
+              }
+            });
+            return `Aggregate (${formattedOperations.join(", ")})`;
+          }
+        }
+
+        return "Aggregate";
       case "Generate":
         if (plan?.plan?.operation !== undefined) {
           return plan.plan.operation;
@@ -287,8 +338,7 @@ export function nodeEnrichedNameBuilder(
       case "Exchange":
         if (plan.plan.isBroadcast) {
           return "Broadcast";
-        }
-        else if (plan.plan.type === "hashpartitioning") {
+        } else if (plan.plan.type === "hashpartitioning") {
           return `Repartition By Hash`;
         } else if (plan.plan.type === "rangepartitioning") {
           return `Repartition By Range`;
