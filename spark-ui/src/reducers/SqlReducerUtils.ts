@@ -265,6 +265,11 @@ export function bytesToHumanReadableSize(
   }
 }
 
+function capitalizeFirst(str: string): string {
+  if (str.length === 0) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 function getCommonOperationPrefix(operations: string[]): string | null {
   if (operations.length === 0) {
     return null;
@@ -301,26 +306,32 @@ export function nodeEnrichedNameBuilder(
             // Use common prefix as the operation name
             let operationName: string;
             if (commonPrefix.startsWith("partial_")) {
-              operationName = commonPrefix.substring(8) + " within partition"; // Remove "partial_" and add suffix
+              const baseName = commonPrefix.substring(8);
+              operationName = capitalizeFirst(baseName) + " within partition"; // Remove "partial_" and add suffix
             } else if (commonPrefix.startsWith("merge_")) {
-              operationName = commonPrefix.substring(6) + " by merge"; // Remove "merge_" and add suffix
+              const baseName = commonPrefix.substring(6);
+              operationName = capitalizeFirst(baseName) + " by merge"; // Remove "merge_" and add suffix
             } else if (commonPrefix.startsWith("finalmerge_")) {
-              operationName = commonPrefix.substring(11) + " by merge"; // Remove "finalmerge_" and add suffix
+              const baseName = commonPrefix.substring(11);
+              operationName = capitalizeFirst(baseName) + " by merge"; // Remove "finalmerge_" and add suffix
             } else {
-              operationName = commonPrefix;
+              operationName = capitalizeFirst(commonPrefix);
             }
             return `${operationName}`;
           } else if (plan.plan.operations.length < 3) {
             // Fallback to showing individual operations if no common prefix and few operations
             const formattedOperations = plan.plan.operations.map((op) => {
               if (op.startsWith("partial_")) {
-                return op.substring(8) + " within partition";
+                const baseName = op.substring(8);
+                return capitalizeFirst(baseName) + " within partition";
               } else if (op.startsWith("merge_")) {
-                return op.substring(6) + " by merge";
+                const baseName = op.substring(6);
+                return capitalizeFirst(baseName) + " by merge";
               } else if (op.startsWith("finalmerge_")) {
-                return op.substring(11) + " by merge";
+                const baseName = op.substring(11);
+                return capitalizeFirst(baseName) + " by merge";
               } else {
-                return op;
+                return capitalizeFirst(op);
               }
             });
             return `Aggregate (${formattedOperations.join(", ")})`;
