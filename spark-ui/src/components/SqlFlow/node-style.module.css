@@ -1,30 +1,275 @@
+/* Base node styles with medium-light modern design */
 .node {
   display: flex;
-  justify-content: center;
-  width: 280px;
-  height: 280px;
-  color: black;
-  padding: 8px;
-  background: white;
-  border: 3px solid lightblue;
-  border-radius: 10px;
+  flex-direction: column;
+  width: 320px;
+  height: 320px;
+  color: #2c2c2c;
+  padding: 0;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+  border: 2px solid #3f51b5;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.node:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-color: #5c6bc0;
 }
 
 .nodeHighlighted {
   display: flex;
-  justify-content: center;
-  width: 280px;
-  height: 280px;
-  color: black;
-  padding: 8px;
-  background: white;
-  border: 5px solid #FF9800;
-  border-radius: 10px;
+  flex-direction: column;
+  width: 320px;
+  height: 320px;
+  color: #2c2c2c;
+  padding: 0;
+  background: linear-gradient(135deg, #fdf4e3 0%, #f4e4bc 100%);
+  border: 3px solid #ff9800;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(255, 152, 0, 0.25), 0 2px 8px rgba(255, 152, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  animation: highlightPulse 2s ease-in-out infinite;
 }
 
-.textWrapper {
+@keyframes highlightPulse {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(255, 152, 0, 0.2), 0 2px 8px rgba(255, 152, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 6px 25px rgba(255, 152, 0, 0.3), 0 3px 12px rgba(255, 152, 0, 0.2);
+  }
+}
+
+/* Header section for node title */
+.nodeHeader {
+  background: linear-gradient(90deg, rgba(63, 81, 181, 0.12) 0%, rgba(63, 81, 181, 0.06) 100%);
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  min-height: 40px;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  height: 190px;
+  align-items: center;
+  justify-content: center;
+}
+
+.nodeHighlighted .nodeHeader {
+  background: linear-gradient(90deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 152, 0, 0.08) 100%);
+}
+
+.nodeTitle {
+  font-weight: 600 !important;
+  font-size: 16px !important; /* Increased font size */
+  text-align: center;
+  color: #1a1a1a !important;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+  line-height: 1.2;
+}
+
+/* Content area with enhanced scrollbar */
+.nodeContent {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(63, 81, 181, 0.6) rgba(0, 0, 0, 0.1);
+  min-height: 0; /* Allow flex item to shrink */
+  position: relative;
+}
+
+.nodeContent::-webkit-scrollbar {
+  width: 6px; /* Slightly wider for better visibility */
+}
+
+.nodeContent::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.nodeContent::-webkit-scrollbar-thumb {
+  background: rgba(63, 81, 181, 0.6); /* Blue theme color */
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.nodeContent::-webkit-scrollbar-thumb:hover {
+  background: rgba(63, 81, 181, 0.8); /* Darker blue on hover */
+}
+
+/* Removed fade indicator that was causing white gap */
+
+/* Metric item styling */
+.metricItem {
+  margin-bottom: 4px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgba(63, 81, 181, 0.08);
+  border-left: 2px solid #3f51b5;
+  transition: background-color 0.2s ease;
+}
+
+.metricItem:hover {
+  background: rgba(63, 81, 181, 0.12);
+}
+
+.metricName {
+  font-weight: 600 !important;
+  color: #3f51b5 !important;
+  font-size: 12px !important; /* Increased font size */
+  text-transform: capitalize;
+  line-height: 1.2;
+}
+
+.metricValue {
+  color: #424242 !important;
+  font-size: 12px !important; /* Increased font size */
+  word-break: break-word;
+  margin-left: 3px !important;
+  line-height: 1.2;
+}
+
+/* Footer section for icons and controls */
+.nodeFooter {
+  padding: 6px 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.footerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footerCenter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.footerRight {
+  display: flex;
+  align-items: center;
+}
+
+.durationBadge {
+  background: rgba(245, 247, 250, 0.9);
+  border-radius: 10px;
+  padding: 3px 6px;
+  font-size: 12px; /* Increased font size */
+  font-weight: 600;
+  min-width: 35px;
+  text-align: center;
+  /* Removed fixed border and color - will be set dynamically */
+}
+
+.expandButton {
+  width: 28px !important;
+  height: 28px !important;
+  background: rgba(245, 247, 250, 0.9) !important;
+  border: 1px solid #3f51b5 !important;
+  border-radius: 50% !important;
+  color: #3f51b5 !important;
+  transition: all 0.2s ease !important;
+}
+
+.expandButton:hover {
+  background: rgba(63, 81, 181, 0.1) !important;
+  transform: scale(1.05);
+}
+
+/* Node type indicators */
+.nodeTypeIndicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+/* Minimap styling - dark theme */
+:global(.react-flow__minimap) {
+  background-color: #0f172a !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+:global(.react-flow__minimap-mask) {
+  fill: rgba(59, 130, 246, 0.1) !important;
+  stroke: rgba(59, 130, 246, 0.6) !important;
+  stroke-width: 2 !important;
+}
+
+/* Performance indicators */
+.performanceBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.performanceGood {
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+}
+
+.performanceWarning {
+  background: linear-gradient(90deg, #ff9800, #ffc107);
+}
+
+.performanceError {
+  background: linear-gradient(90deg, #f44336, #ff5722);
+}
+
+/* Alert badge positioning */
+.alertBadgeContainer {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 10;
+}
+
+/* Handle styles */
+.handleLeft {
+  left: -8px !important;
+  background: #3f51b5 !important;
+  border: 2px solid #ffffff !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.handleRight {
+  right: -8px !important;
+  background: #3f51b5 !important;
+  border: 2px solid #ffffff !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .node, .nodeHighlighted {
+    width: 280px;
+    height: 260px;
+  }
+  
+  .nodeContent {
+    padding: 12px;
+  }
+  
+  .nodeTitle {
+    font-size: 14px !important;
+  }
 }

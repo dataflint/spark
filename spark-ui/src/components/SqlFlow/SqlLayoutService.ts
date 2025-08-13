@@ -9,8 +9,8 @@ import {
 } from "../../interfaces/AppStore";
 import { StageNodeName } from "./StageNode";
 
-const nodeWidth = 280;
-const nodeHeight = 280;
+const nodeWidth = 320;
+const nodeHeight = 320;
 
 const getLayoutedElements = (
   nodes: Node[],
