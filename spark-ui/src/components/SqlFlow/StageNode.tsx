@@ -299,6 +299,25 @@ export const StageNode: FC<{
       ),
     );
   }
+
+  if (data.node.nodeName === "Exchange") {
+    const partitionsMetric = parseFloat(
+      data.node.metrics
+        .find((metric) => metric.name === "partitions")
+        ?.value?.replaceAll(",", "") ?? "0"
+    );
+    const shuffleWriteMetric = getSizeFromMetrics(data.node.metrics)
+
+    if (partitionsMetric && shuffleWriteMetric) {
+      const avgPartitionSize = shuffleWriteMetric / partitionsMetric;
+      const avgPartitionSizeString = humanFileSize(avgPartitionSize);
+      dataTable.push({
+        name: "Average Write Partition Size",
+        value: avgPartitionSizeString
+      });
+    }
+  }
+
   if (data.node.parsedPlan !== undefined) {
     const parsedPlan = data.node.parsedPlan;
     switch (parsedPlan.type) {
@@ -407,7 +426,7 @@ export const StageNode: FC<{
           parsedPlan.plan.fields !== undefined &&
           parsedPlan.plan.fields.length > 0
         ) {
-          addTruncatedSmallTooltipMultiLine(
+          addTruncatedCodeTooltipMultiline(
             dataTable,
             parsedPlan.plan.type === "hashpartitioning"
               ? parsedPlan.plan.fields.length === 1
@@ -626,25 +645,6 @@ export const StageNode: FC<{
         break;
     }
   }
-
-  if (data.node.nodeName === "Exchange") {
-    const partitionsMetric = parseFloat(
-      data.node.metrics
-        .find((metric) => metric.name === "partitions")
-        ?.value?.replaceAll(",", "") ?? "0"
-    );
-    const shuffleWriteMetric = getSizeFromMetrics(data.node.metrics)
-
-    if (partitionsMetric && shuffleWriteMetric) {
-      const avgPartitionSize = shuffleWriteMetric / partitionsMetric;
-      const avgPartitionSizeString = humanFileSize(avgPartitionSize);
-      dataTable.push({
-        name: "Average Write Partition Size",
-        value: avgPartitionSizeString
-      });
-    }
-  }
-
 
   if (data.node.nodeName === "AQEShuffleRead") {
     const partitionsMetric = parseFloat(
