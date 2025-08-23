@@ -148,6 +148,7 @@ export const ResourcesTab: FC<{}> = (): JSX.Element => {
         display: "flex",
         justifyContent: "center",
         margin: 10,
+        overflow: "auto",
       }}
     >
       <Box width="100%">
