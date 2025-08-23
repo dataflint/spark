@@ -6,6 +6,7 @@ import {
   SparkStagesStore,
   SQLNodeStageData,
 } from "../interfaces/AppStore";
+import { calculatePercentage } from "../utils/FormatUtils";
 import { generateGraph } from "./PlanGraphUtils";
 import { calculateNodeToStorageInfo } from "./SqlReducer";
 
@@ -320,14 +321,7 @@ export function calculateSqlStage(
           : undefined);
       const durationPercentage =
         duration !== undefined && sql.stageMetrics !== undefined
-          ? sql.stageMetrics?.executorRunTime === 0
-            ? 0
-            : Math.max(
-              0,
-              Math.min(100, duration / sql.stageMetrics?.executorRunTime) *
-              100,
-            )
-          : undefined;
+          ? calculatePercentage(duration, sql.stageMetrics?.executorRunTime) : undefined
       return {
         ...node,
         duration: duration,
