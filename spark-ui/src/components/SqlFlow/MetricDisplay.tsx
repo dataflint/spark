@@ -17,8 +17,35 @@ interface MetricDisplayProps {
 }
 
 const MetricDisplay: React.FC<MetricDisplayProps> = ({ metrics }) => {
+    const handleWheel = (e: React.WheelEvent) => {
+        // Always prevent React Flow from handling wheel events in this area
+        e.stopPropagation();
+
+        // Let the browser handle the scrolling naturally
+        // Don't prevent default - we want normal scroll behavior
+    };
+
+    // Use compact styles when there are more than 7 metrics
+    const isCompact = metrics.length > 7;
+    const metricItemClass = isCompact ? styles.metricItemCompact : styles.metricItem;
+    const metricNameClass = isCompact ? styles.metricNameCompact : styles.metricName;
+    const metricValueClass = isCompact ? styles.metricValueCompact : styles.metricValue;
+
     return (
-        <Box className={styles.nodeContent}>
+        <Box
+            className={`${styles.nodeContent} nopan nodrag`}
+            onWheel={handleWheel}
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                minHeight: 0, // Important for flex scrolling
+                overflowY: 'auto !important',
+                overflowX: 'hidden',
+                height: '100%',
+                maxHeight: '100%'
+            }}
+        >
             {metrics.map((metric, index) => (
                 <ConditionalWrapper
                     key={`${metric.name}-${index}`}
@@ -34,17 +61,17 @@ const MetricDisplay: React.FC<MetricDisplayProps> = ({ metrics }) => {
                     }
                 >
                     <Box
-                        className={styles.metricItem}
+                        className={metricItemClass}
                         sx={
                             metric.showBlock
                                 ? { justifyContent: "center", alignItems: "center", flexDirection: "column" }
                                 : { display: "flex", alignItems: "flex-start", flexDirection: "row" }
                         }
                     >
-                        <Typography className={styles.metricName} variant="body2">
+                        <Typography className={metricNameClass} variant="body2">
                             {metric.name}:
                         </Typography>
-                        <Typography className={styles.metricValue} variant="body2">
+                        <Typography className={metricValueClass} variant="body2">
                             {metric.value}
                         </Typography>
                     </Box>

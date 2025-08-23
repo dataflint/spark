@@ -134,6 +134,36 @@
   line-height: 1.2;
 }
 
+/* Compact metric styles for when there are more than 7 metrics */
+.metricItemCompact {
+  margin-bottom: 2px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: rgba(63, 81, 181, 0.08);
+  border-left: 1px solid #3f51b5;
+  transition: background-color 0.2s ease;
+}
+
+.metricItemCompact:hover {
+  background: rgba(63, 81, 181, 0.12);
+}
+
+.metricNameCompact {
+  font-weight: 600 !important;
+  color: #3f51b5 !important;
+  font-size: 10px !important; /* Smaller font size */
+  text-transform: capitalize;
+  line-height: 1.1;
+}
+
+.metricValueCompact {
+  color: #424242 !important;
+  font-size: 10px !important; /* Smaller font size */
+  word-break: break-word;
+  margin-left: 2px !important;
+  line-height: 1.1;
+}
+
 /* Footer section for icons and controls */
 .nodeFooter {
   padding: 6px 12px;
