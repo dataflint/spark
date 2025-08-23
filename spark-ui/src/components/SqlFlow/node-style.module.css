@@ -236,8 +236,8 @@
 /* Alert badge positioning */
 .alertBadgeContainer {
   position: absolute;
-  top: 7px;
-  left: 7px;
+  top: 10px;
+  left: 8px;
   z-index: 15;
   pointer-events: auto;
   width: 28px;
