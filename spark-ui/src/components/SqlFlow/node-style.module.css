@@ -236,9 +236,38 @@
 /* Alert badge positioning */
 .alertBadgeContainer {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  z-index: 10;
+  top: 7px;
+  left: 7px;
+  z-index: 15;
+  pointer-events: auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1.5px solid #ff9800;
+  transition: all 0.2s ease;
+}
+
+.alertBadgeContainer.warning {
+  border-color: #ff9800;
+}
+
+.alertBadgeContainer.error {
+  border-color: #bf360c;
+}
+
+.alertBadgeContainer:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Alert icon styling inside container */
+.alertBadgeContainer svg {
+  display: block;
 }
 
 /* Handle styles */

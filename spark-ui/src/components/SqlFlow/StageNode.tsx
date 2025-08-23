@@ -1,10 +1,12 @@
-import { Box, Typography } from "@mui/material";
+import ErrorIcon from "@mui/icons-material/Error";
+import WarningIcon from "@mui/icons-material/Warning";
+import { Alert, AlertTitle, Box, Typography } from "@mui/material";
 import React, { FC, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Handle, Position } from "reactflow";
 import { useAppSelector } from "../../Hooks";
 import { EnrichedSqlNode } from "../../interfaces/AppStore";
-import AlertBadge from "../AlertBadge/AlertBadge";
+import { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import MetricDisplay, { MetricWithTooltip } from "./MetricDisplay";
 import {
   processBaseMetrics,
@@ -93,9 +95,50 @@ const StageNode: FC<StageNodeProps> = ({ data }) => {
         <NodeTypeIndicator nodeType={data.node.type} nodeName={data.node.nodeName} />
 
         {/* Alert badge */}
-        <Box className={styles.alertBadgeContainer}>
-          <AlertBadge alert={sqlNodeAlert} margin="0" placement="top" />
-        </Box>
+        {sqlNodeAlert && (
+          <TransperantTooltip
+            placement="left"
+            title={
+              <React.Fragment>
+                <Alert
+                  severity={sqlNodeAlert.type}
+                  icon={sqlNodeAlert.type === "warning" ? <WarningIcon /> : <ErrorIcon />}
+                >
+                  <AlertTitle>{sqlNodeAlert.title}</AlertTitle>
+                  {sqlNodeAlert.message}
+                  {sqlNodeAlert.shortSuggestion !== undefined && (
+                    <>
+                      <br />
+                      <b>Recommended Fix:</b>
+                      <br />
+                      {sqlNodeAlert.shortSuggestion}
+                    </>
+                  )}
+                </Alert>
+              </React.Fragment>
+            }
+          >
+            <Box className={`${styles.alertBadgeContainer} ${styles[sqlNodeAlert.type]}`}>
+              {sqlNodeAlert.type === "warning" ? (
+                <WarningIcon
+                  sx={{
+                    color: "#ff9100",
+                    fontSize: "16px",
+                    filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
+                  }}
+                />
+              ) : (
+                <ErrorIcon
+                  sx={{
+                    color: "#bf360c",
+                    fontSize: "16px",
+                    filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))",
+                  }}
+                />
+              )}
+            </Box>
+          </TransperantTooltip>
+        )}
 
         {/* Header with title */}
         <Box className={styles.nodeHeader}>
