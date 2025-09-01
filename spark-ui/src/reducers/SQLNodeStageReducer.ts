@@ -162,6 +162,20 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     }
     return node;
   });
+  nodes = nodes.map((node) => {
+    if (node.nodeName === "Window" && node.stage === undefined) {
+      // For Window nodes, try to find stage from next node first, then previous node
+      const nextNode = findNextNode(node.nodeId);
+      if (nextNode !== undefined && nextNode.stage !== undefined) {
+        return { ...node, stage: nextNode.stage };
+      }
+      const previousNode = findPreviousNode(node.nodeId);
+      if (previousNode !== undefined && previousNode.stage !== undefined) {
+        return { ...node, stage: previousNode.stage };
+      }
+    }
+    return node;
+  });
   return { ...sql, nodes: nodes };
 }
 
