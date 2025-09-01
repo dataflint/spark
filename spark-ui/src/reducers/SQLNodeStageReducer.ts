@@ -179,6 +179,36 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
   return { ...sql, nodes: nodes };
 }
 
+function aggregateStageStatus(stages: SparkStagesStore, stageId: number): string {
+  const stageAttempts = stages.filter((stage) => stage.stageId === stageId);
+  const statuses = stageAttempts.map(stage => stage.status);
+  const uniqueStatuses = Array.from(new Set(statuses));
+
+  // If uniqueStatuses has only one element, return it as the status
+  if (uniqueStatuses.length === 1) {
+    return uniqueStatuses[0];
+  }
+
+  // If any unique status is ACTIVE, then the status is "ACTIVE"
+  if (uniqueStatuses.includes("ACTIVE")) {
+    return "ACTIVE";
+  }
+
+  if (uniqueStatuses.includes("PENDING")) {
+    return "PENDING";
+  }
+
+  // If it has more than one stage attempt and has success stage, it's "COMPLETE_WITH_RETRIES"
+  const hasSuccessStatus = uniqueStatuses.includes("COMPLETE");
+  if (stageAttempts.length > 1 && hasSuccessStatus) {
+    return "COMPLETE_WITH_RETRIES";
+  }
+
+  // Otherwise, sort and join the unique statuses together. Should not happen.
+  const sortedUniqueStatuses = uniqueStatuses.sort();
+  return sortedUniqueStatuses.join(",");
+}
+
 export function stageDataFromStage(
   stageId: number | undefined,
   stages: SparkStagesStore,
@@ -186,16 +216,26 @@ export function stageDataFromStage(
   if (stageId === undefined) {
     return undefined;
   }
-  const stage = stages.find((stage) => stage.stageId === stageId);
-  if (stage === undefined) {
+  const stageAttempts = stages.filter((stage) => stage.stageId === stageId);
+  if (stageAttempts.length === 0) {
     return undefined;
   }
+
+  // Aggregate status using new logic: ACTIVE priority, COMPLETE_WITH_RETRIES for retries, or joined statuses
+  const aggregatedStatus = aggregateStageStatus(stages, stageId);
+
+  // Aggregate durations by summing all stage attempts' executorRunTime
+  const totalStageDuration = stageAttempts.reduce(
+    (sum, stage) => sum + (stage.metrics.executorRunTime || 0),
+    0
+  );
+
   return {
     type: "onestage",
     stageId: stageId,
-    status: stage?.status,
-    stageDuration: stage?.metrics.executorRunTime,
-    restOfStageDuration: stage?.metrics.executorRunTime, // will be calculate later
+    status: aggregatedStatus,
+    stageDuration: totalStageDuration,
+    restOfStageDuration: totalStageDuration, // will be calculate later
   };
 }
 
