@@ -2,7 +2,6 @@ import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "re
 import ReactFlow, {
   ConnectionLineType,
   Controls,
-  MiniMap,
   ReactFlowInstance,
   addEdge,
   useEdgesState,
@@ -29,41 +28,13 @@ import "reactflow/dist/style.css";
 import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
 import { setSQLMode, setSelectedStage } from "../../reducers/GeneralSlice";
+import CustomMiniMap from "./MiniMap";
 import SqlLayoutService from "./SqlLayoutService";
 import StageIconDrawer from "./StageIconDrawer";
 import { StageNode, StageNodeName } from "./StageNode";
 
 const options = { hideAttribution: true };
 const nodeTypes = { [StageNodeName]: StageNode };
-
-const getBucketedColor = (percentage: number): string => {
-  if (percentage > 100) {
-    percentage = 100;
-  }
-
-  const bucket = Math.floor(percentage / 10);
-
-  switch (bucket) {
-    case 0:
-      return "#4caf50"; // Green
-    case 1:
-      return "#8bc34a"; // Light green
-    case 2:
-      return "#ffc107"; // Amber (more readable than lime)
-    case 3:
-      return "#ff9800"; // Orange (more readable than yellow)
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-    case 8:
-    case 9:
-    case 10:
-      return "#ff5722"; // Deep orange
-    default:
-      return "#f44336"; // Red
-  }
-};
 
 const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   sparkSQL,
@@ -332,27 +303,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
         attributionPosition="bottom-left"
       >
 
-        <MiniMap
-          nodeColor={(node) => {
-            // Color nodes based on duration percentage using getBucketedColor
-            const nodeData = node.data?.node;
-            if (nodeData?.durationPercentage !== undefined) {
-              const percentage = nodeData.durationPercentage;
-              return getBucketedColor(percentage);
-            }
-            // Default green for nodes without duration data
-            return "#4caf50";
-          }}
-          position="bottom-left"
-          zoomable
-          pannable
-          style={{
-            backgroundColor: "#0f172a",
-            borderRadius: "8px",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
-          }}
-        />
+        <CustomMiniMap sparkSQL={sparkSQL} />
         <Controls
           position="bottom-center"
           showZoom={false}
