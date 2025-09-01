@@ -6,7 +6,7 @@ interface PerformanceIndicatorProps {
     durationPercentage?: number;
 }
 
-const getBucketedColor = (percentage: number): string => {
+export const getBucketedColor = (percentage: number): string => {
     if (percentage > 100) {
         percentage = 100;
     }
@@ -17,21 +17,24 @@ const getBucketedColor = (percentage: number): string => {
         case 0:
             return "#4caf50"; // Green
         case 1:
-            return "#8bc34a"; // Light green
+            return "#ff9800"; // Orange (less forgiving than light green)
         case 2:
-            return "#ffc107"; // Amber (more readable than lime)
+            return "#fb8c00"; // Dark amber/orange (better contrast for text)
         case 3:
-            return "#ff9800"; // Orange (more readable than yellow)
+            return "#ff7043"; // Deep orange
         case 4:
+            return "#ff5722"; // Red orange
         case 5:
+            return "#f4511e"; // Dark red orange
         case 6:
+            return "#e53935"; // Light red
         case 7:
         case 8:
         case 9:
         case 10:
-            return "#ff5722"; // Deep orange
+            return "#d32f2f"; // Dark red
         default:
-            return "#f44336"; // Red
+            return "#b71c1c"; // Very dark red
     }
 };
 

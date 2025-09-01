@@ -2,35 +2,9 @@ import React from "react";
 import { MiniMap as ReactFlowMiniMap } from "reactflow";
 import { useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL } from "../../interfaces/AppStore";
+import { getBucketedColor } from "./PerformanceIndicator";
 
-const getBucketedColor = (percentage: number): string => {
-    if (percentage > 100) {
-        percentage = 100;
-    }
 
-    const bucket = Math.floor(percentage / 10);
-
-    switch (bucket) {
-        case 0:
-            return "#4caf50"; // Green
-        case 1:
-            return "#8bc34a"; // Light green
-        case 2:
-            return "#ffc107"; // Amber (more readable than lime)
-        case 3:
-            return "#ff9800"; // Orange (more readable than yellow)
-        case 4:
-        case 5:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
-        case 10:
-            return "#ff5722"; // Deep orange
-        default:
-            return "#f44336"; // Red
-    }
-};
 
 // Custom minimap node component with alert icon support
 const CustomMiniMapNode = ({
