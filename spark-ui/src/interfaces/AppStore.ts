@@ -15,6 +15,7 @@ export type NodeType =
 export type AppStore = {
   isConnected: boolean;
   isInitialized: boolean;
+  connectionErrorMessage: string | undefined;
   runMetadata: RunMetadataStore | undefined;
   config: ConfigStore | undefined;
   status: StatusStore | undefined;

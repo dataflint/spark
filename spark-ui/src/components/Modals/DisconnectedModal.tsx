@@ -17,7 +17,7 @@ const style = {
 };
 
 const DisconnectedModal: FC = (): JSX.Element => {
-  const { isConnected, isInitialized } = useAppSelector((state) => state.spark);
+  const { isConnected, isInitialized, connectionErrorMessage } = useAppSelector((state) => state.spark);
 
   const open = !isConnected && isInitialized;
 
@@ -39,7 +39,7 @@ const DisconnectedModal: FC = (): JSX.Element => {
             Server disconnected
           </Typography>
           <Typography id="transition-modal-description" sx={{ mt: 2 }}>
-            Trying to reconnect...
+            {connectionErrorMessage || "Trying to reconnect..."}
           </Typography>
         </Box>
       </Fade>

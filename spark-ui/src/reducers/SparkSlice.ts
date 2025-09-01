@@ -34,6 +34,7 @@ import {
 export const initialState: AppStore = {
   isConnected: false,
   isInitialized: false,
+  connectionErrorMessage: undefined,
   runMetadata: undefined,
   status: undefined,
   config: undefined,
@@ -79,6 +80,7 @@ const sparkSlice = createSlice({
 
       state.isConnected = true;
       state.isInitialized = true;
+      state.connectionErrorMessage = undefined;
       state.runMetadata = runMetadata;
       state.config = config;
       state.status = newStatus;
@@ -191,10 +193,11 @@ const sparkSlice = createSlice({
     },
     updateConnection: (
       state,
-      action: PayloadAction<{ isConnected: boolean }>,
+      action: PayloadAction<{ isConnected: boolean; errorMessage?: string }>,
     ) => {
       if (state.isConnected !== action.payload.isConnected) {
         state.isConnected = action.payload.isConnected;
+        state.connectionErrorMessage = action.payload.errorMessage;
       }
     },
     setSparkJobs: (state, action: PayloadAction<{ value: SparkJobs }>) => {

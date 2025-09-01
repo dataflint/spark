@@ -22,7 +22,7 @@ import {
   updateDuration,
 } from "../reducers/SparkSlice";
 import { AppDispatch } from "../Store";
-import { timeStrToEpocTime } from "../utils/FormatUtils";
+import { humanFileSize, timeStrToEpocTime } from "../utils/FormatUtils";
 import { IS_HISTORY_SERVER_MODE } from "../utils/UrlConsts";
 import { isDataFlintSaaSUI } from "../utils/UrlUtils";
 import { MixpanelService } from "./MixpanelService";
@@ -51,6 +51,7 @@ class SparkAPI {
   pollingStopped: boolean = false;
   historyServerMode: boolean = false;
   icebergEnabled: boolean = false;
+  sparkVersion: string | undefined = undefined;
 
   private findSqlIdToQueryFrom(): number {
     const currentTime = Date.now();
@@ -122,6 +123,7 @@ class SparkAPI {
   private resetState(): void {
     this.lastCompletedSqlId = -1;
     this.appId = "";
+    this.sparkVersion = undefined;
   }
 
   constructor(
@@ -179,10 +181,27 @@ class SparkAPI {
     return "unknown";
   }
 
-  async queryData(path: string): Promise<any> {
+  async queryData(path: string, isSqlRequest: boolean = false): Promise<any> {
     try {
       const requestContent = await fetch(path);
-      return await requestContent.json();
+
+      // Check for HTTP 500 error - Spark SQL endpoint unsupported (only for SQL requests)
+      if (isSqlRequest && requestContent.status === 500) {
+        const versionInfo = this.sparkVersion ? ` (current version: ${this.sparkVersion})` : "";
+        throw new Error(`Spark SQL endpoint returned error, spark version unsupported${versionInfo}. DataFlint supports Spark 3.3 and up.`);
+      }
+
+      const responseText = await requestContent.text();
+
+      // Check if response is valid JSON format
+      const trimmedResponse = responseText.trim();
+      if (!((trimmedResponse.startsWith('{') && trimmedResponse.endsWith('}')) ||
+        (trimmedResponse.startsWith('[') && trimmedResponse.endsWith(']')))) {
+        const responseSize = humanFileSize(responseText.length);
+        throw new Error(`Spark API returned too large of a result, json response is not valid. Response size: ${responseSize}`);
+      }
+
+      return JSON.parse(responseText);
     } catch (e) {
       console.log(`request to path: ${path} failed, error: ${e}`);
       throw e;
@@ -213,6 +232,7 @@ class SparkAPI {
           : currentAttempt?.attemptId !== undefined
             ? currentAttempt.attemptId
             : undefined;
+        this.sparkVersion = currentAttempt?.appSparkVersion;
         const sparkConfiguration: SparkConfiguration = await this.queryData(
           this.environmentPath,
         );
@@ -280,9 +300,10 @@ class SparkAPI {
       const sqlIdToQueryFrom = this.findSqlIdToQueryFrom();
       const sparkSQLs: SparkSQLs = await this.queryData(
         this.buildSqlPath(sqlIdToQueryFrom),
+        true
       );
       const sparkPlans: SQLPlans = await this.queryData(
-        this.buildSqlPlanPath(sqlIdToQueryFrom),
+        this.buildSqlPlanPath(sqlIdToQueryFrom)
       );
       let icebergInfo: IcebergInfo = { commitsInfo: [] };
       if (this.icebergEnabled) {
@@ -329,7 +350,7 @@ class SparkAPI {
         if (runningSqlIds.length !== 0) {
           const sqlId = runningSqlIds.slice(-1)[0];
           const nodesMetrics: NodesMetrics = await this.queryData(
-            this.getSqlMetricsPath(sqlId),
+            this.getSqlMetricsPath(sqlId)
           );
           this.dispatch(setSQLMetrics({ value: nodesMetrics, sqlId: sqlId }));
         }
@@ -338,7 +359,11 @@ class SparkAPI {
     } catch (e) {
       console.log(e);
       this.isConnected = false;
-      this.dispatch(updateConnection({ isConnected: false }));
+      let errorMessage = e instanceof Error ? e.message : "Unknown connection error";
+      if (errorMessage.toLowerCase().includes("failed to fetch")) {
+        errorMessage = "Spark UI is down";
+      }
+      this.dispatch(updateConnection({ isConnected: false, errorMessage: errorMessage }));
     } finally {
       if (!this.pollingStopped && !this.historyServerMode)
         setTimeout(this.fetchData.bind(this), POLL_TIME);
