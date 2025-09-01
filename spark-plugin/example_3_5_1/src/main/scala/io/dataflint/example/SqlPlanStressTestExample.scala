@@ -12,7 +12,6 @@ object SqlPlanStressTestExample extends App {
     .config("spark.ui.port", "10000")
     .config("spark.dataflint.telemetry.enabled", value = false)
     .config("spark.sql.maxMetadataStringLength", "10000")
-    .config("spark.eventLog.enabled", "true")
     .master("local[*]")
     .getOrCreate()
 

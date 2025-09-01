@@ -8,7 +8,7 @@ import ReactFlow, {
   useNodesState,
 } from "reactflow";
 
-import { CenterFocusStrong, Info as InfoIcon, ZoomIn, ZoomOut } from "@mui/icons-material";
+import { CenterFocusStrong, Info as InfoIcon, Speed, Warning, ZoomIn, ZoomOut } from "@mui/icons-material";
 import {
   Alert,
   Box,
@@ -36,6 +36,25 @@ import { StageNode, StageNodeName } from "./StageNode";
 const options = { hideAttribution: true };
 const nodeTypes = { [StageNodeName]: StageNode };
 
+// Types for navigation data
+interface NodeWithAlert {
+  nodeId: string;
+  position: { x: number; y: number };
+  alert: any;
+}
+
+interface BiggestDurationNode {
+  nodeId: string;
+  position: { x: number; y: number };
+  durationPercentage: number;
+}
+
+interface NavigationData {
+  nodesWithAlerts: NodeWithAlert[];
+  biggestDurationNode: BiggestDurationNode | null;
+  nodesByDuration: BiggestDurationNode[];
+}
+
 const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   sparkSQL,
 }): JSX.Element => {
@@ -50,6 +69,8 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const [searchParams] = useSearchParams();
   const nodeIdsParam = searchParams.get('nodeids');
   const initialFocusApplied = useRef<string | null>(null);
+  const [currentAlertIndex, setCurrentAlertIndex] = useState(0);
+  const [currentDurationIndex, setCurrentDurationIndex] = useState(0);
 
   const dispatch = useAppDispatch();
   const graphFilter = useAppSelector((state) => state.general.sqlMode);
@@ -67,6 +88,33 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
 
     return { totalNodes, totalEdges, highlightedNodes };
   }, [nodes, edges, nodeIdsParam, sparkSQL]);
+
+  // Memoized calculations for navigation features
+  const navigationData = useMemo((): NavigationData => {
+    if (!sparkSQL || !nodes.length) return { nodesWithAlerts: [], biggestDurationNode: null, nodesByDuration: [] };
+
+    // Find nodes with alerts
+    const nodesWithAlerts: NodeWithAlert[] = nodes.filter(node => node.data?.alert).map(node => ({
+      nodeId: node.id,
+      position: node.position,
+      alert: node.data.alert
+    }));
+
+    // Get all nodes with duration percentage and sort by duration (highest first)
+    const nodesByDuration: BiggestDurationNode[] = nodes
+      .filter(node => node.data?.node?.durationPercentage !== undefined)
+      .map(node => ({
+        nodeId: node.id,
+        position: node.position,
+        durationPercentage: node.data.node.durationPercentage!
+      }))
+      .sort((a, b) => b.durationPercentage - a.durationPercentage);
+
+    // Find node with biggest duration percentage (first in sorted array)
+    const biggestDurationNode: BiggestDurationNode | null = nodesByDuration.length > 0 ? nodesByDuration[0] : null;
+
+    return { nodesWithAlerts, biggestDurationNode, nodesByDuration };
+  }, [nodes, sparkSQL]);
 
   // Effect for metric updates only
   React.useEffect(() => {
@@ -160,7 +208,15 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     }
   }, [instance, edges, nodeIdsParam]);
 
-  useEffect(() => { }, [nodes]);
+  // Reset alert index when nodes change
+  useEffect(() => {
+    setCurrentAlertIndex(0);
+  }, [navigationData.nodesWithAlerts.length]);
+
+  // Reset duration index when nodes change
+  useEffect(() => {
+    setCurrentDurationIndex(0);
+  }, [navigationData.nodesByDuration.length]);
 
   const onConnect = useCallback(
     (params: any) =>
@@ -191,6 +247,38 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
       instance.fitView();
     }
   }, [instance]);
+
+  // Cycle through nodes by duration percentage (highest to lowest)
+  const handleFocusNextDuration = useCallback(() => {
+    if (instance && navigationData.nodesByDuration.length > 0) {
+      const nextIndex = (currentDurationIndex + 1) % navigationData.nodesByDuration.length;
+      setCurrentDurationIndex(nextIndex);
+
+      const node = navigationData.nodesByDuration[nextIndex];
+      const nodeWidth = 280;
+      const nodeHeight = 280;
+      const centerX = node.position.x + nodeWidth / 2;
+      const centerY = node.position.y + nodeHeight / 2;
+
+      instance.setCenter(centerX, centerY, { zoom: 0.75 });
+    }
+  }, [instance, navigationData.nodesByDuration, currentDurationIndex]);
+
+  // Cycle through nodes with alerts
+  const handleFocusNextAlert = useCallback(() => {
+    if (instance && navigationData.nodesWithAlerts.length > 0) {
+      const nextIndex = (currentAlertIndex + 1) % navigationData.nodesWithAlerts.length;
+      setCurrentAlertIndex(nextIndex);
+
+      const node = navigationData.nodesWithAlerts[nextIndex];
+      const nodeWidth = 280;
+      const nodeHeight = 280;
+      const centerX = node.position.x + nodeWidth / 2;
+      const centerY = node.position.y + nodeHeight / 2;
+
+      instance.setCenter(centerX, centerY, { zoom: 0.75 });
+    }
+  }, [instance, navigationData.nodesWithAlerts, currentAlertIndex]);
 
   if (error) {
     return (
@@ -285,6 +373,60 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
             }}
           >
             <CenterFocusStrong />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip
+          title={navigationData.nodesByDuration.length > 0
+            ? `Focus on biggest node duration (${currentDurationIndex + 1}/${navigationData.nodesByDuration.length}) - ${navigationData.nodesByDuration[currentDurationIndex]?.durationPercentage.toFixed(1)}%`
+            : "No duration data available"
+          }
+          arrow
+          placement="left"
+        >
+          <IconButton
+            onClick={handleFocusNextDuration}
+            disabled={navigationData.nodesByDuration.length === 0}
+            sx={{
+              backgroundColor: "rgba(245, 247, 250, 0.95)",
+              color: navigationData.nodesByDuration.length > 0 ? "#424242" : "#bdbdbd",
+              border: "1px solid rgba(0, 0, 0, 0.15)",
+              "&:hover": {
+                backgroundColor: navigationData.nodesByDuration.length > 0 ? "rgba(245, 247, 250, 1)" : "rgba(245, 247, 250, 0.95)"
+              },
+              "&:disabled": {
+                backgroundColor: "rgba(245, 247, 250, 0.5)",
+              }
+            }}
+          >
+            <Speed />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip
+          title={navigationData.nodesWithAlerts.length > 0
+            ? `Focus on alerts (${currentAlertIndex + 1}/${navigationData.nodesWithAlerts.length})`
+            : "No alerts found"
+          }
+          arrow
+          placement="left"
+        >
+          <IconButton
+            onClick={handleFocusNextAlert}
+            disabled={navigationData.nodesWithAlerts.length === 0}
+            sx={{
+              backgroundColor: "rgba(245, 247, 250, 0.95)",
+              color: navigationData.nodesWithAlerts.length > 0 ? "#424242" : "#bdbdbd",
+              border: "1px solid rgba(0, 0, 0, 0.15)",
+              "&:hover": {
+                backgroundColor: navigationData.nodesWithAlerts.length > 0 ? "rgba(245, 247, 250, 1)" : "rgba(245, 247, 250, 0.95)"
+              },
+              "&:disabled": {
+                backgroundColor: "rgba(245, 247, 250, 0.5)",
+              }
+            }}
+          >
+            <Warning />
           </IconButton>
         </Tooltip>
       </Box>
