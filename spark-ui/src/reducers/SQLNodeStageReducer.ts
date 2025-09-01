@@ -373,12 +373,18 @@ export function calculateSqlStage(
         (node.stage?.type === "onestage"
           ? node.stage?.restOfStageDuration ?? node.stage?.stageDuration
           : undefined);
+
+      // Cap duration by stage duration for onestage nodes to prevent invalid values.
+      // Sometimes in databricks the codeged duration is greated than the stage duration.
+      const cappedDuration = duration !== undefined && node.stage?.type === "onestage"
+        ? Math.min(duration, node.stage?.stageDuration ?? duration)
+        : duration;
       const durationPercentage =
-        duration !== undefined && sql.stageMetrics !== undefined
-          ? calculatePercentage(duration, sql.stageMetrics?.executorRunTime) : undefined
+        cappedDuration !== undefined && sql.stageMetrics !== undefined
+          ? calculatePercentage(cappedDuration, sql.stageMetrics?.executorRunTime) : undefined
       return {
         ...node,
-        duration: duration,
+        duration: cappedDuration,
         durationPercentage: durationPercentage,
       };
     },
