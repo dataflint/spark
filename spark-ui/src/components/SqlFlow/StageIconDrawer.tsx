@@ -84,7 +84,7 @@ function MultiStageIconTooltip({
                 <StageSummary stageData={writeStage} />
                 {writeStage.durationDistribution !== undefined ? <DurationDistributionChart durationDist={writeStage.durationDistribution} /> : undefined}
                 {writeStage.shuffleWriteDistribution !== undefined && writeStage.shuffleWriteDistribution.some(x => x !== 0) ? <BytesDistributionChart title="shuffle write (bytes)" bytesDist={writeStage.shuffleWriteDistribution} /> : undefined}
-                {writeStage.spillDiskDistriution !== undefined && writeStage.spillDiskDistriution.some(x => x !== 0) ? <NumbersDistributionChart title="Spill disk (bytes)" numbersDist={writeStage.spillDiskDistriution} /> : undefined}
+                {writeStage.spillDiskDistriution !== undefined && writeStage.spillDiskDistriution.some(x => x !== 0) ? <NumbersDistributionChart title="spill disk (bytes)" numbersDist={writeStage.spillDiskDistriution} /> : undefined}
             </Box>}
             {readStage === undefined ? undefined : <Box sx={{ m: 1 }}>
                 <Typography variant="h6" sx={{ textAlign: "center", margin: "0 auto" }} >Read Stage</Typography>
@@ -92,7 +92,8 @@ function MultiStageIconTooltip({
                 <StageSummary stageData={readStage} />
                 {readStage.durationDistribution !== undefined ? <DurationDistributionChart durationDist={readStage.durationDistribution} /> : undefined}
                 {readStage.shuffleReadDistribution !== undefined && readStage.shuffleReadDistribution.some(x => x !== 0) ? <BytesDistributionChart title="shuffle read (bytes)" bytesDist={readStage.shuffleReadDistribution} /> : undefined}
-                {readStage.spillDiskDistriution !== undefined && readStage.spillDiskDistriution.some(x => x !== 0) ? <NumbersDistributionChart title="Spill disk (bytes)" numbersDist={readStage.spillDiskDistriution} /> : undefined}
+                {readStage.shuffleWriteDistribution !== undefined && readStage.shuffleWriteDistribution.some(x => x !== 0) ? <BytesDistributionChart title="shuffle write (bytes)" bytesDist={readStage.shuffleWriteDistribution} /> : undefined}
+                {readStage.spillDiskDistriution !== undefined && readStage.spillDiskDistriution.some(x => x !== 0) ? <NumbersDistributionChart title="spill disk (bytes)" numbersDist={readStage.spillDiskDistriution} /> : undefined}
             </Box>}
         </Box>
     );
@@ -122,12 +123,14 @@ function SingleStageIconTooltip({
                     </Link>
                     <LinearProgressWithLabel numTasks={stageData.numTasks} runningTasks={stageData.activeTasks} completedTasks={stageData.completedTasks}></LinearProgressWithLabel>
                     <StageSummary stageData={stageData} />
-                    {stageData.durationDistribution !== undefined ? <DurationDistributionChart durationDist={stageData.durationDistribution} /> : undefined}
+                    {stageData.shuffleReadDistribution !== undefined && stageData.shuffleReadDistribution.some(x => x !== 0) ? <BytesDistributionChart title="shuffle read (bytes)" bytesDist={stageData.shuffleReadDistribution} /> : undefined}
                     {stageData.inputDistribution !== undefined && stageData.inputDistribution.some(x => x !== 0) ? <BytesDistributionChart title="input bytes" bytesDist={stageData.inputDistribution} /> : undefined}
                     {stageData.inputRowsDistribution !== undefined && stageData.inputRowsDistribution.some(x => x !== 0) ? <NumbersDistributionChart title="input rows" numbersDist={stageData.inputRowsDistribution} /> : undefined}
+                    {stageData.durationDistribution !== undefined ? <DurationDistributionChart durationDist={stageData.durationDistribution} /> : undefined}
                     {stageData.outputDistribution !== undefined && stageData.outputDistribution.some(x => x !== 0) ? <BytesDistributionChart title="output bytes" bytesDist={stageData.outputDistribution} /> : undefined}
                     {stageData.outputRowsDistribution !== undefined && stageData.outputRowsDistribution.some(x => x !== 0) ? <NumbersDistributionChart title="output rows" numbersDist={stageData.outputRowsDistribution} /> : undefined}
-                    {stageData.spillDiskDistriution !== undefined && stageData.spillDiskDistriution.some(x => x !== 0) ? <NumbersDistributionChart title="output rows" numbersDist={stageData.spillDiskDistriution} /> : undefined}
+                    {stageData.shuffleWriteDistribution !== undefined && stageData.shuffleWriteDistribution.some(x => x !== 0) ? <BytesDistributionChart title="shuffle write (bytes)" bytesDist={stageData.shuffleWriteDistribution} /> : undefined}
+                    {stageData.spillDiskDistriution !== undefined && stageData.spillDiskDistriution.some(x => x !== 0) ? <NumbersDistributionChart title="spill disk (bytes)" numbersDist={stageData.spillDiskDistriution} /> : undefined}
                 </Box>))}
         </Box>
     )
