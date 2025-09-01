@@ -113,10 +113,10 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
           stage: {
             type: "exchange",
             writeStage:
-              nextNode.stage?.type === "onestage" ? nextNode.stage.stageId : -1,
+              previousNode.stage?.type === "onestage" ? previousNode.stage.stageId : -1,
             readStage:
-              previousNode.stage?.type === "onestage"
-                ? previousNode.stage.stageId
+              nextNode.stage?.type === "onestage"
+                ? nextNode.stage.stageId
                 : -1,
             status:
               previousNode.stage?.status === "ACTIVE"
