@@ -1,5 +1,5 @@
 import { Box, Tooltip, Typography } from "@mui/material";
-import React from "react";
+import React, { memo } from "react";
 import { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import { ConditionalWrapper } from "../InfoBox/InfoBox";
 import styles from "./node-style.module.css";
@@ -16,7 +16,7 @@ interface MetricDisplayProps {
     metrics: MetricWithTooltip[];
 }
 
-const MetricDisplay: React.FC<MetricDisplayProps> = ({ metrics }) => {
+const MetricDisplayComponent: React.FC<MetricDisplayProps> = ({ metrics }) => {
     const handleWheel = (e: React.WheelEvent) => {
         // Always prevent React Flow from handling wheel events in this area
         e.stopPropagation();
@@ -96,5 +96,8 @@ const MetricDisplay: React.FC<MetricDisplayProps> = ({ metrics }) => {
         </Box>
     );
 };
+
+// Simple memoization - prevents unnecessary re-renders when metrics haven't changed
+const MetricDisplay = memo(MetricDisplayComponent);
 
 export default MetricDisplay;

@@ -1,11 +1,10 @@
 import ErrorIcon from "@mui/icons-material/Error";
 import WarningIcon from "@mui/icons-material/Warning";
 import { Alert, AlertTitle, Box, Typography } from "@mui/material";
-import React, { FC, useMemo } from "react";
+import React, { FC, memo, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Handle, Position } from "reactflow";
-import { useAppSelector } from "../../Hooks";
-import { EnrichedSqlNode } from "../../interfaces/AppStore";
+import { Alert as AppAlert, EnrichedSqlNode } from "../../interfaces/AppStore";
 import { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import MetricDisplay, { MetricWithTooltip } from "./MetricDisplay";
 import {
@@ -26,15 +25,20 @@ import PlanMetricsProcessor from "./PlanMetricsProcessor";
 export const StageNodeName: string = "stageNode";
 
 interface StageNodeProps {
-  data: { sqlId: string; node: EnrichedSqlNode };
+  data: {
+    sqlId: string;
+    node: EnrichedSqlNode;
+    sqlUniqueId?: string;
+    sqlMetricUpdateId?: string;
+    alert?: AppAlert; // Alert for this specific node
+  };
 }
 
-const StageNode: FC<StageNodeProps> = ({ data }) => {
+const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
   const [searchParams] = useSearchParams();
-  const alerts = useAppSelector((state) => state.spark.alerts);
 
   // Memoized computations for better performance
-  const { isHighlighted, sqlNodeAlert, allMetrics } = useMemo(() => {
+  const { isHighlighted, allMetrics } = useMemo(() => {
     // Parse nodeIds from URL parameters
     const nodeIdsParam = searchParams.get('nodeids');
     const highlightedNodeIds = nodeIdsParam
@@ -43,14 +47,6 @@ const StageNode: FC<StageNodeProps> = ({ data }) => {
 
     // Check if current node should be highlighted
     const highlighted = highlightedNodeIds.includes(data.node.nodeId);
-
-    // Find any alerts for this node
-    const alert = alerts?.alerts.find(
-      (alert) =>
-        alert.source.type === "sql" &&
-        alert.source.sqlNodeId === data.node.nodeId &&
-        alert.source.sqlId === data.sqlId,
-    );
 
     // Process all metrics
     const metrics: MetricWithTooltip[] = [
@@ -70,10 +66,18 @@ const StageNode: FC<StageNodeProps> = ({ data }) => {
 
     return {
       isHighlighted: highlighted,
-      sqlNodeAlert: alert,
       allMetrics: metrics,
     };
-  }, [data.node, data.sqlId, searchParams, alerts]);
+  }, [
+    // Use SQL identifiers for optimal memoization when available
+    data.sqlUniqueId || data.node.nodeId,
+    data.sqlMetricUpdateId || data.node.metrics,
+    data.sqlId,
+    searchParams
+  ]);
+
+  // Use the alert passed in data prop
+  const sqlNodeAlert = data.alert;
 
   const nodeClass = isHighlighted ? styles.nodeHighlighted : styles.node;
 
@@ -168,5 +172,8 @@ const StageNode: FC<StageNodeProps> = ({ data }) => {
     </>
   );
 };
+
+// Simple memoization - prevents unnecessary re-renders
+const StageNode = memo(StageNodeComponent);
 
 export { StageNode };

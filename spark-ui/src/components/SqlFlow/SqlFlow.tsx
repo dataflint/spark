@@ -39,6 +39,9 @@ const nodeTypes = { [StageNodeName]: StageNode };
 const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   sparkSQL,
 }): JSX.Element => {
+  // Get alerts for passing to nodes
+  const alerts = useAppSelector((state) => state.spark.alerts);
+
   const [instance, setInstance] = useState<ReactFlowInstance | undefined>();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -76,6 +79,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
       const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
         sparkSQL,
         graphFilter,
+        alerts,
       );
 
       setNodes(layoutNodes);
@@ -97,6 +101,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
       const { layoutNodes, layoutEdges } = SqlLayoutService.SqlElementsToLayout(
         sparkSQL,
         graphFilter,
+        alerts,
       );
 
       setNodes(layoutNodes);
