@@ -25,11 +25,27 @@ const MetricDisplay: React.FC<MetricDisplayProps> = ({ metrics }) => {
         // Don't prevent default - we want normal scroll behavior
     };
 
-    // Use compact styles when there are more than 7 metrics
+    // Use different styles based on number of metrics
     const isCompact = metrics.length > 7;
-    const metricItemClass = isCompact ? styles.metricItemCompact : styles.metricItem;
-    const metricNameClass = isCompact ? styles.metricNameCompact : styles.metricName;
-    const metricValueClass = isCompact ? styles.metricValueCompact : styles.metricValue;
+    const isMedium = metrics.length >= 5 && metrics.length <= 7;
+
+    const metricItemClass = isCompact
+        ? styles.metricItemCompact
+        : isMedium
+            ? styles.metricItemMedium
+            : styles.metricItem;
+
+    const metricNameClass = isCompact
+        ? styles.metricNameCompact
+        : isMedium
+            ? styles.metricNameMedium
+            : styles.metricName;
+
+    const metricValueClass = isCompact
+        ? styles.metricValueCompact
+        : isMedium
+            ? styles.metricValueMedium
+            : styles.metricValue;
 
     return (
         <Box

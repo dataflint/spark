@@ -121,17 +121,45 @@
 .metricName {
   font-weight: 600 !important;
   color: #3f51b5 !important;
-  font-size: 12px !important; /* Increased font size */
+  font-size: 16px !important; /* Further increased font size */
   text-transform: capitalize;
   line-height: 1.2;
 }
 
 .metricValue {
   color: #424242 !important;
-  font-size: 12px !important; /* Increased font size */
+  font-size: 16px !important; /* Further increased font size */
   word-break: break-word;
   margin-left: 3px !important;
   line-height: 1.2;
+}
+
+/* Medium metric styles for when there are 5-7 metrics */
+.metricItemMedium {
+  margin-bottom: 3px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  background: rgba(63, 81, 181, 0.08);
+  border-left: 1.5px solid #3f51b5;
+  transition: background-color 0.2s ease;
+}
+
+.metricItemMedium:hover {
+  background: rgba(63, 81, 181, 0.12);
+}
+
+.metricNameMedium {
+  font-weight: 600 !important;
+  color: #3f51b5 !important;
+  font-size: 15.5px !important; /* Increased to better fill node */
+  text-transform: capitalize;
+}
+
+.metricValueMedium {
+  color: #424242 !important;
+  font-size: 15.5px !important; /* Increased to better fill node */
+  word-break: break-word;
+  margin-left: 3px !important;
 }
 
 /* Compact metric styles for when there are more than 7 metrics */
@@ -151,14 +179,14 @@
 .metricNameCompact {
   font-weight: 600 !important;
   color: #3f51b5 !important;
-  font-size: 10px !important; /* Smaller font size */
+  font-size: 14px !important; /* Further increased font size */
   text-transform: capitalize;
   line-height: 1.1;
 }
 
 .metricValueCompact {
   color: #424242 !important;
-  font-size: 10px !important; /* Smaller font size */
+  font-size: 14px !important; /* Further increased font size */
   word-break: break-word;
   margin-left: 2px !important;
   line-height: 1.1;
@@ -232,6 +260,13 @@
   border-radius: 8px !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+:global(.react-flow__minimap svg) {
+  background-color: #0f172a !important;
+  border-radius: 7px !important;
 }
 
 :global(.react-flow__minimap-mask) {
