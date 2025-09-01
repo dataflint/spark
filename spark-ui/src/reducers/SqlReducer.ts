@@ -878,7 +878,7 @@ function addJoinMetrics(
   graph: Graph,
   allNodes: EnrichedSqlNode[],
 ): EnrichedSqlMetric[] | null {
-  if (node.nodeName === "BroadcastHashJoin" || node.nodeName === "SortMergeJoin" || node.nodeName === "ShuffleHashJoin") {
+  if (node.nodeName === "BroadcastHashJoin" || node.nodeName === "SortMergeJoin" || node.nodeName === "ShuffleHashJoin" || node.nodeName === "ShuffledHashJoin") {
     const inputEdges = graph.inEdges(node.nodeId.toString());
     if (!inputEdges || inputEdges.length !== 2) {
       return null;
