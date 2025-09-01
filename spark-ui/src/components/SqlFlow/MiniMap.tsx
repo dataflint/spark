@@ -96,13 +96,38 @@ const CustomMiniMap: React.FC<CustomMiniMapProps> = ({ sparkSQL }) => {
     return (
         <ReactFlowMiniMap
             nodeColor={(node) => {
-                // Color nodes based on duration percentage using getBucketedColor
                 const nodeData = node.data?.node;
+                // Check if node has started (has stage with valid status)
+                const stage = nodeData?.stage;
+                const hasNotStarted = (stage === undefined && (nodeData?.durationPercentage === undefined || nodeData?.durationPercentage === 0.0)) || (stage !== undefined &&
+                    stage.status === "PENDING");
+
+                const nodeIsRunning = (stage !== undefined &&
+                    stage.status === "ACTIVE");
+
+                const nodeFailed = (stage !== undefined &&
+                    stage.status === "FAILED");
+
+                // If node hasn't started, show grey
+                if (hasNotStarted) {
+                    return "#9e9e9e";
+                }
+
+                // If node is not running, show purple
+                if (nodeIsRunning) {
+                    return "#1976d2";
+                }
+
+                if (nodeFailed) {
+                    return "#9c27b0";
+                }
+                // Color nodes based on duration percentage using getBucketedColor
                 if (nodeData?.durationPercentage !== undefined) {
                     const percentage = nodeData.durationPercentage;
                     return getBucketedColor(percentage);
                 }
-                // Default green for nodes without duration data
+
+                // Default green for nodes that have started but don't have duration data
                 return "#4caf50";
             }}
             nodeStrokeColor="#ffffff"
