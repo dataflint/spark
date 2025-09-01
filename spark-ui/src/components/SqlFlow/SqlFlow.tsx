@@ -36,6 +36,35 @@ import { StageNode, StageNodeName } from "./StageNode";
 const options = { hideAttribution: true };
 const nodeTypes = { [StageNodeName]: StageNode };
 
+const getBucketedColor = (percentage: number): string => {
+  if (percentage > 100) {
+    percentage = 100;
+  }
+
+  const bucket = Math.floor(percentage / 10);
+
+  switch (bucket) {
+    case 0:
+      return "#4caf50"; // Green
+    case 1:
+      return "#8bc34a"; // Light green
+    case 2:
+      return "#ffc107"; // Amber (more readable than lime)
+    case 3:
+      return "#ff9800"; // Orange (more readable than yellow)
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+      return "#ff5722"; // Deep orange
+    default:
+      return "#f44336"; // Red
+  }
+};
+
 const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   sparkSQL,
 }): JSX.Element => {
@@ -305,16 +334,14 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
 
         <MiniMap
           nodeColor={(node) => {
-            // Color nodes based on duration percentage - only green, yellow, red
+            // Color nodes based on duration percentage using getBucketedColor
             const nodeData = node.data?.node;
             if (nodeData?.durationPercentage !== undefined) {
               const percentage = nodeData.durationPercentage;
-              if (percentage > 50) return "#dc2626"; // Red for slow (>50%)
-              if (percentage > 25) return "#eab308"; // Yellow for medium (25-50%)
-              return "#22c55e"; // Green for fast (0-25%)
+              return getBucketedColor(percentage);
             }
             // Default green for nodes without duration data
-            return "#22c55e";
+            return "#4caf50";
           }}
           position="bottom-left"
           zoomable
