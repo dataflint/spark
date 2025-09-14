@@ -4,11 +4,13 @@ import {
   EnrichedSqlNode,
   SparkJobsStore,
   SparkStagesStore,
+  SQLNodeExchangeStageData,
   SQLNodeStageData,
 } from "../interfaces/AppStore";
 import { calculatePercentage } from "../utils/FormatUtils";
 import { generateGraph } from "./PlanGraphUtils";
 import { calculateNodeToStorageInfo } from "./SqlReducer";
+import { findExchangeStageIds, findStageIdFromMetrics, isExchangeNode } from "./SqlReducerUtils";
 
 export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkStagesStore): EnrichedSparkSQL {
   let nodes = sql.nodes;
@@ -104,7 +106,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     return node;
   });
   nodes = nodes.map((node) => {
-    if (node.nodeName === "Exchange") {
+    if (node.nodeName === "Exchange" && node.stage === undefined) {
       const nextNode = findNextNode(node.nodeId);
       const previousNode = findPreviousNode(node.nodeId);
       if (previousNode !== undefined && nextNode?.stage !== undefined) {
@@ -209,6 +211,34 @@ function aggregateStageStatus(stages: SparkStagesStore, stageId: number): string
   return sortedUniqueStatuses.join(",");
 }
 
+/**
+ * Creates exchange stage data from read and write stage IDs.
+ * @param readStageId - The read stage ID
+ * @param writeStageId - The write stage ID
+ * @param stages - Available stages store
+ * @returns SQLNodeExchangeStageData or undefined if both stage IDs are missing
+ */
+function createExchangeStageData(
+  readStageId: number | undefined,
+  writeStageId: number | undefined,
+  stages: SparkStagesStore,
+): SQLNodeExchangeStageData | undefined {
+  if (readStageId === undefined && writeStageId === undefined) {
+    return undefined;
+  }
+
+  // Use the available stage ID, preferring readStageId if both are available
+  const primaryStageId = readStageId ?? writeStageId;
+  const primaryStageStatus = aggregateStageStatus(stages, primaryStageId!);
+
+  return {
+    type: "exchange",
+    writeStage: writeStageId ?? -1,
+    readStage: readStageId ?? -1,
+    status: primaryStageStatus,
+  };
+}
+
 export function stageDataFromStage(
   stageId: number | undefined,
   stages: SparkStagesStore,
@@ -277,8 +307,21 @@ export function calculateSqlStage(
       (codegenNode) =>
         codegenNode.wholeStageCodegenId === node.wholeStageCodegenId,
     );
-    const stageData = stageDataFromStage(
-      databricksRddStageId ?? stageCodegen?.stage?.stageId,
+
+    // Handle Exchange nodes separately with special metric-based stage identification
+    let stageData: SQLNodeStageData | SQLNodeExchangeStageData | undefined = undefined;
+    let metricsStageIdHint: number | undefined = undefined;
+
+    if (databricksRddStageId !== undefined && isExchangeNode(node.nodeName)) {
+      // Use exchange-specific metric parsing
+      const { readStageId, writeStageId } = findExchangeStageIds(node.metrics);
+      stageData = createExchangeStageData(readStageId, writeStageId, stages);
+    } else if (databricksRddStageId !== undefined || stageCodegen?.stage?.stageId !== undefined) {
+      metricsStageIdHint = findStageIdFromMetrics(node.metrics);
+    }
+
+    stageData = stageData ?? stageDataFromStage(
+      databricksRddStageId ?? stageCodegen?.stage?.stageId ?? metricsStageIdHint,
       stages,
     );
     return {
