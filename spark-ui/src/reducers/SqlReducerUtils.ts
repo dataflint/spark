@@ -426,7 +426,7 @@ export function calcNodeMetrics(
  * @returns The stage ID as a number, or undefined if parsing fails or no stage info is found
  */
 export function extractStageFromSummaryMetric(metricValue: string): number | undefined {
-  if (!metricValue || !metricValue.includes("(stage")) {
+  if (!metricValue) {
     return undefined;
   }
 
@@ -456,12 +456,13 @@ export function extractStageFromSummaryMetric(metricValue: string): number | und
  */
 export function findStageIdFromMetrics(metrics: EnrichedSqlMetric[]): number | undefined {
   for (const metric of metrics) {
-    const stageId = extractStageFromSummaryMetric(metric.value);
-    if (stageId !== undefined) {
-      return stageId;
+    if (metric.value && metric.value.includes("(stage")) {
+      const stageId = extractStageFromSummaryMetric(metric.value);
+      if (stageId !== undefined) {
+        return stageId;
+      }
     }
   }
-
   return undefined;
 }
 
@@ -496,7 +497,7 @@ export function isExchangeNode(nodeName: string): boolean {
 const EXCHANGE_READ_STAGE_METRICS = [
   "local bytes read",
   "fetch wait time total"
-];
+] as const;
 
 /**
  * Metric names that indicate write stage information for Exchange nodes.
@@ -504,7 +505,7 @@ const EXCHANGE_READ_STAGE_METRICS = [
 const EXCHANGE_WRITE_STAGE_METRICS = [
   "shuffle write time",
   "shuffle bytes written"
-];
+] as const;
 
 /**
  * Extracts stage information from Exchange node metrics for read and write stages.
@@ -519,14 +520,23 @@ export function findExchangeStageIds(metrics: EnrichedSqlMetric[]): {
   let writeStageId: number | undefined;
 
   for (const metric of metrics) {
+    if (!metric.value || !metric.value.includes("(stage")) {
+      continue;
+    }
+
+    const stageId = extractStageFromSummaryMetric(metric.value);
+    if (stageId === undefined) {
+      continue;
+    }
+
     // Check if this metric indicates a read stage
-    if (EXCHANGE_READ_STAGE_METRICS.includes(metric.name)) {
-      readStageId = metric.stageId;
+    if (EXCHANGE_READ_STAGE_METRICS.includes(metric.name as any)) {
+      readStageId = stageId;
     }
 
     // Check if this metric indicates a write stage
-    if (EXCHANGE_WRITE_STAGE_METRICS.includes(metric.name)) {
-      writeStageId = metric.stageId;
+    if (EXCHANGE_WRITE_STAGE_METRICS.includes(metric.name as any)) {
+      writeStageId = stageId;
     }
   }
 
