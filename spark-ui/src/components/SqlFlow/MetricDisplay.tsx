@@ -26,23 +26,23 @@ const MetricDisplayComponent: React.FC<MetricDisplayProps> = ({ metrics }) => {
     };
 
     // Use different styles based on number of metrics
-    const isCompact = metrics.length > 7;
+    const isUltraCompact = metrics.length >= 8;
     const isMedium = metrics.length >= 5 && metrics.length <= 7;
 
-    const metricItemClass = isCompact
-        ? styles.metricItemCompact
+    const metricItemClass = isUltraCompact
+        ? styles.metricItemUltraCompact
         : isMedium
             ? styles.metricItemMedium
             : styles.metricItem;
 
-    const metricNameClass = isCompact
-        ? styles.metricNameCompact
+    const metricNameClass = isUltraCompact
+        ? styles.metricNameUltraCompact
         : isMedium
             ? styles.metricNameMedium
             : styles.metricName;
 
-    const metricValueClass = isCompact
-        ? styles.metricValueCompact
+    const metricValueClass = isUltraCompact
+        ? styles.metricValueUltraCompact
         : isMedium
             ? styles.metricValueMedium
             : styles.metricValue;

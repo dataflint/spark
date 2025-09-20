@@ -136,8 +136,8 @@
 
 /* Medium metric styles for when there are 5-7 metrics */
 .metricItemMedium {
-  margin-bottom: 3px;
-  padding: 3px 5px;
+  margin-bottom: 2.8px;
+  padding: 2.8px 4.5px;
   border-radius: 4px;
   background: rgba(63, 81, 181, 0.08);
   border-left: 1.5px solid #3f51b5;
@@ -151,18 +151,20 @@
 .metricNameMedium {
   font-weight: 600 !important;
   color: #3f51b5 !important;
-  font-size: 15.5px !important; /* Increased to better fill node */
+  font-size: 15px !important; /* Middle ground between 15.5px and 14.5px */
   text-transform: capitalize;
+  line-height: 1.15;
 }
 
 .metricValueMedium {
   color: #424242 !important;
-  font-size: 15.5px !important; /* Increased to better fill node */
+  font-size: 15px !important; /* Middle ground between 15.5px and 14.5px */
   word-break: break-word;
-  margin-left: 3px !important;
+  margin-left: 2.8px !important;
+  line-height: 1.15;
 }
 
-/* Compact metric styles for when there are more than 7 metrics */
+/* Compact metric styles for when there are 7 metrics */
 .metricItemCompact {
   margin-bottom: 2px;
   padding: 2px 4px;
@@ -187,6 +189,36 @@
 .metricValueCompact {
   color: #424242 !important;
   font-size: 14px !important; /* Further increased font size */
+  word-break: break-word;
+  margin-left: 2px !important;
+  line-height: 1.1;
+}
+
+/* Ultra compact metric styles for when there are 8 or more metrics */
+.metricItemUltraCompact {
+  margin-bottom: 2px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: rgba(63, 81, 181, 0.08);
+  border-left: 1px solid #3f51b5;
+  transition: background-color 0.2s ease;
+}
+
+.metricItemUltraCompact:hover {
+  background: rgba(63, 81, 181, 0.12);
+}
+
+.metricNameUltraCompact {
+  font-weight: 600 !important;
+  color: #3f51b5 !important;
+  font-size: 13px !important;
+  text-transform: capitalize;
+  line-height: 1.1;
+}
+
+.metricValueUltraCompact {
+  color: #424242 !important;
+  font-size: 13px !important;
   word-break: break-word;
   margin-left: 2px !important;
   line-height: 1.1;
