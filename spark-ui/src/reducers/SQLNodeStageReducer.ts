@@ -10,7 +10,7 @@ import {
 import { calculatePercentage } from "../utils/FormatUtils";
 import { generateGraph } from "./PlanGraphUtils";
 import { calculateNodeToStorageInfo } from "./SqlReducer";
-import { findExchangeStageIds, findStageIdFromMetrics, isExchangeNode } from "./SqlReducerUtils";
+import { findExchangeStageIds, isExchangeNode } from "./SqlReducerUtils";
 
 export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkStagesStore): EnrichedSparkSQL {
   let nodes = sql.nodes;
@@ -316,8 +316,8 @@ export function calculateSqlStage(
       // Use exchange-specific metric parsing
       const { readStageId, writeStageId } = findExchangeStageIds(node.metrics);
       stageData = createExchangeStageData(readStageId, writeStageId, stages);
-    } else if (databricksRddStageId !== undefined || stageCodegen?.stage?.stageId !== undefined) {
-      metricsStageIdHint = findStageIdFromMetrics(node.metrics);
+    } else {
+      metricsStageIdHint = stageCodegen?.nodeIdFromMetrics ?? node.nodeIdFromMetrics;
     }
 
     stageData = stageData ?? stageDataFromStage(
