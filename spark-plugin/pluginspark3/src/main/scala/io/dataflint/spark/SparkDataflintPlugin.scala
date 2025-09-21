@@ -2,7 +2,7 @@ package io.dataflint.spark
 
 import org.apache.spark.SparkContext
 import org.apache.spark.api.plugin.{DriverPlugin, ExecutorPlugin, PluginContext, SparkPlugin}
-import org.apache.spark.dataflint.DataflintSparkUILoader
+import org.apache.spark.dataflint.{DataflintSparkUICommonLoader, DataflintSparkUILoader}
 import org.apache.spark.internal.Logging
 
 import java.util

@@ -302,6 +302,7 @@ export interface EnrichedSqlNode {
   rddScopeId: string | undefined;
   icebergCommit: IcebergCommitsInfo | undefined;
   cachedStorage: RddStorageInfo | undefined;
+  nodeIdFromMetrics: number | undefined;
 }
 
 export interface SQLNodeExchangeStageData {
@@ -322,6 +323,7 @@ export interface SQLNodeStageData {
 export interface EnrichedSqlMetric {
   name: string;
   value: string;
+  stageId?: number | undefined;
 }
 
 export interface EnrichedSqlEdge {

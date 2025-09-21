@@ -42,6 +42,7 @@ import {
   calcNodeMetrics,
   calcNodeType,
   extractTotalFromStatisticsMetric,
+  findStageIdFromMetrics,
   nodeEnrichedNameBuilder,
 } from "./SqlReducerUtils";
 
@@ -251,7 +252,8 @@ function calculateSql(
     .filter((node) => node.isCodegenNode)
     .map((node) => {
       const codegenDuration = calcCodegenDuration(node.metrics);
-      return { ...node, codegenDuration: codegenDuration };
+      const nodeIdFromMetrics = findStageIdFromMetrics(node.metrics);
+      return { ...node, codegenDuration: codegenDuration, nodeIdFromMetrics: nodeIdFromMetrics };
     });
 
   const onlyGraphNodes = typeEnrichedNodes.filter(
@@ -276,8 +278,12 @@ function calculateSql(
       node.metrics,
     );
 
+    const nodeIdFromMetrics = findStageIdFromMetrics(node.metrics);
+    console.log(`node.metrics from sql plan: ${JSON.stringify(node.metrics)}, nodeIdFromMetrics: ${nodeIdFromMetrics}`);
+
     return {
       ...node,
+      nodeIdFromMetrics: nodeIdFromMetrics,
       metrics: updateNodeMetrics(node, node.metrics, graph, onlyGraphNodes),
       enrichedName: updateNodeEnrichedName(node, onlyGraphNodes, graph),
       parsedPlan: updateParsedPlan(node, onlyGraphNodes, graph),
@@ -449,6 +455,7 @@ export function updateSqlNodeMetrics(
 
     // TODO: cache the graph
     const graph = generateGraph(runningSql.edges, runningSql.nodes);
+    const nodeIdFromMetrics = findStageIdFromMetrics(matchedMetricsNodes[0].metrics);
     const metrics = updateNodeMetrics(node, matchedMetricsNodes[0].metrics, graph, runningSql.nodes);
     const exchangeMetrics = calcExchangeMetrics(node.nodeName, metrics);
 
@@ -456,6 +463,7 @@ export function updateSqlNodeMetrics(
     return {
       ...node,
       metrics: metrics,
+      nodeIdFromMetrics: nodeIdFromMetrics,
       exchangeMetrics: exchangeMetrics,
     };
   });
@@ -468,12 +476,13 @@ export function updateSqlNodeMetrics(
       return node;
     }
 
+    const nodeIdFromMetrics = findStageIdFromMetrics(matchedMetricsNodes[0].metrics);
     const metrics = calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics);
     const codegenDuration = calcCodegenDuration(metrics);
-
     return {
       ...node,
       codegenDuration: codegenDuration,
+      nodeIdFromMetrics: nodeIdFromMetrics,
     };
   });
   const nodesWithStorageInfo = calculateNodeToStorageInfo(stages, nodes);

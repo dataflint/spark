@@ -392,6 +392,12 @@ export function calcNodeMetrics(
     metrics
       .filter((metric) => allowList.includes(metric.name))
       .map((metric) => {
+        const stageId = extractStageFromSummaryMetric(metric.value);
+        return stageId === undefined
+          ? metric
+          : { ...metric, stageId: stageId };
+      })
+      .map((metric) => {
         const valueTransformer = metricsValueTransformer[metric.name];
         if (valueTransformer === undefined) {
           return metric;
@@ -408,6 +414,123 @@ export function calcNodeMetrics(
       ? metric
       : { ...metric, name: metricNameRenamed };
   });
+}
+
+/**
+ * Extracts stage ID from metrics that contain stage information in the format "(stageId: taskId)".
+ * 
+ * Example input:
+ * "total (min, med, max (stageId: taskId))\n0 ms (0 ms, 0 ms, 0 ms (stage 1251.0: task 13656))"
+ * 
+ * @param metricValue - The metric value string to parse
+ * @returns The stage ID as a number, or undefined if parsing fails or no stage info is found
+ */
+export function extractStageFromSummaryMetric(metricValue: string): number | undefined {
+  if (!metricValue || !metricValue.includes("(stage")) {
+    return undefined;
+  }
+
+  try {
+    // Look for pattern: "stage <number>.<number>:" or "stage <number>:"
+    const stageRegex = /stage\s+(\d+)(?:\.\d+)?:/i;
+    const match = metricValue.match(stageRegex);
+
+    if (match && match[1]) {
+      const stageId = parseInt(match[1], 10);
+      return isNaN(stageId) ? undefined : stageId;
+    }
+
+    return undefined;
+  } catch (error) {
+    // Return undefined if any parsing error occurs
+    return undefined;
+  }
+}
+
+/**
+ * Searches all metrics for stage information in the format "(stageId: taskId)".
+ * Returns the first stage ID found in any metric that contains this pattern.
+ * 
+ * @param metrics - Array of enriched SQL metrics to search
+ * @returns The stage ID as a number, or undefined if no stage info is found
+ */
+export function findStageIdFromMetrics(metrics: EnrichedSqlMetric[]): number | undefined {
+  for (const metric of metrics) {
+    const stageId = extractStageFromSummaryMetric(metric.value);
+    if (stageId !== undefined) {
+      return stageId;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * List of node types that are considered exchange nodes and should be excluded
+ * from metrics-based stage identification.
+ */
+export const EXCHANGE_NODE_TYPES = [
+  "Exchange",
+  "BroadcastExchange",
+  "GpuBroadcastExchange",
+  "GpuColumnarExchange",
+  "CometExchange",
+  "CometColumnarExchange",
+  "PhotonBroadcastExchange",
+  "PhotonShuffleExchangeSink",
+  "PhotonShuffleExchangeSource"
+];
+
+/**
+ * Checks if a node name is an exchange node type.
+ * @param nodeName - The name of the node to check
+ * @returns true if the node is an exchange type, false otherwise
+ */
+export function isExchangeNode(nodeName: string): boolean {
+  return EXCHANGE_NODE_TYPES.includes(nodeName);
+}
+
+/**
+ * Metric names that indicate read stage information for Exchange nodes.
+ */
+const EXCHANGE_READ_STAGE_METRICS = [
+  "local bytes read",
+  "fetch wait time total"
+];
+
+/**
+ * Metric names that indicate write stage information for Exchange nodes.
+ */
+const EXCHANGE_WRITE_STAGE_METRICS = [
+  "shuffle write time",
+  "shuffle bytes written"
+];
+
+/**
+ * Extracts stage information from Exchange node metrics for read and write stages.
+ * @param metrics - Array of enriched SQL metrics to search
+ * @returns Object with readStageId and writeStageId, or undefined values if not found
+ */
+export function findExchangeStageIds(metrics: EnrichedSqlMetric[]): {
+  readStageId: number | undefined;
+  writeStageId: number | undefined;
+} {
+  let readStageId: number | undefined;
+  let writeStageId: number | undefined;
+
+  for (const metric of metrics) {
+    // Check if this metric indicates a read stage
+    if (EXCHANGE_READ_STAGE_METRICS.includes(metric.name)) {
+      readStageId = metric.stageId;
+    }
+
+    // Check if this metric indicates a write stage
+    if (EXCHANGE_WRITE_STAGE_METRICS.includes(metric.name)) {
+      writeStageId = metric.stageId;
+    }
+  }
+
+  return { readStageId, writeStageId };
 }
 
 export function calcNodeType(name: string): NodeType {
