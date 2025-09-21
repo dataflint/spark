@@ -38,6 +38,6 @@ echo "1. Refresh your IntelliJ IDEA project (File -> Reload Gradle Project or si
 echo "2. If you still get conflicts, try: File -> Invalidate Caches and Restart"
 echo ""
 echo "📦 Fat JARs created:"
-echo "- Spark 3.x: pluginspark3/target/scala-2.12/dataflint-spark3_2.12-0.5.1-SNAPSHOT.jar"
-echo "- Spark 4.x: pluginspark4/target/scala-2.13/dataflint-spark4_2.13-0.5.1-SNAPSHOT.jar"
+echo "- Spark 3.x: pluginspark3/target/scala-2.12/dataflint-spark3_2.12-0.6.0-SNAPSHOT.jar"
+echo "- Spark 4.x: pluginspark4/target/scala-2.13/dataflint-spark4_2.13-0.6.0-SNAPSHOT.jar"
 

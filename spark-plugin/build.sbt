@@ -1,7 +1,7 @@
 import xerial.sbt.Sonatype._
 import sbtassembly.AssemblyPlugin.autoImport._
 
-lazy val versionNum: String = "0.5.1"
+lazy val versionNum: String = "0.6.0"
 lazy val scala212 = "2.12.20"
 lazy val scala213 = "2.13.16"
 lazy val supportedScalaVersions = List(scala212, scala213)
