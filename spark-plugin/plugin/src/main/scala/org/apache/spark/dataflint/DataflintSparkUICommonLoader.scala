@@ -1,7 +1,7 @@
 package org.apache.spark.dataflint
 
 import org.apache.spark.SparkContext
-import org.apache.spark.dataflint.api.{DataFlintTab, DataflintApplicationInfoPage, DataflintCachedStoragePage, DataflintIcebergPage, DataflintJettyUtils, DataflintSQLMetricsPage, DataflintSQLPlanPage, DataflintSQLStagesRddPage}
+import org.apache.spark.dataflint.api.DataflintPageFactory
 import org.apache.spark.dataflint.listener.{DataflintEnvironmentInfo, DataflintEnvironmentInfoEvent}
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker.isMetricLoaderInRightClassLoader
@@ -14,13 +14,13 @@ import org.apache.spark.sql.execution.ui.SQLAppStatusListener
 import org.apache.spark.status.{ElementTrackingStore, LiveRDDsListener}
 import org.apache.spark.ui.SparkUI
 
-class DataflintSparkUIInstaller extends Logging {
-  def install(context: SparkContext): String = {
+class DataflintSparkUICommonInstaller extends Logging {
+  def install(context: SparkContext, pageFactory: DataflintPageFactory): String = {
     if(context.ui.isEmpty) {
       logWarning("No UI detected, skipping installation...")
       return ""
     }
-    val isDataFlintAlreadyInstalled = context.ui.get.getTabs.exists(_.name == "DataFlint")
+    val isDataFlintAlreadyInstalled = pageFactory.getTabs(context.ui.get).exists(_.name == "DataFlint")
     if(isDataFlintAlreadyInstalled){
       logInfo("DataFlint UI is already installed, skipping installation...")
       return context.ui.get.webUrl
@@ -95,35 +95,46 @@ class DataflintSparkUIInstaller extends Logging {
         logWarning("Could not add DataFlint Listeners to listener bus", e)
     }
 
-    loadUI(context.ui.get, sqlListener)
+    loadUI(context.ui.get, pageFactory, sqlListener)
   }
 
-  def loadUI(ui: SparkUI, sqlListener: () => Option[SQLAppStatusListener] = () => None): String = {
-    val isDataFlintAlreadyInstalled = ui.getTabs.exists(_.name == "DataFlint")
+  def loadUI(ui: SparkUI, pageFactory: DataflintPageFactory, sqlListener: () => Option[SQLAppStatusListener] = () => None): String = {
+    val isDataFlintAlreadyInstalled = pageFactory.getTabs(ui).exists(_.name == "DataFlint")
     if (isDataFlintAlreadyInstalled) {
       logInfo("DataFlint UI is already installed, skipping installation...")
       return ui.webUrl
     }
-    DataflintJettyUtils.addStaticHandler(ui, "io/dataflint/spark/static/ui", ui.basePath + "/dataflint")
+    pageFactory.addStaticHandler(ui, "io/dataflint/spark/static/ui", ui.basePath + "/dataflint")
     val dataflintStore = new DataflintStore(store = ui.store.store)
-    val tab = new DataFlintTab(ui)
-    tab.attachPage(new DataflintSQLPlanPage(ui, dataflintStore, sqlListener))
-    tab.attachPage(new DataflintSQLMetricsPage(ui, sqlListener))
-    tab.attachPage(new DataflintSQLStagesRddPage(ui))
-    tab.attachPage(new DataflintApplicationInfoPage(ui, dataflintStore))
-    tab.attachPage(new DataflintIcebergPage(ui, dataflintStore))
-    tab.attachPage(new DataflintCachedStoragePage(ui,  dataflintStore))
+    val tab = pageFactory.createDataFlintTab(ui)
+    tab.attachPage(pageFactory.createSQLPlanPage(ui, dataflintStore, sqlListener))
+    tab.attachPage(pageFactory.createSQLMetricsPage(ui, sqlListener))
+    tab.attachPage(pageFactory.createSQLStagesRddPage(ui))
+    tab.attachPage(pageFactory.createApplicationInfoPage(ui, dataflintStore))
+    tab.attachPage(pageFactory.createIcebergPage(ui, dataflintStore))
+    tab.attachPage(pageFactory.createCachedStoragePage(ui, dataflintStore))
     ui.attachTab(tab)
     ui.webUrl
   }
 
 }
-object DataflintSparkUILoader {
+
+object DataflintSparkUICommonLoader {
+  
+  def install(context: SparkContext, pageFactory: DataflintPageFactory): String = {
+    new DataflintSparkUICommonInstaller().install(context, pageFactory)
+  }
+
+  def loadUI(ui: SparkUI, pageFactory: DataflintPageFactory): String = {
+    new DataflintSparkUICommonInstaller().loadUI(ui, pageFactory)
+  }
+  
+  // Backward compatibility methods - these will be overridden in version-specific implementations
   def install(context: SparkContext): String = {
-    new DataflintSparkUIInstaller().install(context)
+    throw new UnsupportedOperationException("This method requires a version-specific implementation. Use pluginspark3 or pluginspark4.")
   }
 
   def loadUI(ui: SparkUI): String = {
-    new DataflintSparkUIInstaller().loadUI(ui)
+    throw new UnsupportedOperationException("This method requires a version-specific implementation. Use pluginspark3 or pluginspark4.")
   }
 }
