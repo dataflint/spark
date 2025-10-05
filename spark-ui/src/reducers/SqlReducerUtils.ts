@@ -25,6 +25,8 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "number of output rows",
     "written output",
     "number of dynamic part",
+    "total number of files merged by ZOrderBy",
+    "total bytes in files merged by ZOrderBy",
   ],
   join: ["number of output rows", "output columnar batches"],
   transformation: [
@@ -62,6 +64,7 @@ const metricsValueTransformer: Record<
   "partition data size": extractTotalFromStatisticsMetric,
   "data sent to Python workers": extractTotalFromStatisticsMetric,
   "data returned from Python workers": extractTotalFromStatisticsMetric,
+  "total bytes in files merged by ZOrderBy": bytesToHumanReadableSize,
   "number of dynamic part": (value: string) => {
     // if dynamic part is 0 we want to remove it from metrics
     if (value === "0") {
@@ -97,6 +100,8 @@ const metricsRenamer: Record<string, string> = {
   "data returned from Python workers": "data returned",
   "number of bytes pruned": "bytes pruned",
   "number of files pruned": "files pruned",
+  "total number of files merged by ZOrderBy": "optimized num of files",
+  "total bytes in files merged by ZOrderBy": "total optimized bytes",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -104,6 +109,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   Range: "input",
   "Execute InsertIntoHadoopFsRelationCommand": "output",
   "Execute WriteIntoDeltaCommand": "output",
+  "Execute OptimizeTableCommandEdge": "output",
   CollectLimit: "output",
   TakeOrderedAndProject: "output",
   BroadcastHashJoin: "join",
@@ -172,6 +178,7 @@ const nodeRenamerDict: Record<string, string> = {
   SortAggregate: "Aggregate (Sort)",
   "Execute InsertIntoHadoopFsRelationCommand": "Write to HDFS",
   "Execute WriteIntoDeltaCommand": "Write To Delta Lake",
+  "Execute OptimizeTableCommandEdge": "Optimize Table",
   LocalTableScan: "Read in-memory table",
   "Execute RepairTableCommand": "Repair table",
   "Execute CreateDataSourceTableCommand": "Create table",

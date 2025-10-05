@@ -291,6 +291,32 @@ export const processOutputNodeMetrics = (node: EnrichedSqlNode): MetricWithToolt
     return metrics;
 };
 
+export const processOptimizeTableMetrics = (node: EnrichedSqlNode): MetricWithTooltip[] => {
+    const metrics: MetricWithTooltip[] = [];
+
+    if (node.nodeName !== "Execute OptimizeTableCommandEdge") return metrics;
+
+    const optimizedNumOfFilesMetric = parseFloat(
+        node.metrics
+            .find((metric) => metric.name === "optimized num of files")
+            ?.value?.replaceAll(",", "") ?? "0",
+    );
+    const totalOptimizedBytesMetric = parseBytesString(
+        node.metrics.find((metric) => metric.name === "total optimized bytes")?.value ?? "0",
+    );
+
+    if (optimizedNumOfFilesMetric && totalOptimizedBytesMetric && optimizedNumOfFilesMetric > 0) {
+        const avgFileSize = totalOptimizedBytesMetric / optimizedNumOfFilesMetric;
+        const avgFileSizeString = humanFileSize(avgFileSize);
+        metrics.push({
+            name: "Avg File Size",
+            value: avgFileSizeString,
+        });
+    }
+
+    return metrics;
+};
+
 // Helper functions
 export function handleAddedRemovedMetrics(
     name: string,

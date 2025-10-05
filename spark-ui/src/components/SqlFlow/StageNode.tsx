@@ -13,6 +13,7 @@ import {
   processExchangeMetrics,
   processIcebergCommitMetrics,
   processInputNodeMetrics,
+  processOptimizeTableMetrics,
   processOutputNodeMetrics,
   processShuffleReadMetrics,
 } from "./MetricProcessors";
@@ -63,6 +64,7 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
       ...processShuffleReadMetrics(data.node),
       ...processInputNodeMetrics(data.node),
       ...processOutputNodeMetrics(data.node),
+      ...processOptimizeTableMetrics(data.node),
     ];
 
     // Process plan-specific metrics
