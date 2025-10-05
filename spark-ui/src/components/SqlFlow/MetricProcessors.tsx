@@ -169,6 +169,20 @@ export const processExchangeMetrics = (node: EnrichedSqlNode): MetricWithTooltip
 
     if (node.nodeName !== "Exchange") return metrics;
 
+    // Check if this is a delta optimized write exchange
+    if (node.parsedPlan?.type === "Exchange" && node.parsedPlan.plan.deltaOptimizeWrite) {
+        const deltaOpt = node.parsedPlan.plan.deltaOptimizeWrite;
+        metrics.push({
+            name: "Target File Size",
+            value: `${deltaOpt.maxFileSize}`,
+        });
+        metrics.push({
+            name: "Auto Compact Size",
+            value: `${deltaOpt.autoCompactMaxFileSize}`,
+        });
+        return metrics;
+    }
+
     const partitionsMetric = parseFloat(
         node.metrics
             .find((metric) => metric.name === "partitions")

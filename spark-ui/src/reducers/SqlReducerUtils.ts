@@ -103,6 +103,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   LocalTableScan: "input",
   Range: "input",
   "Execute InsertIntoHadoopFsRelationCommand": "output",
+  "Execute WriteIntoDeltaCommand": "output",
   CollectLimit: "output",
   TakeOrderedAndProject: "output",
   BroadcastHashJoin: "join",
@@ -116,6 +117,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   Exchange: "shuffle",
   AQEShuffleRead: "shuffle",
   HashAggregate: "transformation",
+  SortAggregate: "transformation",
   BroadcastExchange: "broadcast",
   Sort: "sort",
   Project: "transformation",
@@ -167,7 +169,9 @@ const nodeTypeDict: Record<string, NodeType> = {
 
 const nodeRenamerDict: Record<string, string> = {
   HashAggregate: "Aggregate",
+  SortAggregate: "Aggregate (Sort)",
   "Execute InsertIntoHadoopFsRelationCommand": "Write to HDFS",
+  "Execute WriteIntoDeltaCommand": "Write To Delta Lake",
   LocalTableScan: "Read in-memory table",
   "Execute RepairTableCommand": "Repair table",
   "Execute CreateDataSourceTableCommand": "Create table",
@@ -351,6 +355,8 @@ export function nodeEnrichedNameBuilder(
       case "Exchange":
         if (plan.plan.isBroadcast) {
           return "Broadcast";
+        } else if (plan.plan.type === "deltaoptimizedwrites") {
+          return "Repartition (Delta Optimized Write)";
         } else if (plan.plan.type === "hashpartitioning") {
           return `Repartition By Hash`;
         } else if (plan.plan.type === "rangepartitioning") {

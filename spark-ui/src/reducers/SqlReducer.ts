@@ -35,6 +35,7 @@ import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWindow } from "./PlanParsers/WindowParser";
+import { parseWriteToDelta } from "./PlanParsers/WriteToDeltaParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
 import { parseBatchEvalPython } from "./PlanParsers/batchEvalPythonParser";
 import { parseHashAggregate } from "./PlanParsers/hashAggregateParser";
@@ -96,6 +97,7 @@ export function parseNodePlan(
       case "GpuHashAggregate":
       case "!CometGpuHashAggregate":
       case "HashAggregate":
+      case "SortAggregate":
         return {
           type: "HashAggregate",
           plan: parseHashAggregate(plan.planDescription),
@@ -120,6 +122,11 @@ export function parseNodePlan(
         return {
           type: "WriteToHDFS",
           plan: parseWriteToHDFS(plan.planDescription),
+        };
+      case "Execute WriteIntoDeltaCommand":
+        return {
+          type: "WriteToDelta",
+          plan: parseWriteToDelta(plan.planDescription),
         };
       case "PhotonFilter":
       case "GpuFilter":

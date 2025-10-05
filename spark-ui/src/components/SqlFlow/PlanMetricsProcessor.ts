@@ -29,6 +29,9 @@ class PlanMetricsProcessor {
             case "WriteToHDFS":
                 return this.processWriteToHDFS(parsedPlan.plan, metrics);
 
+            case "WriteToDelta":
+                return this.processWriteToDelta(parsedPlan.plan, metrics);
+
             case "FileScan":
                 return this.processFileScan(parsedPlan.plan, metrics);
 
@@ -120,6 +123,16 @@ class PlanMetricsProcessor {
         return metrics;
     }
 
+    private static processWriteToDelta(plan: any, metrics: MetricWithTooltip[]): MetricWithTooltip[] {
+        if (plan.location) {
+            addTruncatedSmallTooltip(metrics, "Location", plan.location);
+        }
+        if (plan.fields !== undefined && plan.fields.length > 0) {
+            addTruncatedCodeTooltipMultiline(metrics, "Output Fields", plan.fields);
+        }
+        return metrics;
+    }
+
     private static processFileScan(plan: any, metrics: MetricWithTooltip[]): MetricWithTooltip[] {
         if (plan.PushedFilters !== undefined && plan.PushedFilters.length > 0) {
             addTruncatedCodeTooltipMultiline(metrics, "Push Down Filters", plan.PushedFilters, 25, false);
@@ -148,6 +161,12 @@ class PlanMetricsProcessor {
     }
 
     private static processExchange(plan: any, metrics: MetricWithTooltip[]): MetricWithTooltip[] {
+        // Delta optimize write is handled in processExchangeMetrics in MetricProcessors.tsx
+        // to avoid duplication and ensure it appears prominently
+        if (plan.deltaOptimizeWrite !== undefined) {
+            return metrics;
+        }
+
         if (plan.fields !== undefined && plan.fields.length > 0) {
             const fieldLabel = plan.type === "hashpartitioning"
                 ? (plan.fields.length === 1 ? "Hashed Field" : "Hashed Fields")

@@ -38,7 +38,7 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
   const [searchParams] = useSearchParams();
 
   // Memoized computations for better performance
-  const { isHighlighted, allMetrics } = useMemo(() => {
+  const { isHighlighted, allMetrics, hasDeltaOptimizeWrite } = useMemo(() => {
     // Parse nodeIds from URL parameters
     const nodeIdsParam = searchParams.get('nodeids');
     const highlightedNodeIds = nodeIdsParam
@@ -47,6 +47,12 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
 
     // Check if current node should be highlighted
     const highlighted = highlightedNodeIds.includes(data.node.nodeId);
+
+    // Check if this node has delta optimize write enabled
+    const hasDeltaOptimize =
+      data.node.nodeName === "Exchange" &&
+      data.node.parsedPlan?.type === "Exchange" &&
+      data.node.parsedPlan.plan.deltaOptimizeWrite !== undefined;
 
     // Process all metrics
     const metrics: MetricWithTooltip[] = [
@@ -67,6 +73,7 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
     return {
       isHighlighted: highlighted,
       allMetrics: metrics,
+      hasDeltaOptimizeWrite: hasDeltaOptimize,
     };
   }, [
     // Use SQL identifiers for optimal memoization when available
@@ -149,6 +156,25 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
           <Typography className={styles.nodeTitle} variant="h6" component="h3">
             {data.node.enrichedName}
           </Typography>
+          {hasDeltaOptimizeWrite && (
+            <Box
+              sx={{
+                display: "inline-block",
+                ml: 1,
+                px: 0.75,
+                py: 0.25,
+                backgroundColor: "#1976d2",
+                color: "white",
+                borderRadius: "4px",
+                fontSize: "0.65rem",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Δ Optimized
+            </Box>
+          )}
         </Box>
 
         {/* Metrics content */}

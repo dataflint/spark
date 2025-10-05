@@ -41,5 +41,21 @@ describe("parseExchange", () => {
     });
   });
 
+  test("parses delta optimized write partitioning correctly", () => {
+    const input =
+      "Exchange deltaoptimizedwritepartitioning((spark.databricks.delta.optimize.minFileSize,268435456), (spark.databricks.delta.autoCompact.maxFileSize,134217728), (spark.databricks.delta.optimize.maxFileSize,268435456), (spark.databricks.delta.autoCompact.minFileSize,67108864)), DELTA_OPTIMIZED_WRITE, [plan_id=10033]";
+    expect(parseExchange(input)).toEqual({
+      type: "deltaoptimizedwrites",
+      fields: [],
+      isBroadcast: false,
+      deltaOptimizeWrite: {
+        minFileSize: "256.00 MB",
+        maxFileSize: "256.00 MB",
+        autoCompactMinFileSize: "64.00 MB",
+        autoCompactMaxFileSize: "128.00 MB",
+      },
+    });
+  });
+
   // Add more test cases as necessary
 });

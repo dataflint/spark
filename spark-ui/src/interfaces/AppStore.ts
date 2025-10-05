@@ -204,10 +204,18 @@ export type ParseFilterPlan = {
   condition: string;
 };
 
+export type DeltaOptimizeWrite = {
+  minFileSize: string;
+  maxFileSize: string;
+  autoCompactMinFileSize: string;
+  autoCompactMaxFileSize: string;
+};
+
 export type ParsedExchangePlan = {
   type: string;
   fields: string[] | undefined;
   isBroadcast: boolean;
+  deltaOptimizeWrite?: DeltaOptimizeWrite;
 };
 
 export type ParsedWindowPlan = {
@@ -230,6 +238,11 @@ export type ParsedWriteToHDFSPlan = {
   mode: string;
   tableName?: string;
   partitionKeys?: string[];
+};
+
+export type ParsedWriteToDeltaPlan = {
+  location: string;
+  fields: string[];
 };
 
 export type ParsedCollectLimitPlan = {
@@ -267,6 +280,7 @@ export type ParsedNodePlan =
   | { type: "CollectLimit"; plan: ParsedCollectLimitPlan }
   | { type: "FileScan"; plan: ParseFileScanPlan }
   | { type: "WriteToHDFS"; plan: ParsedWriteToHDFSPlan }
+  | { type: "WriteToDelta"; plan: ParsedWriteToDeltaPlan }
   | { type: "Filter"; plan: ParseFilterPlan }
   | { type: "Project"; plan: ParsedProjectPlan }
   | { type: "Exchange"; plan: ParsedExchangePlan }
