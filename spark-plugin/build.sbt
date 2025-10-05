@@ -69,8 +69,14 @@ lazy val pluginspark3 = (project in file("pluginspark3"))
     
     // Publish the assembled JAR instead of the regular JAR
     Compile / packageBin := assembly.value,
-    publishTo := sonatypePublishToBundle.value
-  ).dependsOn(plugin % "compile->compile;test->test")
+    publishTo := sonatypePublishToBundle.value,
+    
+    // Include source from plugin directory for self-contained build
+    Compile / unmanagedSourceDirectories += (plugin / Compile / sourceDirectory).value / "scala",
+    
+    // Include resources from plugin directory for static UI files
+    Compile / unmanagedResourceDirectories += (plugin / Compile / resourceDirectory).value
+  )
 
 lazy val pluginspark4 = (project in file("pluginspark4"))
   .enablePlugins(AssemblyPlugin)
