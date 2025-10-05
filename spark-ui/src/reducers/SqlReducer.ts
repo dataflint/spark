@@ -286,7 +286,6 @@ function calculateSql(
     );
 
     const nodeIdFromMetrics = findStageIdFromMetrics(node.metrics);
-    console.log(`node.metrics from sql plan: ${JSON.stringify(node.metrics)}, nodeIdFromMetrics: ${nodeIdFromMetrics}`);
 
     return {
       ...node,
