@@ -271,7 +271,9 @@ export function bytesToHumanReadableSize(
     return undefined;
   }
   try {
-    return humanFileSize(parseInt(value, 10));
+    // Remove commas from the value before parsing (e.g., "107,707,560,516" -> "107707560516")
+    const cleanedValue = value.replace(/,/g, '');
+    return humanFileSize(parseInt(cleanedValue, 10));
   } catch (e) {
     console.log(`failed to parse ${value} to a number`); // shouldn't happen
     return value;
