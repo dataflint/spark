@@ -18,6 +18,8 @@ abstract class DataflintPageFactory {
   
   def createIcebergPage(ui: SparkUI, dataflintStore: DataflintStore): WebUIPage
   
+  def createDeltaLakeScanPage(ui: SparkUI, dataflintStore: DataflintStore): WebUIPage
+  
   def createSQLMetricsPage(ui: SparkUI, sqlListener: () => Option[SQLAppStatusListener]): WebUIPage
   
   def createSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListener: () => Option[SQLAppStatusListener]): WebUIPage

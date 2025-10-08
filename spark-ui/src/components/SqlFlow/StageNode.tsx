@@ -10,6 +10,7 @@ import MetricDisplay, { MetricWithTooltip } from "./MetricDisplay";
 import {
   processBaseMetrics,
   processCachedStorageMetrics,
+  processDeltaLakeScanMetrics,
   processExchangeMetrics,
   processIcebergCommitMetrics,
   processInputNodeMetrics,
@@ -60,6 +61,7 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
       ...processBaseMetrics(data.node),
       ...processCachedStorageMetrics(data.node),
       ...processIcebergCommitMetrics(data.node),
+      ...processDeltaLakeScanMetrics(data.node),
       ...processExchangeMetrics(data.node),
       ...processShuffleReadMetrics(data.node),
       ...processInputNodeMetrics(data.node),

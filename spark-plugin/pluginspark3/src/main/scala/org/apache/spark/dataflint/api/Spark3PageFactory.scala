@@ -25,6 +25,10 @@ class Spark3PageFactory extends DataflintPageFactory {
     new DataflintIcebergPage(ui, dataflintStore)
   }
   
+  override def createDeltaLakeScanPage(ui: SparkUI, dataflintStore: DataflintStore): WebUIPage = {
+    new DataflintDeltaLakeScanPage(ui, dataflintStore)
+  }
+  
   override def createSQLMetricsPage(ui: SparkUI, sqlListener: () => Option[SQLAppStatusListener]): WebUIPage = {
     new DataflintSQLMetricsPage(ui, sqlListener)
   }

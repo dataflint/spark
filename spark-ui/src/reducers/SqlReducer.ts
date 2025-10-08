@@ -12,6 +12,7 @@ import {
   SparkStagesStore,
 } from "../interfaces/AppStore";
 import { RddStorageInfo } from "../interfaces/CachedStorage";
+import { DeltaLakeInfo, DeltaLakeScanInfo } from "../interfaces/DeltaLakeInfo";
 import { IcebergCommitsInfo, IcebergInfo } from "../interfaces/IcebergInfo";
 import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
@@ -219,8 +220,13 @@ function calculateSql(
   sql: SparkSQL,
   plan: SQLPlan | undefined,
   icebergCommit: IcebergCommitsInfo | undefined,
+  deltaLakeScans: DeltaLakeScanInfo[],
   stages: SparkStagesStore,
 ): EnrichedSparkSQL {
+  console.log(`[DeltaLake] ========== Processing SQL ${sql.id} ==========`);
+  console.log(`[DeltaLake] Available Delta Lake scans:`, deltaLakeScans);
+  console.log(`[DeltaLake] Number of nodes in SQL:`, sql.nodes.length);
+
   const enrichedSql = sql as EnrichedSparkSQL;
   const originalNumOfNodes = enrichedSql.nodes.length;
   const typeEnrichedNodes = enrichedSql.nodes.map((node) => {
@@ -231,6 +237,46 @@ function calculateSql(
     const parsedPlan =
       nodePlan !== undefined ? parseNodePlan(node, nodePlan) : undefined;
     const isCodegenNode = node.nodeName.includes("WholeStageCodegen");
+
+    // Find the Delta Lake scan that matches this node's table location
+    // We match by table path instead of node ID because AQE can change node IDs
+    const matchingDeltaScan = deltaLakeScans.find((scan) => {
+      console.log(`[DeltaLake] Checking node ${node.nodeId} (${node.nodeName})`);
+      console.log(`[DeltaLake]   - parsedPlan:`, parsedPlan);
+      console.log(`[DeltaLake]   - parsedPlan.type:`, parsedPlan?.type);
+
+      if (!parsedPlan || parsedPlan.type !== "FileScan") {
+        console.log(`[DeltaLake]   - Skipping: not a FileScan (type=${parsedPlan?.type})`);
+        return false;
+      }
+
+      console.log(`[DeltaLake]   - parsedPlan.plan.Location:`, parsedPlan.plan.Location);
+
+      if (!parsedPlan.plan.Location) {
+        console.log(`[DeltaLake]   - Skipping: no Location in parsedPlan`);
+        return false;
+      }
+
+      // Normalize paths for comparison (handle trailing slashes, keep scheme)
+      const normalizedScanPath = scan.tablePath.replace(/\/$/, "");
+      const normalizedNodePath = parsedPlan.plan.Location.replace(/\/$/, "");
+
+      console.log(`[DeltaLake]   - Comparing paths:`);
+      console.log(`[DeltaLake]     - Scan path: ${scan.tablePath}`);
+      console.log(`[DeltaLake]     - Normalized scan path: ${normalizedScanPath}`);
+      console.log(`[DeltaLake]     - Node path: ${parsedPlan.plan.Location}`);
+      console.log(`[DeltaLake]     - Normalized node path: ${normalizedNodePath}`);
+
+      // Check if the paths match (the node path should contain the scan path)
+      const matches = normalizedNodePath.includes(normalizedScanPath);
+      console.log(`[DeltaLake]     - Match result: ${matches}`);
+
+      return matches;
+    });
+
+    if (matchingDeltaScan) {
+      console.log(`[DeltaLake] ✓ Matched node ${node.nodeId} with scan:`, matchingDeltaScan);
+    }
 
     return {
       ...node,
@@ -246,6 +292,7 @@ function calculateSql(
         type === "output" || enrichedSql.nodes.length === 1
           ? icebergCommit
           : undefined,
+      deltaLakeScan: matchingDeltaScan,
     };
 
     function extractCodegenId(): number | undefined {
@@ -367,6 +414,7 @@ function calculateSqls(
   sqls: SparkSQLs,
   plans: SQLPlans,
   icebergInfo: IcebergInfo,
+  deltaLakeInfo: DeltaLakeInfo,
   stages: SparkStagesStore,
 ): EnrichedSparkSQL[] {
   return sqls.map((sql) => {
@@ -374,7 +422,10 @@ function calculateSqls(
     const icebergCommit = icebergInfo.commitsInfo.find(
       (plan) => plan.executionId === parseInt(sql.id),
     );
-    return calculateSql(sql, plan, icebergCommit, stages);
+    const deltaLakeScans = deltaLakeInfo.scans.filter(
+      (scan) => scan.executionId === parseInt(sql.id),
+    );
+    return calculateSql(sql, plan, icebergCommit, deltaLakeScans, stages);
   });
 }
 
@@ -383,10 +434,11 @@ export function calculateSqlStore(
   sqls: SparkSQLs,
   plans: SQLPlans,
   icebergInfo: IcebergInfo,
+  deltaLakeInfo: DeltaLakeInfo,
   stages: SparkStagesStore,
 ): SparkSQLStore {
   if (currentStore === undefined) {
-    return { sqls: calculateSqls(sqls, plans, icebergInfo, stages) };
+    return { sqls: calculateSqls(sqls, plans, icebergInfo, deltaLakeInfo, stages) };
   }
 
   const sqlIds = sqls.map((sql) => parseInt(sql.id));
@@ -408,21 +460,24 @@ export function calculateSqlStore(
     const icebergCommit = icebergInfo.commitsInfo.find(
       (plan) => plan.executionId === id,
     );
+    const deltaLakeScans = deltaLakeInfo.scans.filter(
+      (scan) => scan.executionId === id,
+    );
 
     // case 1: SQL does not exist, we add it
     if (currentSql === undefined) {
-      updatedSqls.push(calculateSql(newSql, plan, icebergCommit, stages));
+      updatedSqls.push(calculateSql(newSql, plan, icebergCommit, deltaLakeScans, stages));
       // From here currentSql must not be null
       // case 2: plan status changed from running to completed, so we need to update the SQL
     } else if (
       newSql.status === SqlStatus.Completed.valueOf() ||
       newSql.status === SqlStatus.Failed.valueOf()
     ) {
-      updatedSqls.push(calculateSql(newSql, plan, icebergCommit, stages));
+      updatedSqls.push(calculateSql(newSql, plan, icebergCommit, deltaLakeScans, stages));
       // From here newSql.status must be RUNNING
       // case 3: running SQL structure, so we need to update the plan
     } else if (currentSql.originalNumOfNodes !== newSql.nodes.length) {
-      updatedSqls.push(calculateSql(newSql, plan, icebergCommit, stages));
+      updatedSqls.push(calculateSql(newSql, plan, icebergCommit, deltaLakeScans, stages));
     } else {
       // case 4: SQL is running, but the structure haven't changed, so we update only relevant fields
       updatedSqls.push({

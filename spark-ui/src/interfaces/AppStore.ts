@@ -1,5 +1,6 @@
 import { EnvironmentInfo } from './ApplicationInfo';
 import { RddStorageInfo } from './CachedStorage';
+import { DeltaLakeScanInfo } from "./DeltaLakeInfo";
 import { IcebergCommitsInfo } from "./IcebergInfo";
 
 export type NodeType =
@@ -315,6 +316,7 @@ export interface EnrichedSqlNode {
   exchangeMetrics: ExchangeMetrics | undefined;
   rddScopeId: string | undefined;
   icebergCommit: IcebergCommitsInfo | undefined;
+  deltaLakeScan: DeltaLakeScanInfo | undefined;
   cachedStorage: RddStorageInfo | undefined;
   nodeIdFromMetrics: number | undefined;
 }

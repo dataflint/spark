@@ -164,6 +164,39 @@ export const processIcebergCommitMetrics = (node: EnrichedSqlNode): MetricWithTo
     return metrics;
 };
 
+export const processDeltaLakeScanMetrics = (node: EnrichedSqlNode): MetricWithTooltip[] => {
+    const metrics: MetricWithTooltip[] = [];
+    const scan = node.deltaLakeScan;
+
+    if (!scan) return metrics;
+
+    // Add partition columns if any
+    if (scan.partitionColumns && scan.partitionColumns.length > 0) {
+        metrics.push({
+            name: "Partition By",
+            value: scan.partitionColumns.join(", "),
+        });
+    }
+
+    // Add clustering columns if any
+    if (scan.clusteringColumns && scan.clusteringColumns.length > 0) {
+        metrics.push({
+            name: "Cluster By",
+            value: scan.clusteringColumns.join(", "),
+        });
+    }
+
+    // Add z-order columns if any
+    if (scan.zorderColumns && scan.zorderColumns.length > 0) {
+        metrics.push({
+            name: "Z-Order By",
+            value: scan.zorderColumns.join(", "),
+        });
+    }
+
+    return metrics;
+};
+
 export const processExchangeMetrics = (node: EnrichedSqlNode): MetricWithTooltip[] => {
     const metrics: MetricWithTooltip[] = [];
 

@@ -73,3 +73,21 @@ class DataflintRDDStorageInfoWrapper(val info: DataflintRDDStorageInfo) {
   @KVIndex
   def id: Int = info.rddId
 }
+
+case class DataflintDeltaLakeScanInfo(
+                                       executionId: Long,
+                                       nodeId: Long,
+                                       tablePath: String,
+                                       tableName: Option[String],
+                                       partitionColumns: Seq[String],
+                                       clusteringColumns: Seq[String],
+                                       zorderColumns: Seq[String]
+                                     )
+
+case class DataflintDeltaLakeScanEvent(scanInfo: DataflintDeltaLakeScanInfo) extends SparkListenerEvent
+
+class DataflintDeltaLakeScanInfoWrapper(val info: DataflintDeltaLakeScanInfo) {
+  @KVIndex
+  @JsonIgnore
+  def id: String = s"${info.executionId}_${info.nodeId}"
+}

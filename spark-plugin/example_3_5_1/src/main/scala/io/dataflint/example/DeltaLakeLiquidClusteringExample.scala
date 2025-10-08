@@ -10,6 +10,7 @@ object DeltaLakeLiquidClusteringExample extends App {
     .appName("DeltaLakeLiquidClusteringExample")
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
     .config("spark.dataflint.telemetry.enabled", false)
+    .config("spark.dataflint.instrument.deltalake.enabled", true)
     .config("spark.ui.port", "10000")
     .config("spark.sql.maxMetadataStringLength", "10000")
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
@@ -48,18 +49,103 @@ object DeltaLakeLiquidClusteringExample extends App {
   ZORDER BY (category)
 """)
 
-  // Read without filter and count
+  // Read without filter and aggregate
   val dfAll = spark.read.format("delta").load(path)
-  spark.sparkContext.setJobDescription("Counting without filter on Delta table")
-  val countAll = dfAll.count()
-  println(s"Total rows: $countAll")
+  spark.sparkContext.setJobDescription("Aggregating without filter on Delta table")
+  val resultAll = dfAll.groupBy("category").agg(sum("value").as("total_value"), count("*").as("count")).collect()
+  println(s"Total aggregation results: ${resultAll.mkString(", ")}")
 
-  spark.sparkContext.setJobDescription("Counting with filter on Delta table")
-  // Read with filter and count
+  spark.sparkContext.setJobDescription("Aggregating with filter on Delta table")
+  // Read with filter and aggregate
   val dfFiltered = spark.read.format("delta").load(path)
     .filter($"category" === "A")
-  val countFiltered = dfFiltered.count()
-  println(s"Filtered rows (category = 'A'): $countFiltered")
+  val resultFiltered = dfFiltered.agg(sum("value").as("total_value"), count("*").as("count")).collect()
+  println(s"Filtered aggregation (category = 'A'): ${resultFiltered.mkString(", ")}")
+
+  // === ✅ Partitioned Table Example ===
+  spark.sparkContext.setJobDescription("Creating partitioned Delta table")
+  val partitionPath = "/tmp/partitioned_table"
+  
+  // Create larger dataset for partitioning
+  val partitionData = (1 to 100000).map { i =>
+    val region = if (i % 4 == 0) "North" else if (i % 4 == 1) "South" else if (i % 4 == 2) "East" else "West"
+    val status = if (i % 2 == 0) "Active" else "Inactive"
+    (i, region, status, i * 10)
+  }.toDF("id", "region", "status", "amount")
+
+  // Write partitioned table
+  spark.sparkContext.setJobDescription("Writing partitioned Delta table")
+  partitionData.write
+    .format("delta")
+    .partitionBy("region", "status")
+    .mode("overwrite")
+    .save(partitionPath)
+
+  // Register partitioned table
+  spark.sparkContext.setJobDescription("Registering partitioned Delta table")
+  spark.sql(s"DROP TABLE IF EXISTS partitioned_table")
+  spark.sql(s"CREATE TABLE partitioned_table USING DELTA LOCATION '$partitionPath'")
+
+  // Read without partition filter
+  spark.sparkContext.setJobDescription("Reading partitioned table without partition filter")
+  val dfPartitionedAll = spark.read.format("delta").load(partitionPath)
+  val resultPartitionedAll = dfPartitionedAll.groupBy("region", "status").agg(sum("amount").as("total_amount"), count("*").as("count")).collect()
+  println(s"Partitioned table - All regions aggregation: ${resultPartitionedAll.length} groups, sample: ${resultPartitionedAll.take(3).mkString(", ")}")
+
+  // Read with partition filter (should use partition pruning)
+  spark.sparkContext.setJobDescription("Reading partitioned table with partition filter")
+  val dfPartitionedFiltered = spark.read.format("delta").load(partitionPath)
+    .filter($"region" === "North" && $"status" === "Active")
+  val resultPartitionedFiltered = dfPartitionedFiltered.agg(sum("amount").as("total_amount"), count("*").as("count")).collect()
+  println(s"Partitioned table - Filtered (region = 'North' AND status = 'Active'): ${resultPartitionedFiltered.mkString(", ")}")
+
+  // === ✅ Liquid Clustering Example ===
+  spark.sparkContext.setJobDescription("Creating liquid clustered Delta table")
+  val liquidClusterPath = "/tmp/liquid_cluster_table"
+  
+  // Create dataset for liquid clustering
+  val liquidClusterData = (1 to 100000).map { i =>
+    val department = if (i % 5 == 0) "Engineering" else if (i % 5 == 1) "Sales" else if (i % 5 == 2) "Marketing" else if (i % 5 == 3) "HR" else "Finance"
+    val city = if (i % 3 == 0) "NYC" else if (i % 3 == 1) "SF" else "LA"
+    (i, department, city, i * 100)
+  }.toDF("id", "department", "city", "salary")
+
+  // Write liquid clustered table
+  spark.sparkContext.setJobDescription("Writing liquid clustered Delta table")
+  liquidClusterData.write
+    .format("delta")
+    .mode("overwrite")
+    .save(liquidClusterPath)
+
+  // Register and apply liquid clustering
+  spark.sparkContext.setJobDescription("Registering and applying liquid clustering")
+  spark.sql(s"DROP TABLE IF EXISTS liquid_cluster_table")
+  spark.sql(s"CREATE TABLE liquid_cluster_table USING DELTA LOCATION '$liquidClusterPath'")
+  
+  // Apply liquid clustering (Spark 3.5+ / Delta 3.0+ feature)
+  spark.sparkContext.setJobDescription("Altering table to use liquid clustering")
+  spark.sql("""
+    ALTER TABLE liquid_cluster_table 
+    CLUSTER BY (department, city)
+  """)
+
+  // Optimize to apply clustering
+  spark.sparkContext.setJobDescription("Optimizing liquid clustered table")
+  spark.sql("OPTIMIZE liquid_cluster_table")
+
+  // Read without clustering filter
+  spark.sparkContext.setJobDescription("Reading liquid clustered table without filter")
+  val dfLiquidAll = spark.read.format("delta").load(liquidClusterPath)
+  val resultLiquidAll = dfLiquidAll.groupBy("department", "city").agg(sum("salary").as("total_salary"), count("*").as("count")).collect()
+  println(s"Liquid clustered table - All departments aggregation: ${resultLiquidAll.length} groups, sample: ${resultLiquidAll.take(3).mkString(", ")}")
+
+  // Read with clustering filter (should benefit from clustering)
+  spark.sparkContext.setJobDescription("Reading liquid clustered table with clustering filter")
+  val dfLiquidFiltered = spark.read.format("delta").load(liquidClusterPath)
+    .filter($"department" === "Engineering" && $"city" === "NYC")
+  val resultLiquidFiltered = dfLiquidFiltered.agg(sum("salary").as("total_salary"), count("*").as("count")).collect()
+  println(s"Liquid clustered table - Filtered (department = 'Engineering' AND city = 'NYC'): ${resultLiquidFiltered.mkString(", ")}")
+
   scala.io.StdIn.readLine()
   spark.stop()
 }

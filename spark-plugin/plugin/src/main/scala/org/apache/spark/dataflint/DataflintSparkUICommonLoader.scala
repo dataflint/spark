@@ -2,10 +2,9 @@ package org.apache.spark.dataflint
 
 import org.apache.spark.SparkContext
 import org.apache.spark.dataflint.api.DataflintPageFactory
-import org.apache.spark.dataflint.listener.{DataflintEnvironmentInfo, DataflintEnvironmentInfoEvent}
+import org.apache.spark.dataflint.listener.{DataflintDatabricksLiveListener, DataflintEnvironmentInfo, DataflintEnvironmentInfoEvent, DataflintListener, DataflintStore, DeltaLakeInstrumentationListener}
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker.isMetricLoaderInRightClassLoader
-import org.apache.spark.dataflint.listener.{DataflintDatabricksLiveListener, DataflintListener, DataflintStore}
 import org.apache.spark.dataflint.saas.DataflintRunExporterListener
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.SparkListenerInterface
@@ -49,6 +48,7 @@ class DataflintSparkUICommonInstaller extends Logging {
     val icebergInstalled = context.conf.get("spark.sql.extensions", "").contains("org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
     val icebergEnabled = context.conf.getBoolean("spark.dataflint.iceberg.enabled", defaultValue = true)
     val cacheObservabilityEnabled = context.conf.getBoolean("spark.dataflint.cacheObservability.enabled", defaultValue = true)
+    val deltaLakeInstrumentationEnabled = context.conf.getBoolean("spark.dataflint.instrument.deltalake.enabled", defaultValue = false)
     val icebergAuthCatalogDiscovery = context.conf.getBoolean("spark.dataflint.iceberg.autoCatalogDiscovery", defaultValue = false)
     if(icebergInstalled && icebergEnabled) {
       if(icebergAuthCatalogDiscovery && isMetricLoaderInRightClassLoader()) {
@@ -86,6 +86,11 @@ class DataflintSparkUICommonInstaller extends Logging {
         val rddListener = new LiveRDDsListener(context.statusStore.store.asInstanceOf[ElementTrackingStore])
         addToQueueMethod(rddListener, "dataflint")
       }
+      if(deltaLakeInstrumentationEnabled) {
+        val deltaLakeListener = new DeltaLakeInstrumentationListener(context)
+        addToQueueMethod(deltaLakeListener, "dataflint")
+        logInfo("Added DeltaLakeInstrumentationListener to the listener bus")
+      }
       context.listenerBus.post(DataflintEnvironmentInfoEvent(environmentInfo))
       if (isDatabricks) {
         addToQueueMethod(DataflintDatabricksLiveListener(context.listenerBus), "dataflint")
@@ -112,6 +117,7 @@ class DataflintSparkUICommonInstaller extends Logging {
     tab.attachPage(pageFactory.createSQLStagesRddPage(ui))
     tab.attachPage(pageFactory.createApplicationInfoPage(ui, dataflintStore))
     tab.attachPage(pageFactory.createIcebergPage(ui, dataflintStore))
+    tab.attachPage(pageFactory.createDeltaLakeScanPage(ui, dataflintStore))
     tab.attachPage(pageFactory.createCachedStoragePage(ui, dataflintStore))
     ui.attachTab(tab)
     ui.webUrl

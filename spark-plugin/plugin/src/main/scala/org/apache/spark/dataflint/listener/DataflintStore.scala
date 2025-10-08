@@ -29,4 +29,11 @@ class DataflintStore(val store: KVStore) {
     mapToSeq(store.view(classOf[DataflintRDDStorageInfoWrapper]))(_.info)
   }
 
+  def deltaLakeScanInfo(offset: Int, length: Int): Seq[DataflintDeltaLakeScanInfo] = {
+    mapToSeq(store.view(classOf[DataflintDeltaLakeScanInfoWrapper]))(_.info)
+      .filter(_.executionId >= offset)
+      .take(length)
+      .sortBy(_.executionId)
+  }
+
 }

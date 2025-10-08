@@ -1,5 +1,6 @@
 import { ApplicationInfo } from "../interfaces/ApplicationInfo";
 import { CachedStorage } from "../interfaces/CachedStorage";
+import { DeltaLakeInfo } from "../interfaces/DeltaLakeInfo";
 import { IcebergInfo } from "../interfaces/IcebergInfo";
 import { MixpanelEvents } from "../interfaces/Mixpanel";
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
@@ -99,6 +100,10 @@ class SparkAPI {
 
   private buildIcebergPath(offset: number): string {
     return `${this.baseCurrentPage}/iceberg/json/?offset=${offset}&length=${SQL_QUERY_LENGTH}`;
+  }
+
+  private buildDeltaLakePath(offset: number): string {
+    return `${this.baseCurrentPage}/deltalake/json/?offset=${offset}&length=${SQL_QUERY_LENGTH}`;
   }
 
   private buildStageRdd(): string {
@@ -312,12 +317,23 @@ class SparkAPI {
         );
       }
 
+      // Always try to fetch Delta Lake info (it's enabled if instrumentation is on)
+      let deltaLakeInfo: DeltaLakeInfo = { scans: [] };
+      try {
+        deltaLakeInfo = await this.queryData(
+          this.buildDeltaLakePath(sqlIdToQueryFrom),
+        );
+      } catch (e) {
+        // Delta Lake instrumentation might not be enabled, silently continue
+      }
+
       if (sparkSQLs.length !== 0) {
         this.dispatch(
           setSQL({
             sqls: sparkSQLs,
             plans: sparkPlans,
             icebergInfo: icebergInfo,
+            deltaLakeInfo: deltaLakeInfo,
           }),
         );
 

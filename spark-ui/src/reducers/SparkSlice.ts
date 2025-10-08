@@ -2,6 +2,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { EnvironmentInfo } from '../interfaces/ApplicationInfo';
 import { AppStore, StatusStore } from "../interfaces/AppStore";
 import { CachedStorage } from "../interfaces/CachedStorage";
+import { DeltaLakeInfo } from "../interfaces/DeltaLakeInfo";
 import { IcebergInfo } from "../interfaces/IcebergInfo";
 import { Attempt } from "../interfaces/SparkApplications";
 import { SparkConfiguration } from "../interfaces/SparkConfiguration";
@@ -215,6 +216,7 @@ const sparkSlice = createSlice({
         sqls: SparkSQLs;
         plans: SQLPlans;
         icebergInfo: IcebergInfo;
+        deltaLakeInfo: DeltaLakeInfo;
       }>,
     ) => {
       if (state.status === undefined || state.stages === undefined) {
@@ -226,6 +228,7 @@ const sparkSlice = createSlice({
         action.payload.sqls,
         action.payload.plans,
         action.payload.icebergInfo,
+        action.payload.deltaLakeInfo,
         state.stages,
       );
       if (state.config && state.jobs && state.executors && state.stages) {

@@ -1,6 +1,6 @@
 package org.apache.spark.dataflint.saas
 
-import org.apache.spark.dataflint.listener.{DatabricksAdditionalExecutionWrapper, DataflintEnvironmentInfoWrapper, DataflintRDDStorageInfoWrapper, IcebergCommitWrapper}
+import org.apache.spark.dataflint.listener.{DatabricksAdditionalExecutionWrapper, DataflintDeltaLakeScanInfoWrapper, DataflintEnvironmentInfoWrapper, DataflintRDDStorageInfoWrapper, IcebergCommitWrapper}
 import org.apache.spark.sql.execution.ui.{SQLExecutionUIData, SparkPlanGraphWrapper}
 import org.apache.spark.status._
 
@@ -34,7 +34,8 @@ class StoreDataExtractor(store: AppStatusStore) {
       databricksAdditionalExecutionInfo = readAll[DatabricksAdditionalExecutionWrapper],
       icebergCommit = readAll[IcebergCommitWrapper],
       dataflintEnvironmentInfo = readAll[DataflintEnvironmentInfoWrapper],
-      dataflintRDDStorageInfo = readAll[DataflintRDDStorageInfoWrapper]
+      dataflintRDDStorageInfo = readAll[DataflintRDDStorageInfoWrapper],
+      dataflintDeltaLakeScanInfo = readAll[DataflintDeltaLakeScanInfoWrapper]
     )
   }
 

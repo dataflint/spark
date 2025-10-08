@@ -7,9 +7,20 @@ export function parseFileScan(
 ): ParseFileScanPlan {
   input = hashNumbersRemover(input);
   const result: ParseFileScanPlan = {};
+
+  // Try different location patterns for different file index types
+  // InMemoryFileIndex for regular tables
+  // TahoeBatchFileIndex/TahoeLogFileIndex/PreparedDeltaFileIndex for Delta Lake
+  const locationPatterns = [
+    /Location: InMemoryFileIndex\([\w\s]+\)\[(.*?)\]/.exec(input),
+    /Location: TahoeBatchFileIndex\([\w\s]+\)\[(.*?)\]/.exec(input),
+    /Location: TahoeLogFileIndex\([\w\s]+\)\[(.*?)\]/.exec(input),
+    /Location: PreparedDeltaFileIndex\([\w\s]+\)\[(.*?)\]/.exec(input),
+  ];
+
   const matches = {
     format: /Format: (\w+),/.exec(input),
-    Location: /Location: InMemoryFileIndex\([\w\s]+\)\[(.*?)\]/.exec(input),
+    Location: locationPatterns.find(match => match !== null),
     PartitionFilters: /PartitionFilters: \[(.*?)\]/.exec(input),
     PushedFilters: /PushedFilters: \[(.*?)\]/.exec(input),
     ReadSchema: /ReadSchema: struct<([\w\W]+)>/.exec(input),

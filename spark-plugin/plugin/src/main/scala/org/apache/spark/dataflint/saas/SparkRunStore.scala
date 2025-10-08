@@ -1,6 +1,6 @@
 package org.apache.spark.dataflint.saas
 
-import org.apache.spark.dataflint.listener.{DatabricksAdditionalExecutionWrapper, DataflintEnvironmentInfoEvent, DataflintEnvironmentInfoWrapper, DataflintRDDStorageInfoWrapper, IcebergCommitWrapper}
+import org.apache.spark.dataflint.listener.{DatabricksAdditionalExecutionWrapper, DataflintDeltaLakeScanInfoWrapper, DataflintEnvironmentInfoEvent, DataflintEnvironmentInfoWrapper, DataflintRDDStorageInfoWrapper, IcebergCommitWrapper}
 import org.apache.spark.sql.execution.ui.{SQLExecutionUIData, SparkPlanGraphWrapper}
 import org.apache.spark.status._
 
@@ -26,5 +26,6 @@ case class SparkRunStore(
                           databricksAdditionalExecutionInfo: Seq[DatabricksAdditionalExecutionWrapper],
                           icebergCommit: Seq[IcebergCommitWrapper],
                           dataflintEnvironmentInfo: Seq[DataflintEnvironmentInfoWrapper],
-                          dataflintRDDStorageInfo: Seq[DataflintRDDStorageInfoWrapper]
+                          dataflintRDDStorageInfo: Seq[DataflintRDDStorageInfoWrapper],
+                          dataflintDeltaLakeScanInfo: Seq[DataflintDeltaLakeScanInfoWrapper]
                         )

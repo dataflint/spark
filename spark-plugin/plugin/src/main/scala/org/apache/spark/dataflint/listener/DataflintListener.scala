@@ -22,6 +22,10 @@ class DataflintListener(store: ElementTrackingStore) extends SparkListener with 
           val wrapper = new DataflintEnvironmentInfoWrapper(e.environmentInfo)
           store.write(wrapper)
         }
+        case e: DataflintDeltaLakeScanEvent => {
+          val wrapper = new DataflintDeltaLakeScanInfoWrapper(e.scanInfo)
+          store.write(wrapper)
+        }
         case _ => {}
       }
     } catch {
