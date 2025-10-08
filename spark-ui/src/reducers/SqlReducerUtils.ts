@@ -307,6 +307,8 @@ export function nodeEnrichedNameBuilder(
 ): string {
   if (plan !== undefined) {
     switch (plan.type) {
+      case "JDBCScan":
+        return "Read JDBC";
       case "HashAggregate":
         if (plan.plan.functions.length == 0) {
           return "Distinct";

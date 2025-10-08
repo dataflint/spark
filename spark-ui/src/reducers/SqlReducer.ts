@@ -30,6 +30,7 @@ import { parseExchange } from "./PlanParsers/ExchangeParser";
 import { parseExpand } from "./PlanParsers/ExpandParser";
 import { parseFilter } from "./PlanParsers/FilterParser";
 import { parseGenerate } from "./PlanParsers/GenerateParser";
+import { parseJDBCScan } from "./PlanParsers/JDBCScanParser";
 import { parseJoin } from "./PlanParsers/JoinParser";
 import { parseProject } from "./PlanParsers/ProjectParser";
 import { parseFileScan } from "./PlanParsers/ScanFileParser";
@@ -185,6 +186,14 @@ export function parseNodePlan(
         };
     }
     if (node.nodeName.includes("Scan")) {
+      // Check if it's a JDBC scan specifically
+      if (node.nodeName.includes("JDBCRelation")) {
+        return {
+          type: "JDBCScan",
+          plan: parseJDBCScan(plan.planDescription, node.nodeName),
+        };
+      }
+      // Otherwise it's a regular file scan
       return {
         type: "FileScan",
         plan: parseFileScan(plan.planDescription, node.nodeName),

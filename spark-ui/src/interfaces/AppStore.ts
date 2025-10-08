@@ -197,6 +197,18 @@ export type ParseFileScanPlan = {
   ReadSchema?: { [key: string]: string };
 };
 
+export type ParsedJDBCScanPlan = {
+  numPartitions?: number;
+  tableName?: string;
+  isFullScan?: boolean;
+  isCustomQuery?: boolean;
+  customQuery?: string;
+  sql?: string;
+  pushedFilters?: string[];
+  selectedColumns?: string[];
+  readSchema?: { [key: string]: string };
+};
+
 export type ParsedProjectPlan = {
   fields: string[];
 };
@@ -280,6 +292,7 @@ export type ParsedNodePlan =
   | { type: "TakeOrderedAndProject"; plan: ParsedTakeOrderedAndProjectPlan }
   | { type: "CollectLimit"; plan: ParsedCollectLimitPlan }
   | { type: "FileScan"; plan: ParseFileScanPlan }
+  | { type: "JDBCScan"; plan: ParsedJDBCScanPlan }
   | { type: "WriteToHDFS"; plan: ParsedWriteToHDFSPlan }
   | { type: "WriteToDelta"; plan: ParsedWriteToDeltaPlan }
   | { type: "Filter"; plan: ParseFilterPlan }

@@ -35,6 +35,9 @@ class PlanMetricsProcessor {
             case "FileScan":
                 return this.processFileScan(parsedPlan.plan, metrics);
 
+            case "JDBCScan":
+                return this.processJDBCScan(parsedPlan.plan, metrics);
+
             case "Exchange":
                 return this.processExchange(parsedPlan.plan, metrics);
 
@@ -155,6 +158,41 @@ class PlanMetricsProcessor {
 
         if (plan.tableName !== undefined) {
             addTruncatedSmallTooltip(metrics, "Table", plan.tableName);
+        }
+
+        return metrics;
+    }
+
+    private static processJDBCScan(plan: any, metrics: MetricWithTooltip[]): MetricWithTooltip[] {
+        // 1. Number of partitions read
+        if (plan.numPartitions !== undefined) {
+            metrics.push({
+                name: "Partitions",
+                value: plan.numPartitions.toString(),
+            });
+        }
+
+        // 2. Full scan table name (if it's a simple table scan)
+        if (plan.isFullScan && plan.tableName !== undefined) {
+            addTruncatedSmallTooltip(metrics, "Table (Full Scan)", plan.tableName);
+        } else if (plan.tableName !== undefined && !plan.isCustomQuery) {
+            addTruncatedSmallTooltip(metrics, "Table", plan.tableName);
+        }
+
+        // 3. If it's custom SQL - show query as code block (this takes priority)
+        if (plan.sql !== undefined) {
+            addTruncatedCodeTooltip(metrics, "SQL", plan.sql, 200, false, true);
+        }
+
+        // 4. If it's scan with filter - show pushed filters
+        if (plan.pushedFilters !== undefined && plan.pushedFilters.length > 0) {
+            addTruncatedCodeTooltipMultiline(metrics, "Push Down Filters", plan.pushedFilters, 25, false);
+        }
+
+        // 5. If it's scan with select - show selected columns
+        if (plan.selectedColumns !== undefined && plan.selectedColumns.length > 0) {
+            const columnsStr = plan.selectedColumns.join(", ");
+            addTruncatedSmallTooltip(metrics, "Selected Columns", columnsStr, 80, false, false, false);
         }
 
         return metrics;
