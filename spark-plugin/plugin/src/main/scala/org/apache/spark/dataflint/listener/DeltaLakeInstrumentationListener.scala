@@ -7,6 +7,7 @@ import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
 import org.apache.spark.sql.execution.SparkPlanInfo
 import org.apache.spark.sql.execution.ui.{SparkListenerSQLExecutionStart, SparkPlanGraph}
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.delta.DeltaLog
 
 import scala.util.Try
 
@@ -19,8 +20,12 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
   private lazy val sparkSession: Option[SparkSession] = {
     Try(SparkSession.getActiveSession.orElse(SparkSession.getDefaultSession)).toOption.flatten
   }
+  
+  // Cache to track which table paths have been processed
+  private val processedTablePaths = scala.collection.mutable.Set[String]()
 
   override def onOtherEvent(event: SparkListenerEvent): Unit = {
+    val startTime = System.currentTimeMillis()
     try {
       event match {
         case e: SparkListenerSQLExecutionStart =>
@@ -30,6 +35,9 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
     } catch {
       case e: Exception =>
         logError("Error while processing events in DeltaLakeInstrumentationListener", e)
+    } finally {
+      val duration = System.currentTimeMillis() - startTime
+      logDebug(s"onOtherEvent processing took ${duration}ms")
     }
   }
 
@@ -37,6 +45,12 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
     try {
       // Convert to SparkPlanGraph to get the correct node IDs
       val planGraph = SparkPlanGraph(event.sparkPlanInfo)
+      
+      // Check if this is an OptimizeTableCommand - if so, reset cache
+      if (shouldResetCache(planGraph)) {
+        logDebug("Detected OptimizeTableCommand - resetting table path cache")
+        processedTablePaths.clear()
+      }
       
       // Extract table paths and their corresponding node IDs directly from the graph
       val scanNodes = extractDeltaScanNodes(planGraph)
@@ -48,6 +62,15 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
       case e: Exception =>
         logWarning(s"Failed to extract Delta Lake metadata for execution ${event.executionId}", e)
     }
+  }
+  
+  /**
+   * Check if the plan graph contains only one node with "Execute OptimizeTableCommand"
+   * If so, we should reset the cache as tables may have been optimized
+   */
+  private def shouldResetCache(planGraph: SparkPlanGraph): Boolean = {
+    val allNodes = planGraph.allNodes.toSeq
+    allNodes.length == 1 && allNodes.head.name.contains("Execute OptimizeTableCommand")
   }
 
   /**
@@ -104,13 +127,19 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
    * Extract Delta Lake metadata and post event for a given table path and node ID
    */
   private def extractAndPostDeltaMetadata(tablePath: String, nodeId: Long, executionId: Long): Unit = {
+    // Check if we've already processed this table path
+    if (processedTablePaths.contains(tablePath)) {
+      logDebug(s"Skipping already processed table path: $tablePath")
+      return
+    }
+    
+    val startTime = System.currentTimeMillis()
     sparkSession match {
       case Some(spark) =>
         try {
           loadDeltaTable(spark, tablePath) match {
             case Some(deltaTable) =>
-              val partitionColumns = getPartitionColumns(deltaTable)
-              val clusteringColumns = getClusteringColumns(deltaTable)
+              val (partitionColumns, clusteringColumns) = getTableColumnsFromDetail(spark, deltaTable, tablePath)
               val zorderColumns = getZOrderColumns(spark, tablePath)
               
               // Extract table name from path (last component after /)
@@ -118,8 +147,7 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
               
               // Create and post the event
               val scanInfo = DataflintDeltaLakeScanInfo(
-                executionId = executionId,
-                nodeId = nodeId,
+                minExecutionId = executionId,
                 tablePath = tablePath,
                 tableName = tableName,
                 partitionColumns = partitionColumns,
@@ -130,7 +158,11 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
               val event = DataflintDeltaLakeScanEvent(scanInfo)
               sparkContext.listenerBus.post(event)
               
-              logDebug(s"Posted Delta Lake scan event for execution $executionId, node $nodeId, table: $tablePath")
+              // Mark this table path as processed
+              processedTablePaths.add(tablePath)
+              
+              val duration = System.currentTimeMillis() - startTime
+              logDebug(s"Posted Delta Lake scan event for execution $executionId, table: $tablePath (took ${duration}ms)")
             case None =>
               logDebug(s"Could not load Delta table for path: $tablePath")
           }
@@ -153,75 +185,60 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
   }
 
   /**
-   * Extract partition columns from Delta table
+   * Extract partition and clustering columns from Delta table detail (unified method)
+   * Returns (partitionColumns, clusteringColumns)
    */
-  private def getPartitionColumns(deltaTable: DeltaTable): Seq[String] = {
+  private def getTableColumnsFromDetail(spark: SparkSession, deltaTable: DeltaTable, tablePath: String): (Seq[String], Seq[String]) = {
     Try {
+      spark.sparkContext.setJobDescription(s"DataFlint - collect table metadata for table $tablePath")
       val detailDF = deltaTable.detail()
       val rows = detailDF.collect()
-      
+
+      spark.sparkContext.setJobDescription(null) // Clear job description
+
       if (rows.nonEmpty) {
         val row = rows(0)
         
         // Get partition columns field
-        Try {
-          val partCols = row.getAs[Seq[String]]("partitionColumns")
-          partCols
+        val partitionColumns = Try {
+          row.getAs[Seq[String]]("partitionColumns")
         }.getOrElse(Seq.empty)
-      } else {
-        Seq.empty
-      }
-    }.recover {
-      case e: Exception =>
-        logWarning(s"Failed to extract partition columns: ${e.getMessage}", e)
-        Seq.empty
-    }.getOrElse(Seq.empty)
-  }
-
-  /**
-   * Extract liquid clustering columns from Delta table properties
-   */
-  private def getClusteringColumns(deltaTable: DeltaTable): Seq[String] = {
-    Try {
-      val detailDF = deltaTable.detail()
-      val rows = detailDF.collect()
-      
-      if (rows.nonEmpty) {
-        val row = rows(0)
         
         // Try to get clusteringColumns directly from the row (newer Delta versions)
         val directClustering = Try {
           row.getAs[Seq[String]]("clusteringColumns")
         }.toOption.filter(_.nonEmpty)
         
-        if (directClustering.isDefined) {
-          return directClustering.get
+        val clusteringColumns = if (directClustering.isDefined) {
+          directClustering.get
+        } else {
+          // Fall back to checking properties map
+          val properties = Try {
+            row.getAs[Map[String, String]]("properties")
+          }.toOption.getOrElse(Map.empty)
+          
+          // Look for clustering column information in properties
+          // Delta Lake stores liquid clustering info in table properties
+          val clusteringCols = properties.get("delta.clustering.columns")
+            .orElse(properties.get("delta.clusteringColumns"))
+            .orElse(properties.get("clusteringColumns"))
+          
+          clusteringCols.map { cols =>
+            // Handle both "col1,col2" and "[col1,col2]" formats
+            val cleaned = cols.trim.stripPrefix("[").stripSuffix("]")
+            cleaned.split(",").map(_.trim).filter(_.nonEmpty).toSeq
+          }.getOrElse(Seq.empty)
         }
         
-        // Fall back to checking properties map
-        val properties = Try {
-          row.getAs[Map[String, String]]("properties")
-        }.toOption.getOrElse(Map.empty)
-        
-        // Look for clustering column information in properties
-        // Delta Lake stores liquid clustering info in table properties
-        val clusteringCols = properties.get("delta.clustering.columns")
-          .orElse(properties.get("delta.clusteringColumns"))
-          .orElse(properties.get("clusteringColumns"))
-        
-        clusteringCols.map { cols =>
-          // Handle both "col1,col2" and "[col1,col2]" formats
-          val cleaned = cols.trim.stripPrefix("[").stripSuffix("]")
-          cleaned.split(",").map(_.trim).filter(_.nonEmpty).toSeq
-        }.getOrElse(Seq.empty)
+        (partitionColumns, clusteringColumns)
       } else {
-        Seq.empty
+        (Seq.empty, Seq.empty)
       }
     }.recover {
       case e: Exception =>
-        logWarning(s"Failed to extract clustering columns: ${e.getMessage}", e)
-        Seq.empty
-    }.getOrElse(Seq.empty)
+        logWarning(s"Failed to extract table columns from detail: ${e.getMessage}", e)
+        (Seq.empty, Seq.empty)
+    }.getOrElse((Seq.empty, Seq.empty))
   }
 
   /**
@@ -229,38 +246,35 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
    */
   private def getZOrderColumns(spark: SparkSession, tablePath: String): Seq[String] = {
     Try {
-      // Query Delta history for OPTIMIZE operations with ZORDER
-      val historyDF = spark.sql(s"DESCRIBE HISTORY delta.`$tablePath`")
+      spark.sparkContext.setJobDescription(s"DataFlint - collect Z-Order info for table $tablePath")
+      
+      // Load Delta table and use history() API
+      val deltaTable = DeltaTable.forPath(spark, tablePath)
+      val historyDF = deltaTable.history(1000) // Get last 1000 operations, assume if OPTIMIZE was not done recently, table is not z-ordered
+        .filter("operation = 'OPTIMIZE'")
+        .orderBy(org.apache.spark.sql.functions.col("version").desc)
+        .limit(1)
+      
       val rows = historyDF.collect()
-      
-      // Look for the most recent OPTIMIZE operation with zOrderBy info
-      val zOrderOperations = rows.flatMap { row =>
-        val result = Try {
-          val operation = row.getAs[String]("operation")
-          if (operation != null && operation.toUpperCase.contains("OPTIMIZE")) {
-            // Try to get operationParameters
-            val params = Try {
-              row.getAs[Map[String, String]]("operationParameters")
-            }.toOption.getOrElse(Map.empty)
-            
-            params.get("zOrderBy").orElse(params.get("zorder"))
-          } else {
-            None
-          }
-        }.toOption
+
+      spark.sparkContext.setJobDescription(null) // Clear job description
+
+      if (rows.nonEmpty) {
+        val row = rows(0)
+        // Try to get operationParameters
+        val params = Try {
+          row.getAs[Map[String, String]]("operationParameters")
+        }.toOption.getOrElse(Map.empty)
         
-        result match {
-          case Some(Some(value)) => Some(value)
-          case _ => None
+        params.get("zOrderBy").orElse(params.get("zorder")) match {
+          case Some(zOrderColsStr) =>
+            // Parse the columns string (format: "[col1,col2]" or "col1,col2")
+            // Also remove quotes around column names
+            val cleaned = zOrderColsStr.trim.stripPrefix("[").stripSuffix("]")
+            cleaned.split(",").map(_.trim.stripPrefix("\"").stripSuffix("\"")).filter(_.nonEmpty).toSeq
+          case None =>
+            Seq.empty
         }
-      }
-      
-      if (zOrderOperations.nonEmpty) {
-        val zOrderColsStr = zOrderOperations.head
-        // Parse the columns string (format: "[col1,col2]" or "col1,col2")
-        // Also remove quotes around column names
-        val cleaned = zOrderColsStr.trim.stripPrefix("[").stripSuffix("]")
-        cleaned.split(",").map(_.trim.stripPrefix("\"").stripSuffix("\"")).filter(_.nonEmpty).toSeq
       } else {
         Seq.empty
       }

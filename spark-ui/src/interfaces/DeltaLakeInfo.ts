@@ -3,8 +3,7 @@ export interface DeltaLakeInfo {
 }
 
 export interface DeltaLakeScanInfo {
-    executionId: number;
-    nodeId: number;
+    minExecutionId: number;
     tablePath: string;
     tableName: string | null;
     partitionColumns: string[];

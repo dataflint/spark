@@ -232,10 +232,6 @@ function calculateSql(
   deltaLakeScans: DeltaLakeScanInfo[],
   stages: SparkStagesStore,
 ): EnrichedSparkSQL {
-  console.log(`[DeltaLake] ========== Processing SQL ${sql.id} ==========`);
-  console.log(`[DeltaLake] Available Delta Lake scans:`, deltaLakeScans);
-  console.log(`[DeltaLake] Number of nodes in SQL:`, sql.nodes.length);
-
   const enrichedSql = sql as EnrichedSparkSQL;
   const originalNumOfNodes = enrichedSql.nodes.length;
   const typeEnrichedNodes = enrichedSql.nodes.map((node) => {
@@ -248,43 +244,29 @@ function calculateSql(
     const isCodegenNode = node.nodeName.includes("WholeStageCodegen");
 
     // Find the Delta Lake scan that matches this node's table location
-    // We match by table path instead of node ID because AQE can change node IDs
-    const matchingDeltaScan = deltaLakeScans.find((scan) => {
-      console.log(`[DeltaLake] Checking node ${node.nodeId} (${node.nodeName})`);
-      console.log(`[DeltaLake]   - parsedPlan:`, parsedPlan);
-      console.log(`[DeltaLake]   - parsedPlan.type:`, parsedPlan?.type);
+    // We match by table path and find the scan with the minimum execution ID 
+    // that is still smaller than or equal to the current SQL execution ID
+    let matchingDeltaScan: DeltaLakeScanInfo | undefined = undefined;
 
-      if (!parsedPlan || parsedPlan.type !== "FileScan") {
-        console.log(`[DeltaLake]   - Skipping: not a FileScan (type=${parsedPlan?.type})`);
-        return false;
-      }
-
-      console.log(`[DeltaLake]   - parsedPlan.plan.Location:`, parsedPlan.plan.Location);
-
-      if (!parsedPlan.plan.Location) {
-        console.log(`[DeltaLake]   - Skipping: no Location in parsedPlan`);
-        return false;
-      }
-
-      // Normalize paths for comparison (handle trailing slashes, keep scheme)
-      const normalizedScanPath = scan.tablePath.replace(/\/$/, "");
+    if (parsedPlan && parsedPlan.type === "FileScan" && parsedPlan.plan.Location) {
       const normalizedNodePath = parsedPlan.plan.Location.replace(/\/$/, "");
+      const currentSqlId = parseInt(sql.id);
 
-      console.log(`[DeltaLake]   - Comparing paths:`);
-      console.log(`[DeltaLake]     - Scan path: ${scan.tablePath}`);
-      console.log(`[DeltaLake]     - Normalized scan path: ${normalizedScanPath}`);
-      console.log(`[DeltaLake]     - Node path: ${parsedPlan.plan.Location}`);
-      console.log(`[DeltaLake]     - Normalized node path: ${normalizedNodePath}`);
+      // Find all scans that match the table path and have minExecutionId <= current SQL execution ID
+      const candidateScans = deltaLakeScans.filter((scan) => {
+        const normalizedScanPath = scan.tablePath.replace(/\/$/, "");
+        const pathMatches = normalizedNodePath.includes(normalizedScanPath);
+        const executionIdMatches = scan.minExecutionId <= currentSqlId;
 
-      // Check if the paths match (the node path should contain the scan path)
-      const matches = normalizedNodePath.includes(normalizedScanPath);
-      console.log(`[DeltaLake]     - Match result: ${matches}`);
+        return pathMatches && executionIdMatches;
+      });
 
-      return matches;
-    });
-
-    if (matchingDeltaScan) {
-      console.log(`[DeltaLake] ✓ Matched node ${node.nodeId} with scan:`, matchingDeltaScan);
+      // Among the candidates, find the one with the maximum minExecutionId (closest to current SQL ID)
+      if (candidateScans.length > 0) {
+        matchingDeltaScan = candidateScans.reduce((prev, current) =>
+          current.minExecutionId > prev.minExecutionId ? current : prev
+        );
+      }
     }
 
     return {
@@ -433,7 +415,7 @@ function calculateSqls(
       (plan) => plan.executionId === parseInt(sql.id),
     );
     const deltaLakeScans = deltaLakeInfo.scans.filter(
-      (scan) => scan.executionId === parseInt(sql.id),
+      (scan) => scan.minExecutionId <= parseInt(sql.id),
     );
     return calculateSql(sql, plan, icebergCommit, deltaLakeScans, stages);
   });
@@ -471,7 +453,7 @@ export function calculateSqlStore(
       (plan) => plan.executionId === id,
     );
     const deltaLakeScans = deltaLakeInfo.scans.filter(
-      (scan) => scan.executionId === id,
+      (scan) => scan.minExecutionId <= id,
     );
 
     // case 1: SQL does not exist, we add it

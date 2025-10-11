@@ -4,6 +4,20 @@ import {
 } from "../../interfaces/AppStore";
 
 /**
+ * Check if any of the column names appear in the filters
+ * Note: This uses simple substring matching which is not perfect but catches most cases.
+ * A more robust solution would parse the filter expressions.
+ */
+function hasColumnInFilters(columns: string[], filters: string[] | undefined): boolean {
+    if (!filters || filters.length === 0) {
+        return false;
+    }
+
+    const filtersString = filters.join(" ").toLowerCase();
+    return columns.some(column => filtersString.includes(column.toLowerCase()));
+}
+
+/**
  * Alert reducer for detecting full scans on Delta Lake tables
  * Triggers alerts when:
  * 1. Partitioned Delta Lake table is scanned without partition filters
@@ -36,10 +50,8 @@ export function reduceFullScanAlert(
                 dataFilters = parsedPlan.plan.PushedFilters;
             }
 
-            const hasPartitionFilters = partitionFilters && partitionFilters.length > 0;
-            const hasDataFilters = dataFilters && dataFilters.length > 0;
-
             // Condition 1: Partitioned Delta Lake table without partition filter
+            const hasPartitionFilters = partitionFilters && partitionFilters.length > 0;
             if (deltaLakeScan.partitionColumns.length > 0 && !hasPartitionFilters) {
                 const partitionKeys = deltaLakeScan.partitionColumns.join(", ");
 
@@ -61,7 +73,8 @@ export function reduceFullScanAlert(
             }
 
             // Condition 2: Liquid clustering table without cluster key filters
-            if (deltaLakeScan.clusteringColumns.length > 0 && !hasDataFilters) {
+            const hasClusterColumnInFilters = hasColumnInFilters(deltaLakeScan.clusteringColumns, dataFilters);
+            if (deltaLakeScan.clusteringColumns.length > 0 && !hasClusterColumnInFilters) {
                 const clusterKeys = deltaLakeScan.clusteringColumns.join(", ");
 
                 alerts.push({
@@ -82,9 +95,10 @@ export function reduceFullScanAlert(
             }
 
             // Condition 3: Z-indexed table (without partitioning) without z-index filters
+            const hasZOrderColumnInFilters = hasColumnInFilters(deltaLakeScan.zorderColumns, dataFilters);
             if (deltaLakeScan.zorderColumns.length > 0 &&
                 deltaLakeScan.partitionColumns.length === 0 &&
-                !hasDataFilters) {
+                !hasZOrderColumnInFilters) {
                 const zindexFields = deltaLakeScan.zorderColumns.join(", ");
 
                 alerts.push({

@@ -146,6 +146,54 @@ object DeltaLakeLiquidClusteringExample extends App {
   val resultLiquidFiltered = dfLiquidFiltered.agg(sum("salary").as("total_salary"), count("*").as("count")).collect()
   println(s"Liquid clustered table - Filtered (department = 'Engineering' AND city = 'NYC'): ${resultLiquidFiltered.mkString(", ")}")
 
+  // === ✅ Changing Cluster Keys Example ===
+  println("\n=== Changing Cluster Keys Scenario ===")
+  
+  // Query with old clustering keys (department, city)
+  spark.sparkContext.setJobDescription("Query 1: Using old cluster keys (department, city)")
+  val dfOldClustering1 = spark.read.format("delta").load(liquidClusterPath)
+    .filter($"department" === "Sales" && $"city" === "SF")
+  val resultOldClustering1 = dfOldClustering1.agg(sum("salary").as("total_salary"), count("*").as("count")).collect()
+  println(s"Query with old clustering (department='Sales', city='SF'): ${resultOldClustering1.mkString(", ")}")
+
+  // Change clustering keys to optimize for different access patterns
+  // Now we only cluster by city (removing department from clustering)
+  spark.sparkContext.setJobDescription("Altering table to use new cluster keys (city only)")
+  spark.sql("""
+    ALTER TABLE liquid_cluster_table 
+    CLUSTER BY (city)
+  """)
+  println("Changed clustering keys from (department, city) to (city)")
+
+  // Optimize table with new clustering keys
+  spark.sparkContext.setJobDescription("Optimizing table with new cluster keys")
+  spark.sql("OPTIMIZE liquid_cluster_table")
+  println("Table optimized with new clustering keys")
+
+  // Query with new clustering keys - filters by city (which is in the new cluster keys)
+  spark.sparkContext.setJobDescription("Query 2: Filter by city (in new cluster keys)")
+  val dfNewClustering1 = spark.read.format("delta").load(liquidClusterPath)
+    .filter($"city" === "SF")
+  val resultNewClustering1 = dfNewClustering1.groupBy("department").agg(sum("salary").as("total_salary"), count("*").as("count")).collect()
+  println(s"Query filtering by city='SF' (in new cluster keys): ${resultNewClustering1.length} departments, sample: ${resultNewClustering1.take(2).mkString(", ")}")
+
+  // Query that filters by department (which was in OLD cluster keys but NOT in new cluster keys)
+  // This tests that we correctly show the metadata with the new cluster keys
+  spark.sparkContext.setJobDescription("Query 3: Filter by department (NOT in new cluster keys, WAS in old cluster keys)")
+  val dfNewClustering2 = spark.read.format("delta").load(liquidClusterPath)
+    .filter($"department" === "Engineering")
+  val resultNewClustering2 = dfNewClustering2.groupBy("city").agg(sum("salary").as("total_salary"), count("*").as("count")).collect()
+  println(s"Query filtering by department='Engineering' (NOT in new cluster keys): ${resultNewClustering2.length} cities, result: ${resultNewClustering2.mkString(", ")}")
+  println("  ^ This query should show cluster keys as (city) NOT (department, city)")
+
+  // Another query with city filter to benefit from new clustering
+  spark.sparkContext.setJobDescription("Query 4: Multi-city filter with new clustering")
+  val dfNewClustering3 = spark.read.format("delta").load(liquidClusterPath)
+    .filter($"city".isin("NYC", "LA"))
+  val resultNewClustering3 = dfNewClustering3.agg(sum("salary").as("total_salary"), count("*").as("count")).collect()
+  println(s"Query with new clustering (city in ['NYC', 'LA']): ${resultNewClustering3.mkString(", ")}")
+
+  println("\n=== All Delta Lake examples completed ===")
   scala.io.StdIn.readLine()
   spark.stop()
 }

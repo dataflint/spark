@@ -75,8 +75,7 @@ class DataflintRDDStorageInfoWrapper(val info: DataflintRDDStorageInfo) {
 }
 
 case class DataflintDeltaLakeScanInfo(
-                                       executionId: Long,
-                                       nodeId: Long,
+                                       minExecutionId: Long,
                                        tablePath: String,
                                        tableName: Option[String],
                                        partitionColumns: Seq[String],
@@ -89,5 +88,5 @@ case class DataflintDeltaLakeScanEvent(scanInfo: DataflintDeltaLakeScanInfo) ext
 class DataflintDeltaLakeScanInfoWrapper(val info: DataflintDeltaLakeScanInfo) {
   @KVIndex
   @JsonIgnore
-  def id: String = s"${info.executionId}_${info.nodeId}"
+  def id: String = s"${info.minExecutionId}_${info.tablePath.replaceAll(" ", "")}"
 }
