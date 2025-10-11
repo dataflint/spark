@@ -86,7 +86,8 @@ const createSqlTableData = (sqls: EnrichedSparkSQL[]): Data[] => {
         shuffleReadBytes: sql.stageMetrics.shuffleReadBytes,
         shuffleWriteBytes: sql.stageMetrics.shuffleWriteBytes,
         totalTasks: sql.stageMetrics.totalTasks,
-        executorRunTime: sql.stageMetrics.executorRunTime
+        executorRunTime: sql.stageMetrics.executorRunTime,
+        rootExecutionId: sql.rootExecutionId
       };
   });
 };
@@ -273,14 +274,45 @@ export default function SqlTable({
             <TableBody>
               {visibleRows.map((sql) => (
                 <StyledTableRow
-                  sx={{ cursor: "pointer" }}
+                  sx={{
+                    cursor: "pointer",
+                    ...(sql.rootExecutionId !== undefined && {
+                      borderLeft: "4px solid #2196f3",
+                      backgroundColor: "rgba(33, 150, 243, 0.08)",
+                      "&:hover": {
+                        backgroundColor: "rgba(33, 150, 243, 0.15) !important",
+                      },
+                      "&.Mui-selected": {
+                        backgroundColor: "rgba(33, 150, 243, 0.2) !important",
+                      }
+                    })
+                  }}
                   key={sql.id}
                   selected={sql.id === selectedSqlId}
                   onClick={(event) => setSelectedSqlId(sql.id)}
                 >
                   {visibleColumns.includes("id") && (
                     <StyledTableCell component="th" scope="row">
-                      {sql.id}
+                      <Box display="flex" alignItems="center" gap={0.5}>
+                        {sql.rootExecutionId !== undefined && (
+                          <Box
+                            component="span"
+                            sx={{
+                              fontSize: "0.7em",
+                              padding: "2px 6px",
+                              backgroundColor: "#2196f3",
+                              color: "white",
+                              borderRadius: "4px",
+                              fontWeight: "bold",
+                              marginRight: "4px"
+                            }}
+                            title={`Subquery of execution ${sql.rootExecutionId}`}
+                          >
+                            SUB
+                          </Box>
+                        )}
+                        {sql.id}
+                      </Box>
                     </StyledTableCell>)}
                   {visibleColumns.includes("status") && (
                     <StyledTableCell component="th" scope="row">

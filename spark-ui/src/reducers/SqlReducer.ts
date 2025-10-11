@@ -416,6 +416,7 @@ function calculateSql(
     isSqlCommand: isSqlCommand,
     originalNumOfNodes: originalNumOfNodes,
     submissionTimeEpoc: timeStrToEpocTime(sql.submissionTime),
+    rootExecutionId: plan?.rootExecutionId,
   };
 }
 

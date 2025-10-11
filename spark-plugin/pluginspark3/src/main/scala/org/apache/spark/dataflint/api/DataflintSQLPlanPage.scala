@@ -44,7 +44,7 @@ class DataflintSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListe
           val rddScopesToStages = if (isDatabricks) Some(rddScopesToStagesReader.get.invoke(exec).asInstanceOf[Map[String, Set[Object]]]) else None
 
           val nodeIdToRddScopeId = nodeIdToRddScopeIdList.find(_.executionId == exec.executionId).map(_.nodeIdToRddScopeId)
-          SqlEnrichedData(exec.executionId, graph.allNodes.length, rddScopesToStages,
+          SqlEnrichedData(exec.executionId, if (exec.rootExecutionId == exec.executionId) None else Some(exec.rootExecutionId), graph.allNodes.length, rddScopesToStages,
             graph.allNodes.map(node => {
               val rddScopeId = nodeIdToRddScopeId.flatMap(_.get(node.id))
               NodePlan(node.id, node.desc, rddScopeId)

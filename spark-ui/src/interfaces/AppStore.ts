@@ -173,6 +173,7 @@ export interface EnrichedSparkSQL {
   edges: EnrichedSqlEdge[];
   filters: Record<GraphFilter, FilteredGraph>;
   failureReason: string | undefined;
+  rootExecutionId: number | undefined;
 }
 
 export type ParsedHashAggregatePlan = {

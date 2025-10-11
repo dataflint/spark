@@ -2,6 +2,7 @@ export type SQLPlans = SQLPlan[];
 
 export interface SQLPlan {
   executionId: number;
+  rootExecutionId: number | undefined;
   numOfNodes: number;
   nodesPlan: SQLNodePlan[];
   rddScopesToStages?: Record<string, StartAndAttempt>;

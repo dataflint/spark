@@ -23,7 +23,7 @@ case class NodeMetric(name: String, value: Option[String])
 
 case class NodeMetrics(id: Long, name: String, metrics: Seq[NodeMetric])
 
-case class SqlEnrichedData(executionId: Long, numOfNodes:Int, rddScopesToStages: Option[Map[String, Set[Object]]], nodesPlan: Seq[NodePlan])
+case class SqlEnrichedData(executionId: Long, rootExecutionId: Option[Long], numOfNodes:Int, rddScopesToStages: Option[Map[String, Set[Object]]], nodesPlan: Seq[NodePlan])
 
 case class NodePlan(id: Long, planDescription: String, rddScopeId: Option[String])
 

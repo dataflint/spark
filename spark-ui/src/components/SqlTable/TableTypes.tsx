@@ -28,6 +28,7 @@ export interface Data {
   shuffleWriteBytes: number;
   executorRunTime: number;
   failureReason: string;
+  rootExecutionId: number | undefined;
 }
 
 export interface HeadCell {
