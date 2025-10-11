@@ -7,7 +7,9 @@ import {
   SparkStagesStore,
   StatusStore,
 } from "../interfaces/AppStore";
+import { parseAlertDisabledConfig } from "../utils/ConfigParser";
 import { reduceBroadcastTooLargeAlert } from "./Alerts/BroadcastTooLargeAlert";
+import { reduceFullScanAlert } from "./Alerts/FullScanAlert";
 import { reduceIcebergReplaces } from "./Alerts/IcebergReplacesReducer";
 import { reduceJoinToBroadcastAlert } from "./Alerts/JoinToBroadcastAlert";
 import { reduceLargeCrossJoinScanAlert } from "./Alerts/LargeCrossJoinScanAlert";
@@ -18,7 +20,6 @@ import { reduceSQLInputOutputAlerts } from "./Alerts/MemorySQLInputOutputAlerts"
 import { reducePartitionSkewAlert } from "./Alerts/PartitionSkewAlert";
 import { reduceSmallTasksAlert } from "./Alerts/SmallTasksAlert";
 import { reduceWastedCoresAlerts } from "./Alerts/WastedCoresAlertsReducer";
-import { parseAlertDisabledConfig } from "../utils/ConfigParser";
 
 export function reduceAlerts(
   sqlStore: SparkSQLStore,
@@ -40,6 +41,7 @@ export function reduceAlerts(
   reduceJoinToBroadcastAlert(sqlStore, alerts);
   reduceLargeCrossJoinScanAlert(sqlStore, alerts);
   reduceMaxPartitionToBigAlert(sqlStore, stageStore, alerts);
+  reduceFullScanAlert(sqlStore, alerts);
   const disabledAlerts = parseAlertDisabledConfig(config.alertDisabled);
   const filteredAlerts = alerts.filter(alert => !disabledAlerts.has(alert.name));
   return {
