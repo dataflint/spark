@@ -290,6 +290,7 @@ export type ParsedExpandPlan = {
 
 export type ParsedNodePlan =
   | { type: "HashAggregate"; plan: ParsedHashAggregatePlan }
+  | { type: "ObjectHashAggregate"; plan: ParsedHashAggregatePlan }
   | { type: "TakeOrderedAndProject"; plan: ParsedTakeOrderedAndProjectPlan }
   | { type: "CollectLimit"; plan: ParsedCollectLimitPlan }
   | { type: "FileScan"; plan: ParseFileScanPlan }

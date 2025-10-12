@@ -100,6 +100,7 @@ export function parseNodePlan(
       case "!CometGpuHashAggregate":
       case "HashAggregate":
       case "SortAggregate":
+      case "ObjectHashAggregate":
         return {
           type: "HashAggregate",
           plan: parseHashAggregate(plan.planDescription),

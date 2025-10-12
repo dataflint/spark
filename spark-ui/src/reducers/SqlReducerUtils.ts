@@ -110,6 +110,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   "Execute InsertIntoHadoopFsRelationCommand": "output",
   "Execute WriteIntoDeltaCommand": "output",
   "Execute OptimizeTableCommandEdge": "output",
+  "Execute OptimizeTableCommand": "output",
   CollectLimit: "output",
   TakeOrderedAndProject: "output",
   BroadcastHashJoin: "join",
@@ -124,6 +125,7 @@ const nodeTypeDict: Record<string, NodeType> = {
   AQEShuffleRead: "shuffle",
   HashAggregate: "transformation",
   SortAggregate: "transformation",
+  ObjectHashAggregate: "transformation",
   BroadcastExchange: "broadcast",
   Sort: "sort",
   Project: "transformation",
@@ -176,9 +178,11 @@ const nodeTypeDict: Record<string, NodeType> = {
 const nodeRenamerDict: Record<string, string> = {
   HashAggregate: "Aggregate",
   SortAggregate: "Aggregate (Sort)",
+  ObjectHashAggregate: "Aggregate (Object Hash)",
   "Execute InsertIntoHadoopFsRelationCommand": "Write to HDFS",
   "Execute WriteIntoDeltaCommand": "Write To Delta Lake",
   "Execute OptimizeTableCommandEdge": "Optimize Table",
+  "Execute OptimizeTableCommand": "Optimize Table",
   LocalTableScan: "Read in-memory table",
   "Execute RepairTableCommand": "Repair table",
   "Execute CreateDataSourceTableCommand": "Create table",
@@ -310,6 +314,7 @@ export function nodeEnrichedNameBuilder(
       case "JDBCScan":
         return "Read JDBC";
       case "HashAggregate":
+      case "ObjectHashAggregate":
         if (plan.plan.functions.length == 0) {
           return "Distinct";
         }
@@ -384,6 +389,12 @@ export function nodeEnrichedNameBuilder(
   if (renamedNodeName !== undefined) {
     return renamedNodeName;
   }
+
+  // Handle "Scan ExistingRDD Delta Table State" pattern
+  if (name.startsWith("Scan ExistingRDD Delta Table State")) {
+    return "Read delta table state";
+  }
+
   if (name.includes("Scan")) {
     let scanRenamed = name.includes("BatchScan")
       ? name.replace("BatchScan", "Read")
