@@ -39,7 +39,14 @@ lazy val plugin = (project in file("plugin"))
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0" % "provided",
-    publishTo := Some(Resolver.file("local-common", file("target/local-repo"))), // Publish locally only, not to remote repositories
+    // Sonatype Central Portal repository configuration
+    publishTo := {
+      val realm = "Sonatype Nexus Repository Manager"
+      if (isSnapshot.value)
+        Some(realm at "https://central.sonatype.com/repository/maven-snapshots/")
+      else  
+        sonatypePublishToBundle.value
+    }
   )
 
 lazy val pluginspark3 = (project in file("pluginspark3"))
@@ -71,7 +78,14 @@ lazy val pluginspark3 = (project in file("pluginspark3"))
     
     // Publish the assembled JAR instead of the regular JAR
     Compile / packageBin := assembly.value,
-    publishTo := sonatypePublishToBundle.value,
+    // Sonatype Central Portal repository configuration
+    publishTo := {
+      val realm = "Sonatype Nexus Repository Manager"
+      if (isSnapshot.value)
+        Some(realm at "https://central.sonatype.com/repository/maven-snapshots/")
+      else  
+        sonatypePublishToBundle.value
+    },
     
     // Include source from plugin directory for self-contained build
     Compile / unmanagedSourceDirectories += (plugin / Compile / sourceDirectory).value / "scala",
@@ -110,7 +124,14 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
     
     // Publish the assembled JAR instead of the regular JAR
     Compile / packageBin := assembly.value,
-    publishTo := sonatypePublishToBundle.value,
+    // Sonatype Central Portal repository configuration
+    publishTo := {
+      val realm = "Sonatype Nexus Repository Manager"
+      if (isSnapshot.value)
+        Some(realm at "https://central.sonatype.com/repository/maven-snapshots/")
+      else  
+        sonatypePublishToBundle.value
+    },
     
     // Include source from plugin directory for self-contained build
     Compile / unmanagedSourceDirectories += (plugin / Compile / sourceDirectory).value / "scala",
