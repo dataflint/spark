@@ -11,6 +11,9 @@ object DeltaLakeLiquidClusteringExample extends App {
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin")
     .config("spark.dataflint.telemetry.enabled", false)
     .config("spark.dataflint.instrument.deltalake.enabled", true)
+    // Optional: Configure z-index field collection and caching behavior
+    // .config("spark.dataflint.instrument.deltalake.collectZindexFields", true) // default: true
+    // .config("spark.dataflint.instrument.deltalake.cacheZindexFieldsToProperties", true) // default: true
     .config("spark.ui.port", "10000")
     .config("spark.sql.maxMetadataStringLength", "10000")
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
@@ -48,19 +51,20 @@ object DeltaLakeLiquidClusteringExample extends App {
   OPTIMIZE zorder_table
   ZORDER BY (category)
 """)
+  println("Z-Order optimization completed - Dataflint will detect and cache z-order fields")
 
-  // Read without filter and aggregate
+  // Query 1: First query after OPTIMIZE - should detect z-order and cache it
+  spark.sparkContext.setJobDescription("Query 1: First query after OPTIMIZE - detecting z-order")
   val dfAll = spark.read.format("delta").load(path)
-  spark.sparkContext.setJobDescription("Aggregating without filter on Delta table")
   val resultAll = dfAll.groupBy("category").agg(sum("value").as("total_value"), count("*").as("count")).collect()
-  println(s"Total aggregation results: ${resultAll.mkString(", ")}")
+  println(s"Query 1 (detects z-order): Total aggregation results: ${resultAll.mkString(", ")}")
 
-  spark.sparkContext.setJobDescription("Aggregating with filter on Delta table")
-  // Read with filter and aggregate
+  // Query 2: Second query - should use cached z-order from metadata (no history scan)
+  spark.sparkContext.setJobDescription("Query 2: Using cached z-order metadata (fast path)")
   val dfFiltered = spark.read.format("delta").load(path)
     .filter($"category" === "A")
   val resultFiltered = dfFiltered.agg(sum("value").as("total_value"), count("*").as("count")).collect()
-  println(s"Filtered aggregation (category = 'A'): ${resultFiltered.mkString(", ")}")
+  println(s"Query 2 (uses cache): Filtered aggregation (category = 'A'): ${resultFiltered.mkString(", ")}")
 
   // === ✅ Partitioned Table Example ===
   spark.sparkContext.setJobDescription("Creating partitioned Delta table")
@@ -192,6 +196,13 @@ object DeltaLakeLiquidClusteringExample extends App {
     .filter($"city".isin("NYC", "LA"))
   val resultNewClustering3 = dfNewClustering3.agg(sum("salary").as("total_salary"), count("*").as("count")).collect()
   println(s"Query with new clustering (city in ['NYC', 'LA']): ${resultNewClustering3.mkString(", ")}")
+
+  // Query 3: Third query with different filter - also uses cached z-order
+  spark.sparkContext.setJobDescription("Query 5: Another query using cached z-order metadata")
+  val dfFilteredB = spark.read.format("delta").load(path)
+    .filter($"category" === "B")
+  val resultFilteredB = dfFilteredB.agg(sum("value").as("total_value"), count("*").as("count")).collect()
+  println(s"Query 3 (uses cache): Filtered aggregation (category = 'B'): ${resultFilteredB.mkString(", ")}")
 
   println("\n=== All Delta Lake examples completed ===")
   scala.io.StdIn.readLine()

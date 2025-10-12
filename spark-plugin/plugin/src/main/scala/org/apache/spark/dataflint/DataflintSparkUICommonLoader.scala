@@ -49,6 +49,8 @@ class DataflintSparkUICommonInstaller extends Logging {
     val icebergEnabled = context.conf.getBoolean("spark.dataflint.iceberg.enabled", defaultValue = true)
     val cacheObservabilityEnabled = context.conf.getBoolean("spark.dataflint.cacheObservability.enabled", defaultValue = true)
     val deltaLakeInstrumentationEnabled = context.conf.getBoolean("spark.dataflint.instrument.deltalake.enabled", defaultValue = false)
+    val deltaLakeCollectZindexFields = context.conf.getBoolean("spark.dataflint.instrument.deltalake.collectZindexFields", defaultValue = true)
+    val deltaLakeCacheZindexFieldsToProperties = context.conf.getBoolean("spark.dataflint.instrument.deltalake.cacheZindexFieldsToProperties", defaultValue = true)
     val icebergAuthCatalogDiscovery = context.conf.getBoolean("spark.dataflint.iceberg.autoCatalogDiscovery", defaultValue = false)
     if(icebergInstalled && icebergEnabled) {
       if(icebergAuthCatalogDiscovery && isMetricLoaderInRightClassLoader()) {
@@ -87,7 +89,7 @@ class DataflintSparkUICommonInstaller extends Logging {
         addToQueueMethod(rddListener, "dataflint")
       }
       if(deltaLakeInstrumentationEnabled) {
-        val deltaLakeListener = new DeltaLakeInstrumentationListener(context)
+        val deltaLakeListener = new DeltaLakeInstrumentationListener(context, deltaLakeCollectZindexFields, deltaLakeCacheZindexFieldsToProperties)
         addToQueueMethod(deltaLakeListener, "dataflint")
         logInfo("Added DeltaLakeInstrumentationListener to the listener bus")
       }

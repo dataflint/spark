@@ -14,9 +14,17 @@ import scala.util.Try
 /**
  * Listener that instruments Delta Lake table reads to extract and log metadata
  * about partitioning, z-ordering, and liquid clustering configurations.
+ * 
+ * @param sparkContext The Spark context
+ * @param collectZindexFields Whether to collect z-index fields from Delta Lake history (default: true)
+ * @param cacheZindexFieldsToProperties Whether to cache z-index fields to table properties (default: true)
  */
-class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends SparkListener with Logging {
-  logInfo("DeltaLakeInstrumentationListener initialized")
+class DeltaLakeInstrumentationListener(
+    sparkContext: SparkContext,
+    collectZindexFields: Boolean = true,
+    cacheZindexFieldsToProperties: Boolean = true
+) extends SparkListener with Logging {
+  logInfo(s"DeltaLakeInstrumentationListener initialized (collectZindexFields=$collectZindexFields, cacheZindexFieldsToProperties=$cacheZindexFieldsToProperties)")
   private lazy val sparkSession: Option[SparkSession] = {
     Try(SparkSession.getActiveSession.orElse(SparkSession.getDefaultSession)).toOption.flatten
   }
@@ -139,8 +147,28 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
         try {
           loadDeltaTable(spark, tablePath) match {
             case Some(deltaTable) =>
-              val (partitionColumns, clusteringColumns) = getTableColumnsFromDetail(spark, deltaTable, tablePath)
-              val zorderColumns = getZOrderColumns(spark, tablePath)
+              val (partitionColumns, clusteringColumns, cachedZorderColumns) = getTableColumnsFromDetail(spark, deltaTable, tablePath)
+              
+              // Determine z-order columns based on cache and configuration
+              // Only collect z-order columns if collectZindexFields is enabled
+              val zorderColumns = if (!collectZindexFields) {
+                Seq.empty
+              } else {
+                cachedZorderColumns match {
+                  case Some(cached) =>
+                    // Cache exists (either with values or empty)
+                    if (cached.nonEmpty) {
+                      logDebug(s"Using cached z-order columns from metadata for table $tablePath: ${cached.mkString(", ")}")
+                    } else {
+                      logDebug(s"Using cached z-order columns from metadata for table $tablePath: none (table has no z-order)")
+                    }
+                    cached
+                  case None =>
+                    // No cache exists, need to query history
+                    logDebug(s"No cached z-order columns found for table $tablePath, querying Delta Lake history")
+                    getZOrderColumns(spark, tablePath)
+                }
+              }
               
               // Extract table name from path (last component after /)
               val tableName = tablePath.split("/").lastOption.filter(_.nonEmpty)
@@ -185,10 +213,14 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
   }
 
   /**
-   * Extract partition and clustering columns from Delta table detail (unified method)
-   * Returns (partitionColumns, clusteringColumns)
+   * Extract partition, clustering, and z-order columns from Delta table detail (unified method)
+   * Returns (partitionColumns, clusteringColumns, cachedZorderColumns)
+   * Note: cachedZorderColumns returns Option[Seq[String]] where:
+   *   - None means not cached yet (need to query history)
+   *   - Some(Seq.empty) means cached as empty (table has no z-order fields)
+   *   - Some(Seq(...)) means cached with values
    */
-  private def getTableColumnsFromDetail(spark: SparkSession, deltaTable: DeltaTable, tablePath: String): (Seq[String], Seq[String]) = {
+  private def getTableColumnsFromDetail(spark: SparkSession, deltaTable: DeltaTable, tablePath: String): (Seq[String], Seq[String], Option[Seq[String]]) = {
     Try {
       spark.sparkContext.setJobDescription(s"DataFlint - collect table metadata for table $tablePath")
       val detailDF = deltaTable.detail()
@@ -204,6 +236,11 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
           row.getAs[Seq[String]]("partitionColumns")
         }.getOrElse(Seq.empty)
         
+        // Get properties map for clustering and z-order info
+        val properties = Try {
+          row.getAs[Map[String, String]]("properties")
+        }.toOption.getOrElse(Map.empty)
+        
         // Try to get clusteringColumns directly from the row (newer Delta versions)
         val directClustering = Try {
           row.getAs[Seq[String]]("clusteringColumns")
@@ -213,11 +250,6 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
           directClustering.get
         } else {
           // Fall back to checking properties map
-          val properties = Try {
-            row.getAs[Map[String, String]]("properties")
-          }.toOption.getOrElse(Map.empty)
-          
-          // Look for clustering column information in properties
           // Delta Lake stores liquid clustering info in table properties
           val clusteringCols = properties.get("delta.clustering.columns")
             .orElse(properties.get("delta.clusteringColumns"))
@@ -230,23 +262,35 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
           }.getOrElse(Seq.empty)
         }
         
-        (partitionColumns, clusteringColumns)
+        // Check for z-order fields in properties (cached by Dataflint)
+        // Return None if property doesn't exist, Some(Seq) if it does (even if empty)
+        val cachedZorderColumns = properties.get("dataflint.zorderFields").map { cols =>
+          // Format: "col1,col2" or empty string
+          if (cols.trim.isEmpty) {
+            Seq.empty
+          } else {
+            cols.split(",").map(_.trim).filter(_.nonEmpty).toSeq
+          }
+        }
+        
+        (partitionColumns, clusteringColumns, cachedZorderColumns)
       } else {
-        (Seq.empty, Seq.empty)
+        (Seq.empty, Seq.empty, None)
       }
     }.recover {
       case e: Exception =>
         logWarning(s"Failed to extract table columns from detail: ${e.getMessage}", e)
-        (Seq.empty, Seq.empty)
-    }.getOrElse((Seq.empty, Seq.empty))
+        (Seq.empty, Seq.empty, None)
+    }.getOrElse((Seq.empty, Seq.empty, None))
   }
 
   /**
    * Try to detect Z-Order columns from Delta table history
+   * Always persist the result as table metadata (even if empty) to avoid re-scanning history
    */
   private def getZOrderColumns(spark: SparkSession, tablePath: String): Seq[String] = {
     Try {
-      spark.sparkContext.setJobDescription(s"DataFlint - collect Z-Order info for table $tablePath")
+      spark.sparkContext.setJobDescription(s"DataFlint Delta Lake Instrumentation - collect Z-Order info for table $tablePath")
       
       // Load Delta table and use history() API
       val deltaTable = DeltaTable.forPath(spark, tablePath)
@@ -259,7 +303,7 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
 
       spark.sparkContext.setJobDescription(null) // Clear job description
 
-      if (rows.nonEmpty) {
+      val zOrderColumns = if (rows.nonEmpty) {
         val row = rows(0)
         // Try to get operationParameters
         val params = Try {
@@ -278,6 +322,31 @@ class DeltaLakeInstrumentationListener(sparkContext: SparkContext) extends Spark
       } else {
         Seq.empty
       }
+      
+      // Cache z-order fields to table metadata (only if caching is enabled)
+      // Cache even if empty so we know the table has been checked and has no z-order fields
+      if (cacheZindexFieldsToProperties) {
+        Try {
+          val metadataValue = zOrderColumns.mkString(",")
+        if (zOrderColumns.nonEmpty) {
+            logDebug(s"Set dataflint.zorderFields metadata for table $tablePath: $metadataValue")
+            spark.sparkContext.setJobDescription(s"DataFlint Delta Lake Instrumentation - add z-order fields to table properties for table $tablePath")
+          } else {
+            logDebug(s"Set dataflint.zorderFields metadata to empty for table $tablePath (no z-order fields found)")
+            spark.sparkContext.setJobDescription(s"DataFlint Delta Lake Instrumentation - add no z-order fields to table properties for table $tablePath")
+          }
+
+          spark.sql(s"ALTER TABLE delta.`$tablePath` SET TBLPROPERTIES ('dataflint.zorderFields' = '$metadataValue')")
+          spark.sparkContext.setJobDescription(null) // Clear job description
+        }.recover {
+          case e: Exception =>
+            logWarning(s"Failed to set z-order metadata for table $tablePath: ${e.getMessage}", e)
+        }
+      } else {
+        logDebug(s"Skipping caching z-order fields to properties for table $tablePath (cacheZindexFieldsToProperties=false)")
+      }
+      
+      zOrderColumns
     }.recover {
       case e: Exception =>
         logDebug(s"Unable to query Delta history: ${e.getMessage}")
