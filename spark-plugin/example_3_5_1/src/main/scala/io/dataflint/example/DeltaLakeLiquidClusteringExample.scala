@@ -24,6 +24,25 @@ object DeltaLakeLiquidClusteringExample extends App {
   import spark.implicits._
   import org.apache.spark.sql.functions._
   import io.delta.tables._
+  import org.apache.hadoop.fs.Path
+  
+  // === Hard Reset: Delete all test table directories ===
+  println("=== Hard Reset: Cleaning up test table directories ===")
+  val fs = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
+  val testPaths = Seq("/tmp/zorder_table", "/tmp/partitioned_table", "/tmp/liquid_cluster_table")
+  testPaths.foreach { pathStr =>
+    val path = new Path(pathStr)
+    if (fs.exists(path)) {
+      fs.delete(path, true)
+      println(s"Deleted existing directory: $pathStr")
+    }
+  }
+  
+  // Drop tables if they exist
+  spark.sql(s"DROP TABLE IF EXISTS zorder_table")
+  spark.sql(s"DROP TABLE IF EXISTS partitioned_table")
+  spark.sql(s"DROP TABLE IF EXISTS liquid_cluster_table")
+  println("Hard reset completed - all tables and data cleared\n")
 
   // Create dummy data
   spark.sparkContext.setJobDescription("Creating dummy data for Delta table")
@@ -42,7 +61,6 @@ object DeltaLakeLiquidClusteringExample extends App {
 
   // Register as table if needed
   spark.sparkContext.setJobDescription("Registering Delta table in Spark SQL")
-  spark.sql(s"DROP TABLE IF EXISTS zorder_table")
   spark.sql(s"CREATE TABLE zorder_table USING DELTA LOCATION '$path'")
 
   // === ✅ Native Delta Lake Z-Ordering ===
@@ -87,7 +105,6 @@ object DeltaLakeLiquidClusteringExample extends App {
 
   // Register partitioned table
   spark.sparkContext.setJobDescription("Registering partitioned Delta table")
-  spark.sql(s"DROP TABLE IF EXISTS partitioned_table")
   spark.sql(s"CREATE TABLE partitioned_table USING DELTA LOCATION '$partitionPath'")
 
   // Read without partition filter
@@ -114,24 +131,26 @@ object DeltaLakeLiquidClusteringExample extends App {
     (i, department, city, i * 100)
   }.toDF("id", "department", "city", "salary")
 
-  // Write liquid clustered table
-  spark.sparkContext.setJobDescription("Writing liquid clustered Delta table")
-  liquidClusterData.write
-    .format("delta")
-    .mode("overwrite")
-    .save(liquidClusterPath)
-
-  // Register and apply liquid clustering
-  spark.sparkContext.setJobDescription("Registering and applying liquid clustering")
-  spark.sql(s"DROP TABLE IF EXISTS liquid_cluster_table")
-  spark.sql(s"CREATE TABLE liquid_cluster_table USING DELTA LOCATION '$liquidClusterPath'")
-  
-  // Apply liquid clustering (Spark 3.5+ / Delta 3.0+ feature)
-  spark.sparkContext.setJobDescription("Altering table to use liquid clustering")
-  spark.sql("""
-    ALTER TABLE liquid_cluster_table 
+  // Create table with liquid clustering (Spark 3.5+ / Delta 3.0+ feature)
+  spark.sparkContext.setJobDescription("Creating liquid clustered Delta table with CLUSTER BY")
+  spark.sql(s"""
+    CREATE TABLE liquid_cluster_table (
+      id INT,
+      department STRING,
+      city STRING,
+      salary INT
+    )
+    USING DELTA
+    LOCATION '$liquidClusterPath'
     CLUSTER BY (department, city)
   """)
+  
+  // Write data to the clustered table
+  spark.sparkContext.setJobDescription("Writing data to liquid clustered Delta table")
+  liquidClusterData.write
+    .format("delta")
+    .mode("append")
+    .save(liquidClusterPath)
 
   // Optimize to apply clustering
   spark.sparkContext.setJobDescription("Optimizing liquid clustered table")
@@ -162,11 +181,11 @@ object DeltaLakeLiquidClusteringExample extends App {
 
   // Change clustering keys to optimize for different access patterns
   // Now we only cluster by city (removing department from clustering)
+  // Note: ALTER TABLE CLUSTER BY is only supported for tables that already have clustering
   spark.sparkContext.setJobDescription("Altering table to use new cluster keys (city only)")
   spark.sql("""
-    ALTER TABLE liquid_cluster_table 
-    CLUSTER BY (city)
-  """)
+    ALTER TABLE liquid_cluster_table
+    CLUSTER BY (city)""")
   println("Changed clustering keys from (department, city) to (city)")
 
   // Optimize table with new clustering keys
