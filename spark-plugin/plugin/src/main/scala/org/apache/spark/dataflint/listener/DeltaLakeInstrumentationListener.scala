@@ -68,8 +68,8 @@ class DeltaLakeInstrumentationListener(
         // Extract table paths and their corresponding node IDs directly from the graph
         val scanNodes = extractDeltaScanNodes(planGraph)
 
-        scanNodes.foreach { case (nodeId, tablePath) =>
-          extractAndPostDeltaMetadata(tablePath, nodeId, event.executionId)
+        scanNodes.foreach { case (nodeId, tablePath, tableNameOrPath) =>
+          extractAndPostDeltaMetadata(tablePath, tableNameOrPath, nodeId, event.executionId)
         }
       }
     }
@@ -90,16 +90,18 @@ class DeltaLakeInstrumentationListener(
 
   /**
    * Extract Delta Lake scan nodes from the Spark plan graph
-   * Returns a sequence of (nodeId, tablePath) tuples
+   * Returns a sequence of (nodeId, tablePath, tableNameOrPath) tuples
+   * where tableNameOrPath is the qualified table name if available, otherwise the path
    */
-  private def extractDeltaScanNodes(planGraph: SparkPlanGraph): Seq[(Long, String)] = {
+  private def extractDeltaScanNodes(planGraph: SparkPlanGraph): Seq[(Long, String, String)] = {
     planGraph.allNodes.flatMap { node =>
       // Look for Delta scan patterns in the node name
       if (node.name.contains("Scan") && !node.name.contains("ExistingRDD")) {
-        // Extract table path from node description
+        // Extract table path and table name from node description
         // The desc field contains the full scan information
         extractTablePathFromDesc(node.desc).map { tablePath =>
-          (node.id, tablePath)
+          val tableNameOrPath = extractTableNameFromDesc(node.desc).getOrElse(tablePath)
+          (node.id, tablePath, tableNameOrPath)
         }
       } else {
         None
@@ -127,7 +129,8 @@ class DeltaLakeInstrumentationListener(
         val content = m.group(1)
         // Check if this bracket content looks like a path (with or without scheme)
         // Keep the full URI including scheme (file://, s3://, dbfs://, etc.)
-        if (content.contains(":") || content.startsWith("/")) {
+        // also check that is not truncated, i.e. ends with ...
+        if ((content.contains(":") || content.startsWith("/")) && (!content.endsWith("..."))) {
           Some(content)
         } else {
           None
@@ -139,9 +142,26 @@ class DeltaLakeInstrumentationListener(
   }
 
   /**
+   * Extract table name from node description
+   * Example: "FileScan parquet dataflint_user_simulator.test.zorder_table[category#850,value#851]..."
+   * Returns: Some("dataflint_user_simulator.test.zorder_table")
+   */
+  private def extractTableNameFromDesc(desc: String): Option[String] = {
+    Try {
+      // Pattern to match table name after scan type and before the column list [
+      // Handles formats like:
+      // - "FileScan parquet catalog.schema.table[columns]"
+      // - "Scan parquet catalog.schema.table[columns]"
+      // Table names can contain dots (for catalog.schema.table), alphanumerics, and underscores
+      val tableNamePattern = """(?:FileScan|Scan)\s+\w+\s+([\w.]+)\[""".r
+      tableNamePattern.findFirstMatchIn(desc).map(_.group(1))
+    }.toOption.flatten
+  }
+
+  /**
    * Extract Delta Lake metadata and post event for a given table path and node ID
    */
-  private def extractAndPostDeltaMetadata(tablePath: String, nodeId: Long, executionId: Long): Unit = {
+  private def extractAndPostDeltaMetadata(tablePath: String, tableNameOrPath: String, nodeId: Long, executionId: Long): Unit = {
     // Check if we've already processed this table path
     if (processedTablePaths.contains(tablePath)) {
       logDebug(s"Skipping already processed table path: $tablePath")
@@ -152,71 +172,58 @@ class DeltaLakeInstrumentationListener(
     sparkSession match {
       case Some(spark) =>
         try {
-          loadDeltaTable(spark, tablePath) match {
-            case Some(deltaTable) =>
-              val (partitionColumns, clusteringColumns, cachedZorderColumns) = getTableColumnsFromDetail(spark, deltaTable, tablePath)
+          val (partitionColumns, clusteringColumns, cachedZorderColumns) = getTableColumnsFromDetail(spark, tableNameOrPath)
 
-              // Determine z-order columns based on cache and configuration
-              // Only collect z-order columns if collectZindexFields is enabled
-              val zorderColumns = if (!collectZindexFields) {
-                Seq.empty
-              } else {
-                cachedZorderColumns match {
-                  case Some(cached) =>
-                    // Cache exists (either with values or empty)
-                    if (cached.nonEmpty) {
-                      logDebug(s"Using cached z-order columns from metadata for table $tablePath: ${cached.mkString(", ")}")
-                    } else {
-                      logDebug(s"Using cached z-order columns from metadata for table $tablePath: none (table has no z-order)")
-                    }
-                    cached
-                  case None =>
-                    // No cache exists, need to query history
-                    logDebug(s"No cached z-order columns found for table $tablePath, querying Delta Lake history")
-                    getZOrderColumns(spark, tablePath, executionId)
+          // Determine z-order columns based on cache and configuration
+          // Only collect z-order columns if collectZindexFields is enabled
+          val zorderColumns = if (!collectZindexFields) {
+            Seq.empty
+          } else {
+            cachedZorderColumns match {
+              case Some(cached) =>
+                // Cache exists (either with values or empty)
+                if (cached.nonEmpty) {
+                  logDebug(s"Using cached z-order columns from metadata for table $tablePath: ${cached.mkString(", ")}")
+                } else {
+                  logDebug(s"Using cached z-order columns from metadata for table $tablePath: none (table has no z-order)")
                 }
-              }
-
-              // Extract table name from path (last component after /)
-              val tableName = tablePath.split("/").lastOption.filter(_.nonEmpty)
-
-              // Create and post the event
-              val scanInfo = DataflintDeltaLakeScanInfo(
-                minExecutionId = executionId,
-                tablePath = tablePath,
-                tableName = tableName,
-                partitionColumns = partitionColumns,
-                clusteringColumns = clusteringColumns,
-                zorderColumns = zorderColumns
-              )
-
-              val event = DataflintDeltaLakeScanEvent(scanInfo)
-              sparkContext.listenerBus.post(event)
-
-              // Mark this table path as processed
-              processedTablePaths.add(tablePath)
-
-              val duration = System.currentTimeMillis() - startTime
-              logDebug(s"Posted Delta Lake scan event for execution $executionId, table: $tablePath (took ${duration}ms)")
-            case None =>
-              logDebug(s"Could not load Delta table for path: $tablePath")
+                cached
+              case None =>
+                // No cache exists, need to query history
+                logDebug(s"No cached z-order columns found for table $tablePath, querying Delta Lake history")
+                getZOrderColumns(spark, tableNameOrPath, executionId)
+            }
           }
-        } catch {
+
+          // Extract table name from path (last component after /)
+          val tableName = tablePath.split("/").lastOption.filter(_.nonEmpty)
+
+          // Create and post the event
+          val scanInfo = DataflintDeltaLakeScanInfo(
+            minExecutionId = executionId,
+            tablePath = tablePath,
+            tableName = tableName,
+            partitionColumns = partitionColumns,
+            clusteringColumns = clusteringColumns,
+            zorderColumns = zorderColumns
+          )
+
+          val event = DataflintDeltaLakeScanEvent(scanInfo)
+          sparkContext.listenerBus.post(event)
+
+          // Mark this table path as processed
+          processedTablePaths.add(tablePath)
+
+          val duration = System.currentTimeMillis() - startTime
+          logDebug(s"Posted Delta Lake scan event for execution $executionId, table: $tablePath (took ${duration}ms)")
+        }
+        catch {
           case e: Exception =>
             logWarning(s"Could not extract Delta metadata for path: $tablePath - ${e.getMessage}", e)
         }
       case None =>
         logDebug("SparkSession not available, cannot extract Delta metadata")
     }
-  }
-
-  /**
-   * Load Delta table using Delta Lake API
-   */
-  private def loadDeltaTable(spark: SparkSession, tablePath: String): Option[DeltaTable] = {
-    Try {
-      DeltaTable.forPath(spark, tablePath)
-    }.toOption
   }
 
   def extractLogicalNames(snapshot: Snapshot): Seq[String] = {
@@ -237,16 +244,19 @@ class DeltaLakeInstrumentationListener(
    *   - None means not cached yet (need to query history)
    *   - Some(Seq.empty) means cached as empty (table has no z-order fields)
    *   - Some(Seq(...)) means cached with values
+   *
+   * @param spark           The SparkSession
+   * @param tableNameOrPath The table name (e.g., "catalog.schema.table") or file path
    */
-  private def getTableColumnsFromDetail(spark: SparkSession, deltaTable: DeltaTable, tablePath: String): (Seq[String], Seq[String], Option[Seq[String]]) = {
+  private def getTableColumnsFromDetail(spark: SparkSession, tableNameOrPath: String): (Seq[String], Seq[String], Option[Seq[String]]) = {
     Try {
       // Use unsafeVolatileSnapshot for better performance (no Spark job needed)
       // assume DeltaLog is already initialized as the scan step must have read the snapshot
-      val snapshot = DeltaLog.forTable(spark, tablePath).unsafeVolatileSnapshot
+      val snapshot = DeltaLog.forTable(spark, tableNameOrPath).unsafeVolatileSnapshot
 
       // Check if snapshot is null
       if (snapshot == null) {
-        logWarning(s"Snapshot is null for table $tablePath")
+        logWarning(s"Snapshot is null for table $tableNameOrPath")
         return (Seq.empty, Seq.empty, None)
       }
 
@@ -283,20 +293,20 @@ class DeltaLakeInstrumentationListener(
    * Try to detect Z-Order columns from Delta table history
    * Uses DeltaLog.history API directly for better performance (no Spark jobs)
    * Always persist the result as table metadata (even if empty) to avoid re-scanning history
-   * 
-   * @param spark The SparkSession
-   * @param tablePath The Delta table path
+   *
+   * @param spark           The SparkSession
+   * @param tableNameOrPath The table name (e.g., "catalog.schema.table") or file path
    * @param rootExecutionId The parent execution ID to set as root for nested queries
    */
-  private def getZOrderColumns(spark: SparkSession, tablePath: String, rootExecutionId: Long): Seq[String] = {
+  private def getZOrderColumns(spark: SparkSession, tableNameOrPath: String, rootExecutionId: Long): Seq[String] = {
     Try {
       // Set the root execution ID so any Spark SQL operations appear as nested executions
       spark.sparkContext.setLocalProperty("spark.sql.execution.root.id", rootExecutionId.toString)
-      spark.sparkContext.setJobDescription(s"DataFlint Delta Lake Instrumentation - search operations history to find Z-Order fields for table $tablePath")
+      spark.sparkContext.setJobDescription(s"DataFlint Delta Lake Instrumentation - search operations history to find Z-Order fields for table $tableNameOrPath")
 
       // Use DeltaLog history API directly (no Spark job needed)
       // Get last 1000 operations, assume if OPTIMIZE was not done recently, table is not z-ordered
-      val deltaLog = DeltaLog.forTable(spark, tablePath)
+      val deltaLog = DeltaLog.forTable(spark, tableNameOrPath)
       val history = deltaLog.history.getHistory(Some(1000))
 
       spark.sparkContext.setLocalProperty("spark.sql.execution.root.id", null) // Clear local property
@@ -328,23 +338,31 @@ class DeltaLakeInstrumentationListener(
         Try {
           val metadataValue = zOrderColumns.mkString(",")
           if (zOrderColumns.nonEmpty) {
-            logDebug(s"Set dataflint.zorderFields metadata for table $tablePath: $metadataValue")
-            spark.sparkContext.setJobDescription(s"DataFlint Delta Lake Instrumentation - add found z-order fields to table properties for table $tablePath")
+            logDebug(s"Set dataflint.zorderFields metadata for table $tableNameOrPath: $metadataValue")
+            spark.sparkContext.setJobDescription(s"DataFlint Delta Lake Instrumentation - add found z-order fields to table properties for table $tableNameOrPath")
           } else {
-            logDebug(s"Set dataflint.zorderFields metadata to empty for table $tablePath (no z-order fields found)")
-            spark.sparkContext.setJobDescription(s"DataFlint Delta Lake Instrumentation - add no z-order fields to table properties for table $tablePath")
+            logDebug(s"Set dataflint.zorderFields metadata to empty for table $tableNameOrPath (no z-order fields found)")
+            spark.sparkContext.setJobDescription(s"DataFlint Delta Lake Instrumentation - add no z-order fields to table properties for table $tableNameOrPath")
           }
 
           spark.sparkContext.setLocalProperty("spark.sql.execution.root.id", rootExecutionId.toString)
-          spark.sql(s"ALTER TABLE delta.`$tablePath` SET TBLPROPERTIES ('dataflint.zorderFields' = '$metadataValue')")
+          // Determine if tableNameOrPath is a qualified table name or a path
+          val alterTableCmd = if (tableNameOrPath.contains("/") || tableNameOrPath.contains(":\\") || tableNameOrPath.contains("s3://") || tableNameOrPath.contains("dbfs:/")) {
+            // It's a path, use delta.`path` syntax
+            s"ALTER TABLE delta.`$tableNameOrPath` SET TBLPROPERTIES ('dataflint.zorderFields' = '$metadataValue')"
+          } else {
+            // It's a qualified table name, use it directly
+            s"ALTER TABLE $tableNameOrPath SET TBLPROPERTIES ('dataflint.zorderFields' = '$metadataValue')"
+          }
+          spark.sql(alterTableCmd)
           spark.sparkContext.setJobDescription(null) // Clear job description
           spark.sparkContext.setLocalProperty("spark.sql.execution.root.id", null) // Clear local property
         }.recover {
           case e: Exception =>
-            logWarning(s"Failed to set z-order metadata for table $tablePath: ${e.getMessage}", e)
+            logWarning(s"Failed to set z-order metadata for table $tableNameOrPath: ${e.getMessage}", e)
         }
       } else {
-        logDebug(s"Skipping caching z-order fields to properties for table $tablePath (cacheZindexFieldsToProperties=false)")
+        logDebug(s"Skipping caching z-order fields to properties for table $tableNameOrPath (cacheZindexFieldsToProperties=false)")
       }
 
       zOrderColumns

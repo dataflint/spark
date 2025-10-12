@@ -25,7 +25,7 @@ object DeltaLakeLiquidClusteringExample extends App {
   import org.apache.spark.sql.functions._
   import io.delta.tables._
   import org.apache.hadoop.fs.Path
-  
+
   // === Hard Reset: Delete all test table directories ===
   println("=== Hard Reset: Cleaning up test table directories ===")
   val fs = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfiguration)
