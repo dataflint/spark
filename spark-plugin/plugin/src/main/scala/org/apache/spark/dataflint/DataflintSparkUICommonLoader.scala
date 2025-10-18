@@ -89,7 +89,7 @@ class DataflintSparkUICommonInstaller extends Logging {
         addToQueueMethod(rddListener, "dataflint")
       }
       if(deltaLakeInstrumentationEnabled) {
-        val deltaLakeListener = new DeltaLakeInstrumentationListener(context, deltaLakeCollectZindexFields, deltaLakeCacheZindexFieldsToProperties)
+        val deltaLakeListener = new DeltaLakeInstrumentationListener(context, deltaLakeCollectZindexFields, deltaLakeCacheZindexFieldsToProperties, isDatabricks)
         addToQueueMethod(deltaLakeListener, "dataflint")
         logInfo("Added DeltaLakeInstrumentationListener to the listener bus")
       }

@@ -29,7 +29,7 @@ class DataflintListener(store: ElementTrackingStore) extends SparkListener with 
         case _ => {}
       }
     } catch {
-      case e: Exception => logError("Error while processing events in DataflintListener", e)
+      case e: Throwable => logError("Error while processing events in DataflintListener", e)
     }
   }
 }

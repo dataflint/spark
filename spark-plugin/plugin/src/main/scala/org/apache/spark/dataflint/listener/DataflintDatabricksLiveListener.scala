@@ -48,7 +48,7 @@ class DataflintDatabricksLiveListener(listenerBus: LiveListenerBus, rddScopeIdRe
         case _ => {}
       }
     } catch {
-      case e: Exception => logError("Error while processing events in DataflintDatabricksLiveListener", e)
+      case e: Throwable => logError("Error while processing events in DataflintDatabricksLiveListener", e)
     }
   }
 }

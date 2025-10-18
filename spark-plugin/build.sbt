@@ -39,6 +39,7 @@ lazy val plugin = (project in file("plugin"))
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0" % "provided",
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % Test,
     // Sonatype Central Portal repository configuration
     publishTo := {
       val realm = "Sonatype Nexus Repository Manager"
