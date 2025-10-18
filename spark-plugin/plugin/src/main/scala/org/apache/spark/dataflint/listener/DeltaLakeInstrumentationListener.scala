@@ -17,17 +17,19 @@ import scala.util.Try
  * - Databricks: com.databricks.sql.transaction.tahoe.DeltaLog
  *
  * @param sparkContext                  The Spark context
- * @param collectZindexFields           Whether to collect z-index fields from Delta Lake history (default: true)
- * @param cacheZindexFieldsToProperties Whether to cache z-index fields to table properties (default: true)
- * @param isDatabricks                  Whether running on Databricks runtime (default: false)
+ * @param collectZindexFields           Whether to collect z-index fields from Delta Lake history
+ * @param cacheZindexFieldsToProperties Whether to cache z-index fields to table properties
+ * @param historyLimit                  Maximum number of history entries to scan for z-order columns
+ * @param isDatabricks                  Whether running on Databricks runtime
  */
 class DeltaLakeInstrumentationListener(
                                         sparkContext: SparkContext,
-                                        collectZindexFields: Boolean = true,
-                                        cacheZindexFieldsToProperties: Boolean = true,
-                                        isDatabricks: Boolean = false
+                                        collectZindexFields: Boolean,
+                                        cacheZindexFieldsToProperties: Boolean,
+                                        historyLimit: Int,
+                                        isDatabricks: Boolean
                                       ) extends SparkListener with Logging {
-  logInfo(s"DeltaLakeInstrumentationListener initialized (collectZindexFields=$collectZindexFields, cacheZindexFieldsToProperties=$cacheZindexFieldsToProperties, isDatabricks=$isDatabricks)")
+  logInfo(s"DeltaLakeInstrumentationListener initialized (collectZindexFields=$collectZindexFields, cacheZindexFieldsToProperties=$cacheZindexFieldsToProperties, historyLimit=$historyLimit, isDatabricks=$isDatabricks)")
   
   // Reflection utility for Delta Lake operations
   private lazy val reflectionUtils = new DeltaLakeReflectionUtils(isDatabricks)
@@ -137,7 +139,7 @@ class DeltaLakeInstrumentationListener(
     sparkSession match {
       case Some(spark) =>
         try {
-          val (partitionColumns, clusteringColumns, cachedZorderColumns) = getTableColumnsFromDetail(spark, tableNameOrPath)
+          val (partitionColumns, clusteringColumns, clusteringColumnsPhysicalNames, cachedZorderColumns) = getTableColumnsFromDetail(spark, tableNameOrPath)
 
           // Determine z-order columns based on cache and configuration
           // Only collect z-order columns if collectZindexFields is enabled
@@ -171,10 +173,11 @@ class DeltaLakeInstrumentationListener(
             tableName = tableName,
             partitionColumns = partitionColumns,
             clusteringColumns = clusteringColumns,
+            clusteringColumnsPhysicalNames = clusteringColumnsPhysicalNames,
             zorderColumns = zorderColumns
           )
 
-          logInfo(s"DeltaLakeInstrumentationListener - Posting event for $tablePath: partitionColumns=[${partitionColumns.mkString(",")}], clusteringColumns=[${clusteringColumns.mkString(",")}], zorderColumns=[${zorderColumns.mkString(",")}]")
+          logInfo(s"DeltaLakeInstrumentationListener - Posting event for $tablePath: partitionColumns=[${partitionColumns.mkString(",")}], clusteringColumns=[${clusteringColumns.mkString(",")}], clusteringColumnsPhysicalNames=[${clusteringColumnsPhysicalNames.mkString(",")}], zorderColumns=[${zorderColumns.mkString(",")}]")
 
           val event = DataflintDeltaLakeScanEvent(scanInfo)
           sparkContext.listenerBus.post(event)
@@ -196,9 +199,9 @@ class DeltaLakeInstrumentationListener(
 
   /**
    * Get partition, clustering, and cached z-order columns from table metadata.
-   * Returns (partitionColumns, clusteringColumns, cachedZorderColumns)
+   * Returns (partitionColumns, clusteringColumns, clusteringColumnsPhysicalNames, cachedZorderColumns)
    */
-  private def getTableColumnsFromDetail(spark: SparkSession, tableNameOrPath: String): (Seq[String], Seq[String], Option[Seq[String]]) = {
+  private def getTableColumnsFromDetail(spark: SparkSession, tableNameOrPath: String): (Seq[String], Seq[String], Seq[String], Option[Seq[String]]) = {
     Try {
       logInfo(s"Getting table columns for $tableNameOrPath")
       reflectionUtils.getDeltaLog(spark, tableNameOrPath) match {
@@ -213,8 +216,9 @@ class DeltaLakeInstrumentationListener(
                   val partitionColumns = reflectionUtils.callPartitionColumns(metadata).getOrElse(Seq.empty)
                   logInfo(s"Table $tableNameOrPath - partition columns: ${partitionColumns.mkString(", ")}")
                   
-                  val clusteringColumns = extractClusteringColumns(snapshot)
+                  val (clusteringColumns, clusteringColumnsPhysicalNames) = extractClusteringColumns(snapshot)
                   logInfo(s"Table $tableNameOrPath - clustering columns: ${clusteringColumns.mkString(", ")}")
+                  logInfo(s"Table $tableNameOrPath - clustering columns physical names: ${clusteringColumnsPhysicalNames.mkString(", ")}")
                   
                   // Get cached z-order fields from properties
                   val cachedZorderColumns = reflectionUtils.callConfiguration(metadata).flatMap { customProperties =>
@@ -235,30 +239,31 @@ class DeltaLakeInstrumentationListener(
                     logInfo(s"Table $tableNameOrPath - no cached z-order fields found in properties")
                   }
                   
-                  (partitionColumns, clusteringColumns, cachedZorderColumns)
+                  (partitionColumns, clusteringColumns, clusteringColumnsPhysicalNames, cachedZorderColumns)
                 case None =>
                   logWarning(s"Failed to get metadata for table $tableNameOrPath")
-                  (Seq.empty, Seq.empty, None)
+                  (Seq.empty, Seq.empty, Seq.empty, None)
               }
             case None =>
               logWarning(s"Snapshot is null for table $tableNameOrPath")
-              (Seq.empty, Seq.empty, None)
+              (Seq.empty, Seq.empty, Seq.empty, None)
           }
         case None =>
           logWarning(s"DeltaLog class not available, cannot extract table columns for $tableNameOrPath")
-          (Seq.empty, Seq.empty, None)
+          (Seq.empty, Seq.empty, Seq.empty, None)
       }
     }.recover {
       case e: Throwable =>
         logWarning(s"Failed to extract table columns from snapshot metadata for $tableNameOrPath: ${e.getMessage}", e)
-        (Seq.empty, Seq.empty, None)
-    }.getOrElse((Seq.empty, Seq.empty, None))
+        (Seq.empty, Seq.empty, Seq.empty, None)
+    }.getOrElse((Seq.empty, Seq.empty, Seq.empty, None))
   }
 
   /**
    * Extract clustering columns from Delta snapshot.
+   * Returns (logicalNames, physicalNames)
    */
-  private def extractClusteringColumns(snapshot: Any): Seq[String] = {
+  private def extractClusteringColumns(snapshot: Any): (Seq[String], Seq[String]) = {
     Try {
       logInfo("Attempting to extract clustering columns from snapshot")
       reflectionUtils.callClusteringMetadataFromSnapshot(snapshot) match {
@@ -271,7 +276,7 @@ class DeltaLakeInstrumentationListener(
               reflectionUtils.callSchema(snapshot) match {
                 case Some(schema) =>
                   logInfo("Got schema for clustering column conversion")
-                  val result = clusteringColumns.flatMap { physicalName =>
+                  val logicalNames = clusteringColumns.flatMap { physicalName =>
                     Try {
                       reflectionUtils.callClusteringColumnInfoApply(schema, physicalName).flatMap { columnInfo =>
                         reflectionUtils.callLogicalName(columnInfo)
@@ -282,30 +287,32 @@ class DeltaLakeInstrumentationListener(
                         None
                     }.getOrElse(None)
                   }
-                  logInfo(s"Converted to ${result.size} logical clustering column(s): ${result.mkString(", ")}")
-                  result
+                  // Convert physical names (Seq[Seq[String]]) to dot-separated strings
+                  val physicalNames = clusteringColumns.map(_.mkString("."))
+                  logInfo(s"Converted to ${logicalNames.size} logical clustering column(s): ${logicalNames.mkString(", ")}")
+                  (logicalNames, physicalNames)
                 case None =>
                   logWarning("Failed to get schema from snapshot for clustering column conversion (table has clustering but schema not available)")
-                  Seq.empty
+                  (Seq.empty, Seq.empty)
               }
             case Some(cols) =>
               // Clustering metadata exists but no columns defined (empty list)
               logDebug(s"Clustering metadata found but column list is empty (size=${cols.size})")
-              Seq.empty
+              (Seq.empty, Seq.empty)
             case None =>
               // Could not get clustering columns from metadata domain
               logDebug("Could not extract clustering columns from clustering metadata domain (callClusteringColumns returned None)")
-              Seq.empty
+              (Seq.empty, Seq.empty)
           }
         case None =>
           logDebug("No clustering metadata domain found for this table (table doesn't support liquid clustering or clustering not configured)")
-          Seq.empty
+          (Seq.empty, Seq.empty)
       }
     }.recover {
       case e: Throwable =>
         logWarning(s"Failed to extract clustering columns: ${e.getMessage}", e)
-        Seq.empty
-    }.getOrElse(Seq.empty)
+        (Seq.empty, Seq.empty)
+    }.getOrElse((Seq.empty, Seq.empty))
   }
 
   /**
@@ -323,7 +330,7 @@ class DeltaLakeInstrumentationListener(
       spark.sparkContext.setLocalProperty("spark.sql.execution.root.id", rootExecutionId.toString)
       spark.sparkContext.setJobDescription(s"DataFlint Delta Lake Instrumentation - search operations history to find Z-Order fields for table $tableNameOrPath")
       
-      val zOrderColumns = getZOrderColumnsFromHistory(spark, tableNameOrPath, 1000)
+      val zOrderColumns = getZOrderColumnsFromHistory(spark, tableNameOrPath, historyLimit)
 
       spark.sparkContext.setLocalProperty("spark.sql.execution.root.id", null) // Clear local property
       spark.sparkContext.setJobDescription(null) // Clear job description

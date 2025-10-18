@@ -79,7 +79,7 @@ class DeltaLakeReflectionUtils(isDatabricks: Boolean = false) extends Logging {
   
   private lazy val clusteringColumnInfoModule: Option[Any] = try {
     val className = if (isDatabricks) {
-      "com.databricks.sql.transaction.tahoe.skipping.clustering.ClusteringColumnInfo$"
+      "com.databricks.sql.io.skipping.liquid.ClusteringColumnInfo$"
     } else {
       "org.apache.spark.sql.delta.skipping.clustering.ClusteringColumnInfo$"
     }
@@ -502,10 +502,22 @@ class DeltaLakeReflectionUtils(isDatabricks: Boolean = false) extends Logging {
    */
   def callOperation(commit: Any): Option[String] = {
     try {
-      commitOperationMethod.map(method => method.invoke(commit).asInstanceOf[String])
+      commitOperationMethod.map { method =>
+        // Check if the commit object is the right type for this method
+        val commitClassName = commit.getClass.getName
+        val expectedClassName = method.getDeclaringClass.getName
+        if (!method.getDeclaringClass.isInstance(commit)) {
+          logWarning(s"Commit object type mismatch: expected $expectedClassName but got $commitClassName")
+          // Try to find the operation method on the actual commit class
+          val actualMethod = commit.getClass.getMethod("operation")
+          actualMethod.invoke(commit).asInstanceOf[String]
+        } else {
+          method.invoke(commit).asInstanceOf[String]
+        }
+      }
     } catch {
       case e: Throwable =>
-        logWarning(s"Failed to call operation: ${e.getMessage}", e)
+        logWarning(s"Failed to call operation on commit of type ${commit.getClass.getName}: ${e.getMessage}", e)
         None
     }
   }
@@ -515,10 +527,20 @@ class DeltaLakeReflectionUtils(isDatabricks: Boolean = false) extends Logging {
    */
   def callOperationParameters(commit: Any): Option[scala.collection.Map[String, String]] = {
     try {
-      commitOperationParametersMethod.map(method => method.invoke(commit).asInstanceOf[scala.collection.Map[String, String]])
+      commitOperationParametersMethod.map { method =>
+        // Check if the commit object is the right type for this method
+        if (!method.getDeclaringClass.isInstance(commit)) {
+          logWarning(s"Commit object type mismatch for operationParameters: expected ${method.getDeclaringClass.getName} but got ${commit.getClass.getName}")
+          // Try to find the operationParameters method on the actual commit class
+          val actualMethod = commit.getClass.getMethod("operationParameters")
+          actualMethod.invoke(commit).asInstanceOf[scala.collection.Map[String, String]]
+        } else {
+          method.invoke(commit).asInstanceOf[scala.collection.Map[String, String]]
+        }
+      }
     } catch {
       case e: Throwable =>
-        logWarning(s"Failed to call operationParameters: ${e.getMessage}", e)
+        logWarning(s"Failed to call operationParameters on commit of type ${commit.getClass.getName}: ${e.getMessage}", e)
         None
     }
   }

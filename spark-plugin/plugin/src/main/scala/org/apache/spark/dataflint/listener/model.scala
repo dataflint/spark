@@ -80,6 +80,7 @@ case class DataflintDeltaLakeScanInfo(
                                        tableName: Option[String],
                                        partitionColumns: Seq[String],
                                        clusteringColumns: Seq[String],
+                                       clusteringColumnsPhysicalNames: Seq[String],
                                        zorderColumns: Seq[String]
                                      )
 
