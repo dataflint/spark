@@ -14,7 +14,7 @@
 [![Docs](https://img.shields.io/badge/Docs-Read%20the%20Docs-blue)](https://dataflint.gitbook.io/dataflint-for-spark/)
 ![License](https://img.shields.io/badge/License-Apache%202.0-orange)
 
-If you enjoy DataFlint please give us a ⭐️ and join our [slack community](https://join.slack.com/t/dataflint/shared_invite/zt-28sr3r3pf-Td_mLx~0Ss6D1t0EJb8CNA) for feature requests, support and more!
+If you enjoy DataFlint please give us a ⭐️ and join our [slack community](https://join.slack.com/t/dataflint/shared_invite/zt-28sr3r3pf-Td_mLx~0Ss6D1t0EJb8CNA) for feature requests, support and more! 🚀
 
 </div>
 
