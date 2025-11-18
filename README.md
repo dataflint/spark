@@ -60,9 +60,16 @@ See [Our Features](https://dataflint.gitbook.io/dataflint-for-spark/overview/our
 ### Scala
 
 Install DataFlint OSS via sbt:
+For Spark 3.X:
 ```sbt
-libraryDependencies += "io.dataflint" %% "spark" % "0.2.3"
+libraryDependencies += "io.dataflint" %% "spark" % "0.6.1"
 ```
+
+For Spark 4.X:
+```sbt
+libraryDependencies += "io.dataflint" %% "dataflint-spark4" % "0.6.1"
+```
+
 
 Then instruct spark to load the DataFlint OSS plugin:
 ```scala
@@ -76,10 +83,20 @@ val spark = SparkSession
 ### PySpark
 Add these 2 configs to your pyspark session builder:
 
+For Spark 3.X:
 ```python
 builder = pyspark.sql.SparkSession.builder
     ...
-    .config("spark.jars.packages", "io.dataflint:spark_2.12:0.2.3") \
+    .config("spark.jars.packages", "io.dataflint:spark_2.12:0.6.1") \
+    .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin") \
+    ...
+```
+
+For Spark 4.X:
+```python
+builder = pyspark.sql.SparkSession.builder
+    ...
+    .config("spark.jars.packages", "io.dataflint:dataflint-spark4_2.13:0.6.1") \
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin") \
     ...
 ```
@@ -90,14 +107,22 @@ Alternatively, install DataFlint OSS with **no code change** as a spark ivy pack
 
 ```bash
 spark-submit
---packages io.dataflint:spark_2.12:0.2.3 \
+--packages io.dataflint:spark_2.12:0.6.1 \
+--conf spark.plugins=io.dataflint.spark.SparkDataflintPlugin \
+...
+```
+
+For Spark 4.X:
+```bash
+spark-submit
+--packages io.dataflint:dataflint-spark4_2.13:0.6.1 \
 --conf spark.plugins=io.dataflint.spark.SparkDataflintPlugin \
 ...
 ```
 
 ### Additional installation options
 
-* There is also support for scala 2.13, if your spark cluster is using scala 2.13 change package name to io.dataflint:spark_**2.13**:0.2.3
+* There is also support for scala 2.13, if your spark cluster is using scala 2.13 change package name to io.dataflint:spark_**2.13**:0.6.1
 * For more installation options, including for **python** and **k8s spark-operator**, see [Install on Spark docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark)
 * For installing DataFlint OSS in **spark history server** for observability on completed runs see [install on spark history server docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark-history-server)
 * For installing DataFlint OSS on **DataBricks** see [install on databricks docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-databricks)
@@ -112,17 +137,27 @@ The plugin exposes an additional HTTP resoures for additional metrics not availa
 
 For more information, see [how it works docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/how-it-works)
 
-## Medium Articles
+## Articles
 
-*  [Fixing small files performance issues in Apache Spark using DataFlint OSS](https://medium.com/@menishmueli/fixing-small-files-performance-issues-in-apache-spark-using-dataflint-49ffe3eb755f)
+*  [AWS engineering blog post featuring DataFlint - Centralize Apache Spark observability on Amazon EMR on EKS with external Spark History Server](https://aws.amazon.com/blogs/big-data/centralize-apache-spark-observability-on-amazon-emr-on-eks-with-external-spark-history-server/)
 
-*  [Are Long Filter Conditions in Apache Spark Leading to Performance Issues?](https://medium.com/@menishmueli/are-long-filter-conditions-in-apache-spark-leading-to-performance-issues-0b5bc6c0f94a)
+*  [Wix engineering blog post featuring DataFlint - How Wix Built the Ultimate Spark-as-a-Service Platform](https://www.wix.engineering/post/how-wix-built-the-ultimate-spark-as-a-service-platform-part1)
 
-*  [Optimizing update operations to Apache Iceberg tables using DataFlint OSS](https://medium.com/dev-genius/optimizing-update-operations-to-apache-iceberg-tables-using-dataflint-e4e372e75b8a)
+*  [Cloudera Community - How to integrated DataFlint in CDP](https://community.cloudera.com/t5/Community-Articles/How-to-integrated-DataFlint-in-CDP/ta-p/383681)
 
-*  [Did you know that your Apache Spark logs might be leaking PIIs?](https://medium.com/system-weakness/did-you-know-that-your-apache-spark-logs-might-be-leaking-piis-06f2a0e8a82c)
+*  [Dataminded engineering blog post featuring DataFlint - Running thousands of Spark applications without losing your cool](https://medium.com/datamindedbe/running-thousands-of-spark-applications-without-losing-your-cool-969208a2d655)
 
-*  [Cost vs Speed: measuring Apache Spark performance with DataFlint OSS](https://medium.com/@menishmueli/cost-vs-speed-measuring-apache-spark-performance-with-dataflint-c5f909ebe229)
+*  [Data Engineering Weekly #156 - Featuring DataFlint](https://www.dataengineeringweekly.com/p/data-engineering-weekly-156)
+
+*  [Medium Blog Post - Fixing small files performance issues in Apache Spark using DataFlint](https://medium.com/@menishmueli/fixing-small-files-performance-issues-in-apache-spark-using-dataflint-49ffe3eb755f)
+
+*  [Medium Blog Post - Are Long Filter Conditions in Apache Spark Leading to Performance Issues?](https://medium.com/@menishmueli/are-long-filter-conditions-in-apache-spark-leading-to-performance-issues-0b5bc6c0f94a)
+
+*  [Medium Blog Post - Optimizing update operations to Apache Iceberg tables using DataFlint](https://medium.com/dev-genius/optimizing-update-operations-to-apache-iceberg-tables-using-dataflint-e4e372e75b8a)
+
+*  [Medium Blog Post - Did you know that your Apache Spark logs might be leaking PIIs?](https://medium.com/system-weakness/did-you-know-that-your-apache-spark-logs-might-be-leaking-piis-06f2a0e8a82c)
+
+*  [Medium Blog Post - Cost vs Speed: measuring Apache Spark performance with DataFlint](https://medium.com/@menishmueli/cost-vs-speed-measuring-apache-spark-performance-with-dataflint-c5f909ebe229)
 
 
 ## Compatibility Matrix
@@ -136,8 +171,8 @@ DataFlint OSS require spark version 3.2 and up, and supports both scala versions
 | Standalone                |       ✅            |           ✅             |
 | Kubernetes Spark Operator |       ✅            |           ✅             |
 | EMR                       |       ✅            |           ✅             |
-| Dataproc                  |       ✅            |           ❓             |
-| HDInsights                |       ✅            |           ❓             |
+| Dataproc                  |       ✅            |           ✅             |
+| HDInsights                |       ✅            |           ❌             |
 | Databricks                |       ✅            |           ❌             |
 
 For more information, see [supported versions docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/supported-versions)
