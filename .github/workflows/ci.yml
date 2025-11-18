@@ -59,6 +59,9 @@ jobs:
         run: npm run test
         working-directory: ./spark-ui
 
+      - name: Install Python dependencies for PySpark integration tests
+        run: pip install pyspark==3.5.1 pandas pyarrow
+
       - name: Build and test plugin
         run: sbt +test
         working-directory: ./spark-plugin
