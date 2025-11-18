@@ -120,8 +120,22 @@ export default function SummaryTab() {
               display="flex"
               alignItems="center"
               alignContent="center"
+              flex={1}
+              minWidth={0}
             >
-              <Typography variant="h5">
+              <Typography 
+                variant="h5"
+                title={`query ${selectedSql?.id}: ${selectedSql?.description || ''}`}
+                style={{
+                  overflow: 'hidden',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 5,
+                  WebkitBoxOrient: 'vertical',
+                  maxWidth: '100%',
+                  lineHeight: '1.2em',
+                  maxHeight: '6em'
+                }}
+              >
                 query {selectedSql?.id}: {selectedSql?.description}
               </Typography>
             </Box>
