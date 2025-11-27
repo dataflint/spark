@@ -176,3 +176,5 @@ DataFlint OSS require spark version 3.2 and up, and supports both scala versions
 | Databricks                |       ✅            |           ❌             |
 
 For more information, see [supported versions docs](https://dataflint.gitbook.io/dataflint-for-spark/overview/supported-versions)
+
+<img referrerpolicy="unsafe-url" src="https://static.scarf.sh/a.png?x-pxid=a90c7d38-8350-4d68-ac27-94c2c07ef3ce" />
