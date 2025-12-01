@@ -251,32 +251,34 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   // Cycle through nodes by duration percentage (highest to lowest)
   const handleFocusNextDuration = useCallback(() => {
     if (instance && navigationData.nodesByDuration.length > 0) {
-      const nextIndex = (currentDurationIndex + 1) % navigationData.nodesByDuration.length;
-      setCurrentDurationIndex(nextIndex);
-
-      const node = navigationData.nodesByDuration[nextIndex];
+      const node = navigationData.nodesByDuration[currentDurationIndex];
       const nodeWidth = 280;
       const nodeHeight = 280;
       const centerX = node.position.x + nodeWidth / 2;
       const centerY = node.position.y + nodeHeight / 2;
 
       instance.setCenter(centerX, centerY, { zoom: 0.75 });
+
+      // Increment index for next click
+      const nextIndex = (currentDurationIndex + 1) % navigationData.nodesByDuration.length;
+      setCurrentDurationIndex(nextIndex);
     }
   }, [instance, navigationData.nodesByDuration, currentDurationIndex]);
 
   // Cycle through nodes with alerts
   const handleFocusNextAlert = useCallback(() => {
     if (instance && navigationData.nodesWithAlerts.length > 0) {
-      const nextIndex = (currentAlertIndex + 1) % navigationData.nodesWithAlerts.length;
-      setCurrentAlertIndex(nextIndex);
-
-      const node = navigationData.nodesWithAlerts[nextIndex];
+      const node = navigationData.nodesWithAlerts[currentAlertIndex];
       const nodeWidth = 280;
       const nodeHeight = 280;
       const centerX = node.position.x + nodeWidth / 2;
       const centerY = node.position.y + nodeHeight / 2;
 
       instance.setCenter(centerX, centerY, { zoom: 0.75 });
+
+      // Increment index for next click
+      const nextIndex = (currentAlertIndex + 1) % navigationData.nodesWithAlerts.length;
+      setCurrentAlertIndex(nextIndex);
     }
   }, [instance, navigationData.nodesWithAlerts, currentAlertIndex]);
 
