@@ -8,7 +8,7 @@ import ReactFlow, {
   useNodesState,
 } from "reactflow";
 
-import { CenterFocusStrong, Info as InfoIcon, Speed, Warning, ZoomIn, ZoomOut } from "@mui/icons-material";
+import { CenterFocusStrong, Info as InfoIcon, Speed, Storage, Warning, ZoomIn, ZoomOut } from "@mui/icons-material";
 import {
   Alert,
   Box,
@@ -28,6 +28,7 @@ import "reactflow/dist/style.css";
 import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
 import { setSQLMode, setSelectedStage } from "../../reducers/GeneralSlice";
+import { parseBytesString } from "../../utils/FormatUtils";
 import CustomMiniMap from "./MiniMap";
 import SqlLayoutService from "./SqlLayoutService";
 import StageIconDrawer from "./StageIconDrawer";
@@ -49,10 +50,18 @@ interface BiggestDurationNode {
   durationPercentage: number;
 }
 
+interface NodeWithSpill {
+  nodeId: string;
+  position: { x: number; y: number };
+  spillSize: number;
+  spillSizeFormatted: string;
+}
+
 interface NavigationData {
   nodesWithAlerts: NodeWithAlert[];
   biggestDurationNode: BiggestDurationNode | null;
   nodesByDuration: BiggestDurationNode[];
+  nodesWithSpill: NodeWithSpill[];
 }
 
 const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
@@ -71,6 +80,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const initialFocusApplied = useRef<string | null>(null);
   const [currentAlertIndex, setCurrentAlertIndex] = useState(0);
   const [currentDurationIndex, setCurrentDurationIndex] = useState(0);
+  const [currentSpillIndex, setCurrentSpillIndex] = useState(0);
 
   const dispatch = useAppDispatch();
   const graphFilter = useAppSelector((state) => state.general.sqlMode);
@@ -91,7 +101,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
 
   // Memoized calculations for navigation features
   const navigationData = useMemo((): NavigationData => {
-    if (!sparkSQL || !nodes.length) return { nodesWithAlerts: [], biggestDurationNode: null, nodesByDuration: [] };
+    if (!sparkSQL || !nodes.length) return { nodesWithAlerts: [], biggestDurationNode: null, nodesByDuration: [], nodesWithSpill: [] };
 
     // Find nodes with alerts
     const nodesWithAlerts: NodeWithAlert[] = nodes.filter(node => node.data?.alert).map(node => ({
@@ -113,7 +123,27 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     // Find node with biggest duration percentage (first in sorted array)
     const biggestDurationNode: BiggestDurationNode | null = nodesByDuration.length > 0 ? nodesByDuration[0] : null;
 
-    return { nodesWithAlerts, biggestDurationNode, nodesByDuration };
+    // Find nodes with spill size and sort by spill size (highest first)
+    const nodesWithSpill: NodeWithSpill[] = nodes
+      .filter(node => {
+        const spillMetric = node.data?.node?.metrics?.find((m: any) => m.name === "spill size");
+        if (!spillMetric?.value) return false;
+        const spillSize = parseBytesString(spillMetric.value);
+        return spillSize > 0;
+      })
+      .map(node => {
+        const spillMetric = node.data.node.metrics.find((m: any) => m.name === "spill size");
+        const spillSize = parseBytesString(spillMetric!.value);
+        return {
+          nodeId: node.id,
+          position: node.position,
+          spillSize,
+          spillSizeFormatted: spillMetric!.value
+        };
+      })
+      .sort((a, b) => b.spillSize - a.spillSize);
+
+    return { nodesWithAlerts, biggestDurationNode, nodesByDuration, nodesWithSpill };
   }, [nodes, sparkSQL]);
 
   // Effect for metric updates only
@@ -218,6 +248,11 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     setCurrentDurationIndex(0);
   }, [navigationData.nodesByDuration.length]);
 
+  // Reset spill index when nodes change
+  useEffect(() => {
+    setCurrentSpillIndex(0);
+  }, [navigationData.nodesWithSpill.length]);
+
   const onConnect = useCallback(
     (params: any) =>
       setEdges((eds) =>
@@ -281,6 +316,23 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
       setCurrentAlertIndex(nextIndex);
     }
   }, [instance, navigationData.nodesWithAlerts, currentAlertIndex]);
+
+  // Cycle through nodes with spill (highest to lowest)
+  const handleFocusNextSpill = useCallback(() => {
+    if (instance && navigationData.nodesWithSpill.length > 0) {
+      const node = navigationData.nodesWithSpill[currentSpillIndex];
+      const nodeWidth = 280;
+      const nodeHeight = 280;
+      const centerX = node.position.x + nodeWidth / 2;
+      const centerY = node.position.y + nodeHeight / 2;
+
+      instance.setCenter(centerX, centerY, { zoom: 0.75 });
+
+      // Increment index for next click
+      const nextIndex = (currentSpillIndex + 1) % navigationData.nodesWithSpill.length;
+      setCurrentSpillIndex(nextIndex);
+    }
+  }, [instance, navigationData.nodesWithSpill, currentSpillIndex]);
 
   if (error) {
     return (
@@ -429,6 +481,33 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
             }}
           >
             <Warning />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip
+          title={navigationData.nodesWithSpill.length > 0
+            ? `Focus on spill (${currentSpillIndex + 1}/${navigationData.nodesWithSpill.length}) - ${navigationData.nodesWithSpill[currentSpillIndex]?.spillSizeFormatted}`
+            : "No spill detected"
+          }
+          arrow
+          placement="left"
+        >
+          <IconButton
+            onClick={handleFocusNextSpill}
+            disabled={navigationData.nodesWithSpill.length === 0}
+            sx={{
+              backgroundColor: "rgba(245, 247, 250, 0.95)",
+              color: navigationData.nodesWithSpill.length > 0 ? "#424242" : "#bdbdbd",
+              border: "1px solid rgba(0, 0, 0, 0.15)",
+              "&:hover": {
+                backgroundColor: navigationData.nodesWithSpill.length > 0 ? "rgba(245, 247, 250, 1)" : "rgba(245, 247, 250, 0.95)"
+              },
+              "&:disabled": {
+                backgroundColor: "rgba(245, 247, 250, 0.5)",
+              }
+            }}
+          >
+            <Storage />
           </IconButton>
         </Tooltip>
       </Box>
