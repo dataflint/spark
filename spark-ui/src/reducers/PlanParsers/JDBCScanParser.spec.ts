@@ -53,7 +53,8 @@ describe("JDBCScanParser", () => {
             expect(result.selectedColumns).toEqual(["ID", "NAME", "DEPT_ID", "SALARY", "HIRE_DATE"]);
             expect(result.pushedFilters).toEqual([
                 "*IsNotNull(SALARY)",
-                "*GreaterThan(SALARY,75000.00)",
+                "*GreaterThan(SALARY",
+                "75000.00)",
             ]);
         });
 
