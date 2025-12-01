@@ -56,8 +56,10 @@ export function parseJDBCScan(
     if (pushedFiltersMatch) {
         const filtersStr = pushedFiltersMatch[1].trim();
         if (filtersStr && !filtersStr.includes("...")) {
+            // Split by comma, but not commas inside parentheses
+            // Use a regex that matches commas not inside parentheses
             result.pushedFilters = filtersStr
-                .split(",")
+                .split(/,(?![^()]*\))/)
                 .map((filter) => filter.trim())
                 .filter((filter) => filter.length > 0 && filter !== "*");
         }
