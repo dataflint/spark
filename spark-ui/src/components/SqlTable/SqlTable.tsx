@@ -1,5 +1,6 @@
 import CheckIcon from "@mui/icons-material/Check";
-import { Box, CircularProgress, FormControlLabel, FormGroup, Switch, TableSortLabel } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import { Box, CircularProgress, FormControlLabel, FormGroup, InputAdornment, Switch, TableSortLabel, TextField } from "@mui/material";
 import Paper from "@mui/material/Paper";
 import { styled } from "@mui/material/styles";
 import Table from "@mui/material/Table";
@@ -151,6 +152,7 @@ export default function SqlTable({
   const [orderBy, setOrderBy] = React.useState<keyof Data>(IS_HISTORY_SERVER_MODE ? "duration" : "id");
   const [sqlsTableData, setSqlsTableData] = React.useState<Data[]>([]);
   const [showSqlCommands, setShowSqlCommands] = React.useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = React.useState<string>("");
 
   const sqlAlerts = useAppSelector(
     (state) => state.spark.alerts,
@@ -190,9 +192,14 @@ export default function SqlTable({
 
   const visibleRows = React.useMemo(
     () => {
-      return stableSort(sqlsTableData, getComparator(order, orderBy));
+      const filteredData = searchQuery
+        ? sqlsTableData.filter((sql) =>
+          sql.description.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        : sqlsTableData;
+      return stableSort(filteredData, getComparator(order, orderBy));
     },
-    [order, orderBy, sqlsTableData],
+    [order, orderBy, sqlsTableData, searchQuery],
   );
 
   if (sqlStore === undefined) {
@@ -229,12 +236,28 @@ export default function SqlTable({
         overflow: "hidden",
       }}
     >
-      <Box display="flex" alignItems="center" justifyContent="center">
-        <ColumnPicker
-          headCells={headers}
-          visibleColumns={visibleColumns}
-          onToggleColumn={handleToggleColumn}
+      <Box display="flex" alignItems="center" justifyContent="center" gap={2}>
+        <TextField
+          size="small"
+          placeholder="Search descriptions..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ minWidth: "250px" }}
         />
+        <Box sx={{ minWidth: "250px" }}>
+          <ColumnPicker
+            headCells={headers}
+            visibleColumns={visibleColumns}
+            onToggleColumn={handleToggleColumn}
+          />
+        </Box>
         {hasSqlCommands ? <FormGroup>
           <FormControlLabel
             control={

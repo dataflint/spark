@@ -40,7 +40,7 @@ const ColumnPicker: React.FC<ColumnPickerProps> = ({
   };
 
   return (
-    <FormControl sx={{ m: 1, width: 300 }}>
+    <FormControl sx={{ m: 1, width: 300 }} size="small">
       <InputLabel id="column-picker-label">Columns</InputLabel>
       <Select
         labelId="column-picker-label"
