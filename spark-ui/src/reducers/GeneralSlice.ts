@@ -4,9 +4,11 @@ import { GraphFilter, SQLNodeExchangeStageData, SQLNodeStageData } from "../inte
 export const initialState: {
   sqlMode: GraphFilter;
   selectedStage: SQLNodeStageData | SQLNodeExchangeStageData | undefined;
+  telemetryEnabled: boolean;
 } = {
   sqlMode: "advanced",
-  selectedStage: undefined
+  selectedStage: undefined,
+  telemetryEnabled: false
 };
 
 const generalSlice = createSlice({
@@ -29,10 +31,18 @@ const generalSlice = createSlice({
     ) => {
       state.selectedStage = action.payload.selectedStage;
     },
+    setTelemetryEnabled: (
+      state,
+      action: PayloadAction<{
+        enabled: boolean;
+      }>,
+    ) => {
+      state.telemetryEnabled = action.payload.enabled;
+    },
   },
 });
 
 // Export the action creators and the reducer
-export const { setSQLMode, setSelectedStage } = generalSlice.actions;
+export const { setSQLMode, setSelectedStage, setTelemetryEnabled } = generalSlice.actions;
 
 export default generalSlice.reducer;

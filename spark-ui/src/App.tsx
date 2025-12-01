@@ -5,6 +5,7 @@ import { AppDrawer } from "./components/AppDrawer/AppDrawer";
 import Footer from "./components/Footer";
 import DisconnectedModal from "./components/Modals/DisconnectedModal";
 import Progress from "./components/Progress";
+import { ScarfPixel } from "./components/ScarfPixel";
 import { useAppDispatch, useAppSelector } from "./Hooks";
 import SparkAPI from "./services/SparkApi";
 import { getTabByUrl, Tab, TabToUrl } from "./services/TabsService";
@@ -56,6 +57,7 @@ export default function App() {
     <Progress />
   ) : (
     <Box sx={{ display: "flex" }}>
+      <ScarfPixel />
       <DisconnectedModal />
       <AppDrawer
         appBasePath={BASE_CURRENT_PAGE}

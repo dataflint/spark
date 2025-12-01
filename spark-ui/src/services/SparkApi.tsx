@@ -27,6 +27,7 @@ import { humanFileSize, timeStrToEpocTime } from "../utils/FormatUtils";
 import { IS_HISTORY_SERVER_MODE } from "../utils/UrlConsts";
 import { isDataFlintSaaSUI } from "../utils/UrlUtils";
 import { MixpanelService } from "./MixpanelService";
+import { ScarfPixelService } from "./ScarfPixelService";
 
 const POLL_TIME = 1000;
 const SQL_QUERY_LENGTH = 1000;
@@ -143,6 +144,7 @@ class SparkAPI {
     this.applicationsPath = `${this.apiPath}/applications`;
     this.dispatch = dispatch;
     this.historyServerMode = historyServerMode;
+    ScarfPixelService.setDispatch(dispatch);
   }
 
   start(): () => void {
@@ -264,11 +266,13 @@ class SparkAPI {
 
         if (telemetryConfig !== undefined && telemetryConfig[1] === "false") {
           MixpanelService.setMixpanelTelemetryConfigDisabled();
+          ScarfPixelService.setScarfPixelTelemetryConfigDisabled();
           console.log(
-            "skipping mixpanel telemetry, spark.dataflint.telemetry.enabled is set to false",
+            "skipping telemetry, spark.dataflint.telemetry.enabled is set to false",
           );
         } else {
           MixpanelService.InitMixpanel();
+          ScarfPixelService.InitScarfPixel();
           MixpanelService.Track(MixpanelEvents.SparkAppInitilized, {
             sparkVersion: currentAttempt?.appSparkVersion,
             duration: currentAttempt?.duration,
