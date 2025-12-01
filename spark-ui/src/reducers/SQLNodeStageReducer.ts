@@ -178,6 +178,53 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     }
     return node;
   });
+  nodes = nodes.map((node) => {
+    if (node.nodeName === "Union" && node.stage === undefined) {
+      const nextNode = findNextNode(node.nodeId);
+      if (nextNode !== undefined && nextNode.stage !== undefined) {
+        return { ...node, stage: nextNode.stage };
+      }
+    }
+    return node;
+  });
+  nodes = nodes.map((node) => {
+    if (node.stage === undefined) {
+      const nextNode = findNextNode(node.nodeId);
+      const previousNode = findPreviousNode(node.nodeId);
+      if (
+        nextNode !== undefined &&
+        previousNode !== undefined &&
+        nextNode.stage !== undefined &&
+        previousNode.stage !== undefined
+      ) {
+        // Check if both stages are single stages with the same stage ID
+        if (
+          nextNode.stage.type === "onestage" &&
+          previousNode.stage.type === "onestage" &&
+          nextNode.stage.stageId === previousNode.stage.stageId
+        ) {
+          return { ...node, stage: nextNode.stage };
+        }
+        // Check if next stage is exchange and matches previous stage's write stage
+        if (
+          nextNode.stage.type === "exchange" &&
+          previousNode.stage.type === "onestage" &&
+          nextNode.stage.writeStage === previousNode.stage.stageId
+        ) {
+          return { ...node, stage: previousNode.stage };
+        }
+        // Check if previous stage is exchange and matches next stage's read stage
+        if (
+          previousNode.stage.type === "exchange" &&
+          nextNode.stage.type === "onestage" &&
+          previousNode.stage.readStage === nextNode.stage.stageId
+        ) {
+          return { ...node, stage: nextNode.stage };
+        }
+      }
+    }
+    return node;
+  });
   return { ...sql, nodes: nodes };
 }
 
