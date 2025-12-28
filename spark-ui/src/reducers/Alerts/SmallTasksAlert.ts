@@ -15,20 +15,35 @@ export function reduceSmallTasksAlert(
   stages: SparkStagesStore,
   alerts: Alerts,
 ) {
+  // Track which stages we've already created alerts for to avoid duplicates
+  const alertedStages = new Set<string>();
+
   sql.sqls.forEach((sql) => {
     sql.nodes.forEach((node) => {
       const stageInfo = node.stage;
       if (stageInfo === undefined || stageInfo.type !== "onestage") {
         return;
       }
+
+      const stageId = stageInfo.stageId;
+      const alertKey = `${sql.id}_${stageId}`;
+
+      // Skip if we've already created an alert for this stage in this SQL
+      if (alertedStages.has(alertKey)) {
+        return;
+      }
+
       const stageData = stages.find(
-        (stage) => stage.stageId === stageInfo.stageId,
+        (stage) => stage.stageId === stageId,
       );
 
       if (stageData !== undefined &&
         stageData.numTasks > LARGE_TASKS_NUM_THRESHOLD &&
         stageData.mediumTaskDuration !== undefined &&
         stageData.mediumTaskDuration < MEDIAN_TASK_TIME_THRESHOLD_MS) {
+
+        alertedStages.add(alertKey);
+
         const medianTaskDurationTxt =
           stageData.mediumTaskDuration === undefined
             ? ""
@@ -36,10 +51,10 @@ export function reduceSmallTasksAlert(
         const recommendedTaskNum = Math.ceil(stageData.numTasks / TASKS_RECOMMENDED_DECREASE_RATIO);
 
         alerts.push({
-          id: `SmallTasks_${sql.id}_${node.nodeId}`,
+          id: `SmallTasks_${sql.id}_stage_${stageId}`,
           name: "smallTasks",
           title: "Large Number Of Small Tasks",
-          location: `In: SQL query "${sql.description}" (id: ${sql.id}) and node "${node.nodeName}"`,
+          location: `In: SQL query "${sql.description}" (id: ${sql.id}), Stage ${stageId}`,
           message: `${stageData.numTasks} tasks with median task duration of ${medianTaskDurationTxt}, which causes large scheduling overhead for Spark`,
           suggestion: `
   1. Repartition to less tasks, so you will have less overhead, by running .repartition(${recommendedTaskNum})
@@ -49,9 +64,9 @@ export function reduceSmallTasksAlert(
           shortSuggestion: `.repartition(${recommendedTaskNum}) before this transformation`,
           type: "warning",
           source: {
-            type: "sql",
+            type: "stage",
             sqlId: sql.id,
-            sqlNodeId: node.nodeId,
+            stageId: stageId,
           },
         });
       }

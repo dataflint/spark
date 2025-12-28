@@ -11,17 +11,31 @@ export function reducePartitionSkewAlert(
   stages: SparkStagesStore,
   alerts: Alerts,
 ) {
+  // Track which stages we've already created alerts for to avoid duplicates
+  const alertedStages = new Set<string>();
+
   sql.sqls.forEach((sql) => {
     sql.nodes.forEach((node) => {
       const stageInfo = node.stage;
       if (stageInfo === undefined || stageInfo.type !== "onestage") {
         return;
       }
+      
+      const stageId = stageInfo.stageId;
+      const alertKey = `${sql.id}_${stageId}`;
+      
+      // Skip if we've already created an alert for this stage in this SQL
+      if (alertedStages.has(alertKey)) {
+        return;
+      }
+      
       const stageData = stages.find(
-        (stage) => stage.stageId === stageInfo.stageId,
+        (stage) => stage.stageId === stageId,
       );
 
       if (stageData?.hasPartitionSkew === true) {
+        alertedStages.add(alertKey);
+        
         const maxTaskDurationTxt =
           stageData.maxTaskDuration === undefined
             ? ""
@@ -37,10 +51,10 @@ export function reducePartitionSkewAlert(
               (stageData.mediumTaskDuration ?? 1);
 
         alerts.push({
-          id: `partitionSkew_${sql.id}_${node.nodeId}`,
+          id: `partitionSkew_${sql.id}_stage_${stageId}`,
           name: "partitionSkew",
           title: "Partition Skew",
-          location: `In: SQL query "${sql.description}" (id: ${sql.id}) and node "${node.nodeName}"`,
+          location: `In: SQL query "${sql.description}" (id: ${sql.id}), Stage ${stageId}`,
           message: `Partition skew ratio of ${skewRatio.toFixed(
             1,
           )}X, median task duration is ${medianTaskDurationTxt} and max task duration is ${maxTaskDurationTxt}`,
@@ -50,9 +64,9 @@ export function reducePartitionSkewAlert(
 `,
           type: "warning",
           source: {
-            type: "sql",
+            type: "stage",
             sqlId: sql.id,
-            sqlNodeId: node.nodeId,
+            stageId: stageId,
           },
         });
       }

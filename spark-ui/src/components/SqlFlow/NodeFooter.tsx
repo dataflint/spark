@@ -1,4 +1,4 @@
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import { duration } from "moment";
 import React from "react";
@@ -10,10 +10,21 @@ import styles from "./node-style.module.css";
 import { getBucketedColor } from "./PerformanceIndicator";
 import StageIcon from "./StageIcon";
 
+// Exchange node types that should show the Summary button
+const EXCHANGE_NODE_TYPES = [
+    "Exchange",
+    "BroadcastExchange",
+    "GpuBroadcastExchange",
+    "GpuColumnarExchange",
+    "CometExchange",
+];
+
 interface NodeFooterProps {
     stage: SQLNodeStageData | SQLNodeExchangeStageData | undefined;
     duration?: number;
     durationPercentage?: number;
+    hideStageDetails?: boolean;
+    nodeName?: string;
 }
 
 
@@ -21,19 +32,37 @@ interface NodeFooterProps {
 const NodeFooter: React.FC<NodeFooterProps> = ({
     stage,
     duration: nodeDuration,
-    durationPercentage
+    durationPercentage,
+    hideStageDetails = false,
+    nodeName
 }) => {
     const dispatch = useAppDispatch();
 
-    const hasStageData = stage && (
-        (stage.type === 'onestage' && stage.stageId !== -1) ||
-        (stage.type === 'exchange' && (stage.readStage !== -1 || stage.writeStage !== -1))
+    // Check if this is an exchange node by stage type
+    const isExchangeStage = stage?.type === 'exchange';
+
+    // Check if this is an exchange node by name
+    const isExchangeNodeByName = nodeName ? EXCHANGE_NODE_TYPES.includes(nodeName) : false;
+
+    // Show stage details button for exchange nodes (which span multiple stages)
+    // For exchange stage type: check that readStage or writeStage is valid
+    // For exchange nodes by name: show if they have any stage data
+    const hasExchangeStageData = isExchangeStage && stage && (
+        (stage.readStage !== -1 || stage.writeStage !== -1)
     );
+
+    // For exchange nodes by name that might have onestage type, also show the button
+    const hasExchangeNodeStageData = isExchangeNodeByName && stage && !hideStageDetails;
+
+    const showSummaryButton = hasExchangeStageData || hasExchangeNodeStageData;
+
+    // Show stage icon for exchange nodes
+    const showStageIcon = stage && (isExchangeStage || isExchangeNodeByName);
 
     return (
         <Box className={styles.nodeFooter}>
             <Box className={styles.footerLeft}>
-                <StageIcon stage={stage} />
+                {showStageIcon && <StageIcon stage={stage} />}
             </Box>
 
             <Box className={styles.footerCenter}>
@@ -60,15 +89,22 @@ const NodeFooter: React.FC<NodeFooterProps> = ({
             </Box>
 
             <Box className={styles.footerRight}>
-                {hasStageData && (
-                    <Tooltip title="View stage details" arrow>
+                {showSummaryButton && (
+                    <Tooltip title="View stage summary" arrow>
                         <IconButton
-                            className={styles.expandButton}
                             size="small"
                             onClick={() => dispatch(setSelectedStage({ selectedStage: stage }))}
-                            aria-label="View stage details"
+                            sx={{
+                                backgroundColor: "rgba(25, 118, 210, 0.9)",
+                                color: "#fff",
+                                width: 24,
+                                height: 24,
+                                "&:hover": {
+                                    backgroundColor: "rgba(25, 118, 210, 1)",
+                                },
+                            }}
                         >
-                            <ExpandMoreIcon sx={{ fontSize: 18 }} />
+                            <InfoOutlinedIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                     </Tooltip>
                 )}

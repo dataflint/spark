@@ -106,27 +106,42 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     return node;
   });
   nodes = nodes.map((node) => {
-    if (node.nodeName === "Exchange" && node.stage === undefined) {
+    // Convert Exchange nodes to exchange stage type if they have adjacent nodes with different stages
+    // This handles both nodes without stage data and nodes with onestage type that should be exchange type
+    if (node.nodeName === "Exchange" && (node.stage === undefined || node.stage.type === "onestage")) {
       const nextNode = findNextNode(node.nodeId);
       const previousNode = findPreviousNode(node.nodeId);
+
+      // Get write stage from previous node
+      const writeStageId = previousNode?.stage?.type === "onestage"
+        ? previousNode.stage.stageId
+        : (previousNode?.stage?.type === "exchange" ? previousNode.stage.writeStage : -1);
+
+      // Get read stage from next node
+      const readStageId = nextNode?.stage?.type === "onestage"
+        ? nextNode.stage.stageId
+        : (nextNode?.stage?.type === "exchange" ? nextNode.stage.readStage : -1);
+
+      // Only convert to exchange type if we have at least one valid stage and they're different
+      // (or if current node has onestage that differs from adjacent stages)
       if (previousNode !== undefined && nextNode?.stage !== undefined) {
-        const enrichedNode: EnrichedSqlNode = {
-          ...node,
-          stage: {
-            type: "exchange",
-            writeStage:
-              previousNode.stage?.type === "onestage" ? previousNode.stage.stageId : -1,
-            readStage:
-              nextNode.stage?.type === "onestage"
-                ? nextNode.stage.stageId
-                : -1,
-            status:
-              previousNode.stage?.status === "ACTIVE"
-                ? previousNode.stage?.status
-                : nextNode.stage.status,
-          },
-        };
-        return enrichedNode;
+        const shouldBeExchange = writeStageId !== -1 && readStageId !== -1 && writeStageId !== readStageId;
+
+        if (shouldBeExchange || node.stage === undefined) {
+          const enrichedNode: EnrichedSqlNode = {
+            ...node,
+            stage: {
+              type: "exchange",
+              writeStage: writeStageId,
+              readStage: readStageId,
+              status:
+                previousNode.stage?.status === "ACTIVE"
+                  ? previousNode.stage?.status
+                  : nextNode.stage.status,
+            },
+          };
+          return enrichedNode;
+        }
       }
     }
     return node;

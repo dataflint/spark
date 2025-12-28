@@ -41,6 +41,12 @@ export interface SQLAlertSourceData {
   sqlNodeId: number;
 }
 
+export interface StageAlertSourceData {
+  type: "stage";
+  sqlId: string;
+  stageId: number;
+}
+
 export interface StatusAlertSourceData {
   type: "status";
   metric: "memory" | "driverMemory" | "idleCores";
@@ -55,7 +61,7 @@ export interface Alert {
   shortSuggestion?: string | undefined;
   suggestion: string;
   type: AlertType;
-  source: StatusAlertSourceData | SQLAlertSourceData;
+  source: StatusAlertSourceData | SQLAlertSourceData | StageAlertSourceData;
 }
 
 export type AlertType = "error" | "warning";

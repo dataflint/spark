@@ -3,6 +3,7 @@ import { MiniMap as ReactFlowMiniMap } from "reactflow";
 import { useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL } from "../../interfaces/AppStore";
 import { getBucketedColor } from "./PerformanceIndicator";
+import { StageGroupNodeName } from "./StageGroupNode";
 
 
 
@@ -96,6 +97,26 @@ const CustomMiniMap: React.FC<CustomMiniMapProps> = ({ sparkSQL }) => {
     return (
         <ReactFlowMiniMap
             nodeColor={(node) => {
+                // Stage group nodes should be transparent/light to show as containers
+                if (node.type === StageGroupNodeName) {
+                    const stageData = node.data;
+                    const status = stageData?.status;
+
+                    // Return semi-transparent colors for stage groups based on status
+                    switch (status) {
+                        case "COMPLETE":
+                            return "rgba(76, 175, 80, 0.15)";
+                        case "ACTIVE":
+                            return "rgba(25, 118, 210, 0.15)";
+                        case "PENDING":
+                            return "rgba(158, 158, 158, 0.15)";
+                        case "FAILED":
+                            return "rgba(244, 67, 54, 0.15)";
+                        default:
+                            return "rgba(158, 158, 158, 0.1)";
+                    }
+                }
+
                 const nodeData = node.data?.node;
                 // Check if node has started (has stage with valid status)
                 const stage = nodeData?.stage;

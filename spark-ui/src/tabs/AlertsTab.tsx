@@ -77,6 +77,9 @@ export const AlertsTab: FC<{}> = (): JSX.Element => {
     if (alert.source.type === "sql") {
       // Navigate to summary with sqlId and nodeId
       navigate(`/summary?sqlid=${alert.source.sqlId}&nodeids=${alert.source.sqlNodeId}`);
+    } else if (alert.source.type === "stage") {
+      // Navigate to summary with sqlId and stageId for stage-based alerts
+      navigate(`/summary?sqlid=${alert.source.sqlId}&stageId=${alert.source.stageId}`);
     } else {
       // Navigate to resources for status alerts
       navigate("/resources");

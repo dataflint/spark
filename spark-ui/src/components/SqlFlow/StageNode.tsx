@@ -47,8 +47,30 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
       ? nodeIdsParam.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id))
       : [];
 
-    // Check if current node should be highlighted
-    const highlighted = highlightedNodeIds.includes(data.node.nodeId);
+    // Parse stageId from URL parameters (support both lowercase and camelCase)
+    const stageIdParam = searchParams.get('stageid') || searchParams.get('stageId');
+    const highlightedStageId = stageIdParam ? parseInt(stageIdParam.trim(), 10) : null;
+
+    // Check if current node should be highlighted by nodeId
+    const highlightedByNodeId = highlightedNodeIds.includes(data.node.nodeId);
+
+    // Check if current node should be highlighted by stageId
+    // For single-stage nodes, check the stageId
+    // For exchange nodes, check both readStage and writeStage
+    let highlightedByStageId = false;
+    if (highlightedStageId !== null && data.node.stage) {
+      if (data.node.stage.type === 'onestage') {
+        highlightedByStageId = data.node.stage.stageId === highlightedStageId;
+      } else if (data.node.stage.type === 'exchange') {
+        // Exchange nodes are highlighted if either read or write stage matches
+        highlightedByStageId = 
+          data.node.stage.readStage === highlightedStageId || 
+          data.node.stage.writeStage === highlightedStageId;
+      }
+    }
+
+    // Node is highlighted if either condition is true
+    const highlighted = highlightedByNodeId || highlightedByStageId;
 
     // Check if this node has delta optimize write enabled
     const hasDeltaOptimize =
@@ -189,6 +211,7 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
           stage={data.node.stage}
           duration={data.node.duration}
           durationPercentage={data.node.durationPercentage}
+          nodeName={data.node.nodeName}
         />
       </Box>
 

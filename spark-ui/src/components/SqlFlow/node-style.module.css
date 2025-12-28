@@ -239,17 +239,23 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  justify-content: flex-start;
 }
 
 .footerCenter {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
+  flex: 1;
 }
 
 .footerRight {
   display: flex;
   align-items: center;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .durationBadge {
@@ -382,6 +388,161 @@
   border: 2px solid #ffffff !important;
   width: 16px !important;
   height: 16px !important;
+}
+
+/* Stage group node styles */
+.stageGroupNode {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  border: 2px dashed #546e7a;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(55, 71, 79, 0.25) 0%, rgba(69, 90, 100, 0.18) 100%);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: visible;
+  pointer-events: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Highlighted stage group node (when focused via URL param) */
+.stageGroupNodeHighlighted {
+  border: 3px solid rgba(25, 118, 210, 0.7) !important;
+  box-shadow: 0 0 20px rgba(25, 118, 210, 0.4), 0 2px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.stageGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.15);
+  background: linear-gradient(90deg, rgba(55, 71, 79, 0.35) 0%, rgba(69, 90, 100, 0.28) 100%);
+  border-radius: 14px 14px 0 0;
+  min-height: 40px;
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Compact header for single-node stages */
+.stageGroupHeaderCompact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.15);
+  background: linear-gradient(90deg, rgba(55, 71, 79, 0.35) 0%, rgba(69, 90, 100, 0.28) 100%);
+  border-radius: 14px 14px 0 0;
+  min-height: 32px;
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.stageGroupProgressBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  border-radius: 0 0 0 14px;
+  transition: width 0.3s ease;
+}
+
+.stageGroupTitle {
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  color: #ffffff !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Compact title for single-node stages */
+.stageGroupTitleCompact {
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  color: #ffffff !important;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.stageGroupMeta {
+  font-size: 11px !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-weight: 500;
+}
+
+.stageGroupMetrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stageGroupDuration {
+  font-size: 11px !important;
+  color: #263238 !important;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stageGroupPercentage {
+  font-size: 11px !important;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 40px;
+  text-align: center;
+}
+
+.stageGroupStatusIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.stageGroupExpandButton {
+  width: 26px !important;
+  height: 26px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  border-radius: 50% !important;
+  color: #37474f !important;
+  transition: all 0.2s ease !important;
+}
+
+.stageGroupExpandButton:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  transform: scale(1.05);
+}
+
+.stageGroupAlertBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  background: rgba(255, 152, 0, 0.15);
+  border: 1.5px solid #ff9800;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stageGroupAlertBadge:hover {
+  background: rgba(255, 152, 0, 0.25);
+  transform: scale(1.05);
 }
 
 /* Responsive adjustments */

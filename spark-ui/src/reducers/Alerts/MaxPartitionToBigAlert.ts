@@ -13,6 +13,9 @@ export function reduceMaxPartitionToBigAlert(
     stages: SparkStagesStore,
     alerts: Alerts,
 ) {
+    // Track which stages we've already created alerts for to avoid duplicates
+    const alertedStages = new Set<string>();
+
     sql.sqls.forEach((sql) => {
         sql.nodes.forEach((node) => {
             const stageInfo = node.stage;
@@ -23,14 +26,14 @@ export function reduceMaxPartitionToBigAlert(
             // Handle both one-stage and exchange (shuffle) operations
             if (stageInfo.type === "onestage") {
                 // For single stage operations
-                checkStageForLargePartitions(sql, node, stageInfo.stageId, stages, alerts);
+                checkStageForLargePartitions(sql, stageInfo.stageId, stages, alerts, alertedStages);
             } else if (stageInfo.type === "exchange") {
                 // For shuffle operations, check the write stage
                 if (stageInfo.writeStage !== -1) {
-                    checkStageForLargePartitions(sql, node, stageInfo.writeStage, stages, alerts);
+                    checkStageForLargePartitions(sql, stageInfo.writeStage, stages, alerts, alertedStages);
                 }
                 if (stageInfo.readStage !== -1) {
-                    checkStageForLargePartitions(sql, node, stageInfo.readStage, stages, alerts);
+                    checkStageForLargePartitions(sql, stageInfo.readStage, stages, alerts, alertedStages);
                 }
             }
         });
@@ -39,11 +42,18 @@ export function reduceMaxPartitionToBigAlert(
 
 function checkStageForLargePartitions(
     sql: any,
-    node: any,
     stageId: number,
     stages: SparkStagesStore,
-    alerts: Alerts
+    alerts: Alerts,
+    alertedStages: Set<string>
 ) {
+    const alertKey = `${sql.id}_${stageId}`;
+    
+    // Skip if we've already created an alert for this stage in this SQL
+    if (alertedStages.has(alertKey)) {
+        return;
+    }
+
     const stageData = stages.find(
         (stage) => stage.stageId === stageId,
     );
@@ -75,14 +85,15 @@ function checkStageForLargePartitions(
 
         // If the maximum partition size exceeds our threshold, add an alert
         if (maxPartitionSize !== 0) {
+            alertedStages.add(alertKey);
+            
             const maxPartitionSizeFormatted = humanFileSize(maxPartitionSize);
-            const stageTypeText = node.stage?.type === "exchange" ? "shuffle" : "stage";
 
             alerts.push({
-                id: `maxPartitionToBig_${sql.id}_${node.nodeId}_${stageId}`,
+                id: `maxPartitionToBig_${sql.id}_stage_${stageId}`,
                 name: "maxPartitionToBig",
                 title: "Large Partition Size",
-                location: `In: SQL query "${sql.description}" (id: ${sql.id}) and node "${node.nodeName}" (${stageTypeText} ${stageId})`,
+                location: `In: SQL query "${sql.description}" (id: ${sql.id}), Stage ${stageId}`,
                 message: `Maximum ${dataType} partition size in stage ${stageId} is ${maxPartitionSizeFormatted}, which is too big and can cause performance issues or OOM errors`,
                 suggestion: `
   1. Increase the number of partitions to reduce the size of each partition
@@ -90,11 +101,11 @@ function checkStageForLargePartitions(
 `,
                 type: "warning",
                 source: {
-                    type: "sql",
+                    type: "stage",
                     sqlId: sql.id,
-                    sqlNodeId: node.nodeId,
+                    stageId: stageId,
                 },
             });
         }
     }
-} 
+}

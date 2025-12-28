@@ -8,20 +8,18 @@ import ReactFlow, {
   useNodesState,
 } from "reactflow";
 
-import { CenterFocusStrong, Info as InfoIcon, Speed, Storage, Warning, ZoomIn, ZoomOut } from "@mui/icons-material";
+import { CenterFocusStrong, ExpandLess, ExpandMore, Speed, Storage, Warning, ZoomIn, ZoomOut } from "@mui/icons-material";
 import {
   Alert,
   Box,
   CircularProgress,
+  Collapse,
   Drawer,
   Fade,
-  FormControl,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  Tooltip
+  Paper,
+  Tooltip,
+  Typography
 } from "@mui/material";
 import { useSearchParams } from "react-router-dom";
 import "reactflow/dist/style.css";
@@ -29,19 +27,24 @@ import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
 import { setSQLMode, setSelectedStage } from "../../reducers/GeneralSlice";
 import { parseBytesString } from "../../utils/FormatUtils";
+import FlowLegend from "./FlowLegend";
 import CustomMiniMap from "./MiniMap";
 import SqlLayoutService from "./SqlLayoutService";
+import { StageGroupNode, StageGroupNodeName } from "./StageGroupNode";
 import StageIconDrawer from "./StageIconDrawer";
 import { StageNode, StageNodeName } from "./StageNode";
 
 const options = { hideAttribution: true };
-const nodeTypes = { [StageNodeName]: StageNode };
+const nodeTypes = {
+  [StageNodeName]: StageNode,
+  [StageGroupNodeName]: StageGroupNode,
+};
 
 // Types for navigation data
 interface NodeWithAlert {
   nodeId: string;
   position: { x: number; y: number };
-  alert: any;
+  alertType: "warning" | "error";
 }
 
 interface BiggestDurationNode {
@@ -77,10 +80,13 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const [error, setError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const nodeIdsParam = searchParams.get('nodeids');
+  // Support both lowercase and camelCase for stageid parameter
+  const stageIdParam = searchParams.get('stageid') || searchParams.get('stageId');
   const initialFocusApplied = useRef<string | null>(null);
   const [currentAlertIndex, setCurrentAlertIndex] = useState(0);
   const [currentDurationIndex, setCurrentDurationIndex] = useState(0);
   const [currentSpillIndex, setCurrentSpillIndex] = useState(0);
+  const [viewModeExpanded, setViewModeExpanded] = useState(false);
 
   const dispatch = useAppDispatch();
   const graphFilter = useAppSelector((state) => state.general.sqlMode);
@@ -103,21 +109,62 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const navigationData = useMemo((): NavigationData => {
     if (!sparkSQL || !nodes.length) return { nodesWithAlerts: [], biggestDurationNode: null, nodesByDuration: [], nodesWithSpill: [] };
 
-    // Find nodes with alerts
-    const nodesWithAlerts: NodeWithAlert[] = nodes.filter(node => node.data?.alert).map(node => ({
-      nodeId: node.id,
-      position: node.position,
-      alert: node.data.alert
-    }));
+    // Find nodes with alerts - include both individual node alerts AND stage group alerts
+    const nodesWithAlerts: NodeWithAlert[] = [];
+
+    // Add individual node alerts (exclude stage group nodes)
+    nodes
+      .filter(node => node.data?.alert && node.type !== StageGroupNodeName)
+      .forEach(node => {
+        // Calculate absolute position
+        let x = node.position.x;
+        let y = node.position.y;
+        if (node.parentNode) {
+          const parentNode = nodes.find(n => n.id === node.parentNode);
+          if (parentNode) {
+            x += parentNode.position.x;
+            y += parentNode.position.y;
+          }
+        }
+        nodesWithAlerts.push({
+          nodeId: node.id,
+          position: { x, y },
+          alertType: node.data.alert.type,
+        });
+      });
+
+    // Add stage group alerts
+    nodes
+      .filter(node => node.type === StageGroupNodeName && node.data?.alerts && node.data.alerts.length > 0)
+      .forEach(node => {
+        const mostSevereAlert = node.data.alerts.find((a: any) => a.type === "error") || node.data.alerts[0];
+        nodesWithAlerts.push({
+          nodeId: node.id,
+          position: { x: node.position.x, y: node.position.y },
+          alertType: mostSevereAlert.type,
+        });
+      });
 
     // Get all nodes with duration percentage and sort by duration (highest first)
     const nodesByDuration: BiggestDurationNode[] = nodes
-      .filter(node => node.data?.node?.durationPercentage !== undefined)
-      .map(node => ({
-        nodeId: node.id,
-        position: node.position,
-        durationPercentage: node.data.node.durationPercentage!
-      }))
+      .filter(node => node.data?.node?.durationPercentage !== undefined && node.type !== StageGroupNodeName)
+      .map(node => {
+        // Calculate absolute position
+        let x = node.position.x;
+        let y = node.position.y;
+        if (node.parentNode) {
+          const parentNode = nodes.find(n => n.id === node.parentNode);
+          if (parentNode) {
+            x += parentNode.position.x;
+            y += parentNode.position.y;
+          }
+        }
+        return {
+          nodeId: node.id,
+          position: { x, y },
+          durationPercentage: node.data.node.durationPercentage!
+        };
+      })
       .sort((a, b) => b.durationPercentage - a.durationPercentage);
 
     // Find node with biggest duration percentage (first in sorted array)
@@ -126,6 +173,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
     // Find nodes with spill size and sort by spill size (highest first)
     const nodesWithSpill: NodeWithSpill[] = nodes
       .filter(node => {
+        if (node.type === StageGroupNodeName) return false;
         const spillMetric = node.data?.node?.metrics?.find((m: any) => m.name === "spill size");
         if (!spillMetric?.value) return false;
         const spillSize = parseBytesString(spillMetric.value);
@@ -134,9 +182,19 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
       .map(node => {
         const spillMetric = node.data.node.metrics.find((m: any) => m.name === "spill size");
         const spillSize = parseBytesString(spillMetric!.value);
+        // Calculate absolute position
+        let x = node.position.x;
+        let y = node.position.y;
+        if (node.parentNode) {
+          const parentNode = nodes.find(n => n.id === node.parentNode);
+          if (parentNode) {
+            x += parentNode.position.x;
+            y += parentNode.position.y;
+          }
+        }
         return {
           nodeId: node.id,
-          position: node.position,
+          position: { x, y },
           spillSize,
           spillSizeFormatted: spillMetric!.value
         };
@@ -194,15 +252,36 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   // Handle initial focus only when instance or search params change
   useEffect(() => {
     if (instance) {
-      const nodeIdsParam = searchParams.get('nodeids');
-      const currentParamKey = nodeIdsParam || 'default';
+      const nodeIdsParamLocal = searchParams.get('nodeids');
+      // Support both lowercase and camelCase for stageid parameter
+      const stageIdParamLocal = searchParams.get('stageid') || searchParams.get('stageId');
+      const currentParamKey = `${nodeIdsParamLocal || ''}-${stageIdParamLocal || ''}-default`;
 
       // Only apply focus if we haven't done it for these parameters yet
       if (initialFocusApplied.current !== currentParamKey) {
         const applyFocus = () => {
           if (nodes.length > 0) {
-            const highlightedNodeIds = nodeIdsParam
-              ? nodeIdsParam.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id))
+            // First try to focus on stage if stageid parameter is provided
+            if (stageIdParamLocal) {
+              const stageId = parseInt(stageIdParamLocal.trim(), 10);
+              if (!isNaN(stageId)) {
+                const stageNode = nodes.find(node => node.id === `stage-${stageId}`);
+                if (stageNode) {
+                  // Focus on the stage group node
+                  const nodeWidth = stageNode.style?.width as number || 400;
+                  const nodeHeight = stageNode.style?.height as number || 400;
+                  const centerX = stageNode.position.x + nodeWidth / 2;
+                  const centerY = stageNode.position.y + nodeHeight / 2;
+
+                  instance.setCenter(centerX, centerY, { zoom: 0.6 });
+                  initialFocusApplied.current = currentParamKey;
+                  return;
+                }
+              }
+            }
+
+            const highlightedNodeIds = nodeIdsParamLocal
+              ? nodeIdsParamLocal.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id))
               : [];
 
             if (highlightedNodeIds.length > 0) {
@@ -211,11 +290,21 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
               const targetNode = nodes.find(node => parseInt(node.id) === firstHighlightedNodeId);
 
               if (targetNode) {
-                // Focus on the first highlighted node
+                // Calculate absolute position (handle parent nodes)
+                let centerX = targetNode.position.x;
+                let centerY = targetNode.position.y;
+                if (targetNode.parentNode) {
+                  const parentNode = nodes.find(n => n.id === targetNode.parentNode);
+                  if (parentNode) {
+                    centerX += parentNode.position.x;
+                    centerY += parentNode.position.y;
+                  }
+                }
+
                 const nodeWidth = 280;
                 const nodeHeight = 280;
-                const centerX = targetNode.position.x + nodeWidth / 2;
-                const centerY = targetNode.position.y + nodeHeight / 2;
+                centerX += nodeWidth / 2;
+                centerY += nodeHeight / 2;
 
                 instance.setCenter(centerX, centerY, { zoom: 0.75 });
                 initialFocusApplied.current = currentParamKey;
@@ -236,7 +325,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
         setTimeout(applyFocus, 100);
       }
     }
-  }, [instance, edges, nodeIdsParam]);
+  }, [instance, edges, nodeIdsParam, stageIdParam]);
 
   // Reset alert index when nodes change
   useEffect(() => {
@@ -539,87 +628,103 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
           showInteractive={false}
         />
 
-        {/* Mode selector */}
+        {/* Bottom controls container - View Mode and Legend side by side */}
         <Box
           sx={{
             position: "absolute",
             bottom: 16,
             right: 16,
-            zIndex: 5,
+            zIndex: 10,
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "flex-end",
+            gap: 1.5,
           }}
         >
-          <FormControl
-            size="small"
+          {/* View Mode selector */}
+          <Paper
+            elevation={3}
             sx={{
-              backgroundColor: "rgba(0, 0, 0, 0.85)",
-              borderRadius: 1,
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              "& .MuiOutlinedInput-root": {
-                "& fieldset": {
-                  borderColor: "rgba(255, 255, 255, 0.3)",
-                },
-                "&:hover fieldset": {
-                  borderColor: "rgba(255, 255, 255, 0.5)",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#90caf9",
-                },
-              },
-              "& .MuiInputLabel-root": {
-                color: "rgba(255, 255, 255, 0.8)",
-              },
-              "& .MuiSelect-select": {
-                color: "#ffffff",
-              },
-              "& .MuiSelect-icon": {
-                color: "rgba(255, 255, 255, 0.8)",
-              },
+              backgroundColor: "rgba(30, 41, 59, 0.95)",
+              backdropFilter: "blur(8px)",
+              borderRadius: 2,
+              overflow: "hidden",
+              minWidth: 140,
+              maxWidth: 220,
             }}
           >
-            <InputLabel>View Mode</InputLabel>
-            <Select
-              value={graphFilter}
-              label="View Mode"
-              onChange={(event) =>
-                dispatch(
-                  setSQLMode({ newMode: event.target.value as GraphFilter }),
-                )
-              }
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    backgroundColor: "rgba(0, 0, 0, 0.9)",
-                    border: "1px solid rgba(255, 255, 255, 0.2)",
-                    "& .MuiMenuItem-root": {
-                      color: "#ffffff",
-                      "&:hover": {
-                        backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      },
-                    },
-                  },
+            {/* Header */}
+            <Box
+              onClick={() => setViewModeExpanded(!viewModeExpanded)}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                px: 1.5,
+                py: 1,
+                cursor: "pointer",
+                borderBottom: viewModeExpanded ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
+                "&:hover": {
+                  backgroundColor: "rgba(255, 255, 255, 0.05)",
                 },
               }}
             >
-              <MenuItem value={"io"}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <span>Only I/O</span>
-                  <InfoIcon fontSize="small" color="disabled" />
-                </Stack>
-              </MenuItem>
-              <MenuItem value={"basic"}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <span>Basic</span>
-                  <InfoIcon fontSize="small" color="disabled" />
-                </Stack>
-              </MenuItem>
-              <MenuItem value={"advanced"}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <span>Advanced</span>
-                  <InfoIcon fontSize="small" color="disabled" />
-                </Stack>
-              </MenuItem>
-            </Select>
-          </FormControl>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>
+                View: {graphFilter === "io" ? "I/O Only" : graphFilter === "basic" ? "Basic" : "Advanced"}
+              </Typography>
+              <IconButton size="small" sx={{ color: "rgba(255, 255, 255, 0.7)", p: 0 }}>
+                {viewModeExpanded ? <ExpandMore fontSize="small" /> : <ExpandLess fontSize="small" />}
+              </IconButton>
+            </Box>
+
+            {/* Collapsible options */}
+            <Collapse in={viewModeExpanded}>
+              <Box sx={{ py: 0.5 }}>
+                {[
+                  { value: "io", label: "Only I/O", desc: "Show only input/output nodes" },
+                  { value: "basic", label: "Basic", desc: "Show main transformations" },
+                  { value: "advanced", label: "Advanced", desc: "Show all nodes" },
+                ].map((option) => (
+                  <Box
+                    key={option.value}
+                    onClick={() => {
+                      dispatch(setSQLMode({ newMode: option.value as GraphFilter }));
+                      setViewModeExpanded(false);
+                    }}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      px: 1.5,
+                      py: 0.75,
+                      cursor: "pointer",
+                      backgroundColor: graphFilter === option.value ? "rgba(25, 118, 210, 0.3)" : "transparent",
+                      "&:hover": {
+                        backgroundColor: graphFilter === option.value ? "rgba(25, 118, 210, 0.4)" : "rgba(255, 255, 255, 0.1)",
+                      },
+                    }}
+                  >
+                    <Typography sx={{ fontSize: 11, color: "rgba(255, 255, 255, 0.9)" }}>
+                      {option.label}
+                    </Typography>
+                    {graphFilter === option.value && (
+                      <Box
+                        sx={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          backgroundColor: "#90caf9",
+                        }}
+                      />
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            </Collapse>
+          </Paper>
+
+          {/* Legend */}
+          <FlowLegend inline />
         </Box>
       </ReactFlow>
 
