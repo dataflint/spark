@@ -46,6 +46,7 @@ import {
   calcNodeType,
   extractTotalFromStatisticsMetric,
   findStageIdFromMetrics,
+  isAggregateNode,
   nodeEnrichedNameBuilder,
 } from "./SqlReducerUtils";
 
@@ -870,7 +871,11 @@ function addFilterRatioMetric(
   graph: Graph,
   allNodes: EnrichedSqlNode[],
 ): EnrichedSqlMetric | null {
-  if (node.nodeName.includes("Filter") || node.enrichedName === "Distinct") {
+  const isFilter = node.nodeName.includes("Filter");
+  const isDistinct = node.enrichedName === "Distinct";
+  const isAggregate = isAggregateNode(node.nodeName);
+
+  if (isFilter || isAggregate) {
     let inputRows = 0;
     const inputNode = findLastNodeWithInputRows(node, graph, allNodes);
 
@@ -898,7 +903,9 @@ function addFilterRatioMetric(
 
     const ratio = calculatePercentage(inputRows - outputRows, inputRows);
     const filteredRows = formatJoinRatioPercentage(ratio)
-    return { name: "Rows Filtered", value: filteredRows.toString() + "%" };
+
+    const metricName = isAggregate && !isDistinct ? "Rows Aggregated" : "Rows Filtered";
+    return { name: metricName, value: filteredRows.toString() + "%" };
   }
   return null;
 }
@@ -992,7 +999,18 @@ function addJoinMetrics(
 }
 
 function formatJoinRatioPercentage(percentage: number): string {
-  if (percentage < 0.01 && percentage > 0) {
+  // Handle near-zero or near-100% cases
+  if (percentage > 0 && percentage < 0.0001) {
+    return "0.0001";
+  }
+  else if (percentage < 0.01 && percentage > 0) {
+    return percentage.toFixed(4);
+  }
+  // Handle near-100% cases
+  else if (percentage > 99.9999 && percentage < 100) {
+    return "99.9999";
+  }
+  else if (percentage > 99 && percentage < 100) {
     return percentage.toFixed(4);
   }
   return percentage.toFixed(1);

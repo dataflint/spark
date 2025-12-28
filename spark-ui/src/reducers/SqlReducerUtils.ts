@@ -571,3 +571,24 @@ export function calcNodeType(name: string): NodeType {
   }
   return renamedName;
 }
+
+/**
+ * List of node types that are considered aggregate nodes.
+ */
+export const AGGREGATE_NODE_NAMES = [
+  "PhotonGroupingAgg",
+  "GpuHashAggregate",
+  "!CometGpuHashAggregate",
+  "HashAggregate",
+  "SortAggregate",
+  "ObjectHashAggregate",
+];
+
+/**
+ * Checks if a node name is an aggregate node type.
+ * @param nodeName - The name of the node to check
+ * @returns true if the node is an aggregate type, false otherwise
+ */
+export function isAggregateNode(nodeName: string): boolean {
+  return AGGREGATE_NODE_NAMES.includes(nodeName);
+}
