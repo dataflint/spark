@@ -88,16 +88,17 @@ export function calculateSparkExecutorsStatus(
 
   // if we are in local mode we should only count the driver, if we have executors we should only count the executors
   // because in local mode the driver does the tasks but in cluster mode the executors do the tasks
-  const totalTaskTimeMs =
-    numOfExecutors === 0
-      ? driver.totalTaskDuration
-      : executors
+  // use executors.length (not numOfExecutors) to check for local mode, because in history server mode
+  // all executors may be inactive (removed) but we still want to use their metrics
+  const isLocalMode = executors.length === 0;
+  const totalTaskTimeMs = isLocalMode
+    ? driver.totalTaskDuration
+    : executors
         .map((executor) => executor.totalTaskDuration)
         .reduce((a, b) => a + b, 0);
-  const totalPotentialTaskTimeMs =
-    numOfExecutors === 0
-      ? driver.duration * driver.maxTasks
-      : executors
+  const totalPotentialTaskTimeMs = isLocalMode
+    ? driver.duration * driver.maxTasks
+    : executors
         .map((executor) => executor.potentialTaskTimeMs)
         .reduce((a, b) => a + b, 0);
   const totalCoreHour = sparkExecutors
@@ -131,24 +132,21 @@ export function calculateSparkExecutorsStatus(
       : 0;
   const maxExecutorMemoryBytesString = humanFileSize(maxExecutorMemoryBytes);
 
-  const totalInputBytes =
-    numOfExecutors === 0
-      ? driver.totalInputBytes
-      : executors
+  const totalInputBytes = isLocalMode
+    ? driver.totalInputBytes
+    : executors
         .map((executor) => executor.totalInputBytes)
         .reduce((a, b) => a + b, 0);
 
-  const totalShuffleRead =
-    numOfExecutors === 0
-      ? driver.totalShuffleRead
-      : executors
+  const totalShuffleRead = isLocalMode
+    ? driver.totalShuffleRead
+    : executors
         .map((executor) => executor.totalShuffleRead)
         .reduce((a, b) => a + b, 0);
 
-  const totalShuffleWrite =
-    numOfExecutors === 0
-      ? driver.totalShuffleWrite
-      : executors
+  const totalShuffleWrite = isLocalMode
+    ? driver.totalShuffleWrite
+    : executors
         .map((executor) => executor.totalShuffleWrite)
         .reduce((a, b) => a + b, 0);
 
