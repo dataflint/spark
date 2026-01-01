@@ -217,42 +217,54 @@ const StageGroupNodeComponent: FC<StageGroupNodeProps> = ({ data }) => {
 
                 {/* Right side - Metrics and controls */}
                 <Box className={styles.stageGroupMetrics}>
-                    {/* For single-node stages, show only essential info */}
+                    {/* For multi-node stages, show tasks count */}
                     {!isSingleNodeStage && stageInfo && (
                         <Typography className={styles.stageGroupMeta}>
                             Tasks: {stageInfo.numTasks}
                         </Typography>
                     )}
 
-                    {/* Duration - only for multi-node stages */}
-                    {!isSingleNodeStage && stageDuration !== undefined && stageDuration > 0 && (
-                        <Tooltip title="Stage wall-clock duration" arrow>
-                            <Box className={styles.stageGroupDuration}>
-                                Duration: {humanizeTimeDiff(duration(stageDuration))}
-                            </Box>
-                        </Tooltip>
-                    )}
-
-                    {/* Resource Duration - only for multi-node stages */}
-                    {!isSingleNodeStage && resourceDuration !== undefined && resourceDuration > 0 && (
+                    {/* For single-node stages: show resource time only */}
+                    {isSingleNodeStage && resourceDuration !== undefined && resourceDuration > 0 && (
                         <Tooltip title="Total executor CPU time (resource usage)" arrow>
-                            <Box className={styles.stageGroupDuration}>
-                                Resource Time: {humanizeTimeDiff(duration(resourceDuration))}
-                            </Box>
-                        </Tooltip>
-                    )}
-
-                    {/* Percentage with progress bar visual */}
-                    {durationPercentage !== undefined && (
-                        <Tooltip title="Percentage of total SQL duration" arrow>
                             <Box
-                                className={styles.stageGroupPercentage}
+                                className={styles.stageGroupDuration}
                                 sx={{
-                                    border: `2px solid ${progressBarColor}`,
+                                    border: `1.5px solid ${progressBarColor}`,
                                     color: progressBarColor,
                                 }}
                             >
-                                {durationPercentage.toFixed(1)}%
+                                {durationPercentage !== undefined ? `${durationPercentage.toFixed(1)}% - ` : ""}{humanizeTimeDiff(duration(resourceDuration))}
+                            </Box>
+                        </Tooltip>
+                    )}
+
+                    {/* For multi-node stages: show duration */}
+                    {!isSingleNodeStage && stageDuration !== undefined && stageDuration > 0 && (
+                        <Tooltip title="Stage wall-clock duration (percentage of total SQL duration)" arrow>
+                            <Box
+                                className={styles.stageGroupDuration}
+                                sx={{
+                                    border: `1.5px solid ${progressBarColor}`,
+                                    color: progressBarColor,
+                                }}
+                            >
+                                Duration: {durationPercentage !== undefined ? `${durationPercentage.toFixed(1)}% - ` : ""}{humanizeTimeDiff(duration(stageDuration))}
+                            </Box>
+                        </Tooltip>
+                    )}
+
+                    {/* Resource Duration with percentage - only for multi-node stages */}
+                    {!isSingleNodeStage && resourceDuration !== undefined && resourceDuration > 0 && (
+                        <Tooltip title="Total executor CPU time (resource usage)" arrow>
+                            <Box
+                                className={styles.stageGroupDuration}
+                                sx={{
+                                    border: `1.5px solid ${progressBarColor}`,
+                                    color: progressBarColor,
+                                }}
+                            >
+                                Resource Time: {durationPercentage !== undefined ? `${durationPercentage.toFixed(1)}% - ` : ""}{humanizeTimeDiff(duration(resourceDuration))}
                             </Box>
                         </Tooltip>
                     )}

@@ -91,44 +91,22 @@ const FlowLegend: React.FC<FlowLegendProps> = ({ inline = false }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <Paper
-            elevation={3}
-            sx={{
-                backgroundColor: "rgba(30, 41, 59, 0.95)",
-                backdropFilter: "blur(8px)",
-                borderRadius: 2,
-                overflow: "hidden",
-                minWidth: 140,
-                maxWidth: 220,
-                maxHeight: isExpanded ? 600 : "auto",
-                overflowY: isExpanded ? "auto" : "hidden",
-            }}
-        >
-            {/* Header - always visible */}
-            <Box
-                onClick={() => setIsExpanded(!isExpanded)}
+        <Box sx={{ position: "relative", alignSelf: "flex-end", minHeight: isExpanded ? 520 : "auto" }}>
+            <Paper
+                elevation={3}
                 sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    px: 1.5,
-                    py: 1,
-                    cursor: "pointer",
-                    borderBottom: isExpanded ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
-                    "&:hover": {
-                        backgroundColor: "rgba(255, 255, 255, 0.05)",
-                    },
+                    backgroundColor: "rgba(30, 41, 59, 0.95)",
+                    backdropFilter: "blur(8px)",
+                    borderRadius: 2,
+                    overflow: "hidden",
+                    minWidth: 140,
+                    maxWidth: 220,
+                    position: isExpanded ? "absolute" : "relative",
+                    bottom: 0,
+                    right: 0,
                 }}
             >
-                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>
-                    Legend
-                </Typography>
-                <IconButton size="small" sx={{ color: "rgba(255, 255, 255, 0.7)", p: 0 }}>
-                    {isExpanded ? <ExpandMore fontSize="small" /> : <ExpandLess fontSize="small" />}
-                </IconButton>
-            </Box>
-
-            {/* Collapsible content */}
+            {/* Collapsible content - placed BEFORE header so it expands upward */}
             <Collapse in={isExpanded}>
                 <Box sx={{ p: 1 }}>
                     {/* Stage Status Section */}
@@ -207,6 +185,102 @@ const FlowLegend: React.FC<FlowLegendProps> = ({ inline = false }) => {
                         description="High duration - potential bottleneck"
                     />
 
+                    {/* Minimap Colors Section */}
+                    <Typography
+                        sx={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            color: "rgba(255, 255, 255, 0.6)",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                            mt: 1.5,
+                            mb: 0.5,
+                            px: 1,
+                        }}
+                    >
+                        Minimap Colors
+                    </Typography>
+                    <LegendItem
+                        icon={
+                            <Box
+                                sx={{
+                                    width: 14,
+                                    height: 14,
+                                    borderRadius: 0.5,
+                                    backgroundColor: "#4caf50",
+                                    border: "1px solid #fff",
+                                }}
+                            />
+                        }
+                        label="Completed"
+                        description="Node completed successfully"
+                    />
+                    <LegendItem
+                        icon={
+                            <Box
+                                sx={{
+                                    width: 14,
+                                    height: 14,
+                                    borderRadius: 0.5,
+                                    backgroundColor: "#9e9e9e",
+                                    border: "1px solid #fff",
+                                }}
+                            />
+                        }
+                        label="Pending"
+                        description="Node waiting to start"
+                    />
+                    <LegendItem
+                        icon={
+                            <Box
+                                sx={{
+                                    width: 14,
+                                    height: 14,
+                                    borderRadius: 0.5,
+                                    backgroundColor: "#1976d2",
+                                    border: "1px solid #fff",
+                                }}
+                            />
+                        }
+                        label="Active"
+                        description="Node is currently running"
+                    />
+                    <LegendItem
+                        icon={
+                            <Box
+                                sx={{
+                                    width: 14,
+                                    height: 14,
+                                    borderRadius: 0.5,
+                                    backgroundColor: "#9c27b0",
+                                    border: "1px solid #fff",
+                                }}
+                            />
+                        }
+                        label="Failed"
+                        description="Node failed with an error"
+                    />
+                    <LegendItem
+                        icon={
+                            <Box
+                                sx={{
+                                    width: 14,
+                                    height: 14,
+                                    borderRadius: 0.5,
+                                    backgroundColor: "#424242",
+                                    border: "1px solid #fff",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                }}
+                            >
+                                <Typography sx={{ color: "#ffeb3b", fontSize: 10, fontWeight: 900, lineHeight: 1 }}>!</Typography>
+                            </Box>
+                        }
+                        label="Has Alert"
+                        description="Node has a performance alert"
+                    />
+
                     {/* Alerts Section */}
                     <Typography
                         sx={{
@@ -234,7 +308,32 @@ const FlowLegend: React.FC<FlowLegendProps> = ({ inline = false }) => {
                     />
                 </Box>
             </Collapse>
-        </Paper>
+
+            {/* Header - always visible at the bottom */}
+            <Box
+                onClick={() => setIsExpanded(!isExpanded)}
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    px: 1.5,
+                    py: 1,
+                    cursor: "pointer",
+                    borderTop: isExpanded ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
+                    "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.05)",
+                    },
+                }}
+            >
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>
+                    Legend
+                </Typography>
+                <IconButton size="small" sx={{ color: "rgba(255, 255, 255, 0.7)", p: 0 }}>
+                    {isExpanded ? <ExpandMore fontSize="small" /> : <ExpandLess fontSize="small" />}
+                </IconButton>
+            </Box>
+            </Paper>
+        </Box>
     );
 };
 

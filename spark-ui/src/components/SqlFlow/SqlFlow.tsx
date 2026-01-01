@@ -465,142 +465,6 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
 
 
 
-      {/* Custom controls */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          right: 16,
-          zIndex: 5,
-          display: "flex",
-          flexDirection: "column",
-          gap: 1,
-        }}
-      >
-        <Tooltip title="Zoom in" arrow placement="left">
-          <IconButton
-            onClick={handleZoomIn}
-            sx={{
-              backgroundColor: "rgba(245, 247, 250, 0.95)",
-              color: "#424242",
-              border: "1px solid rgba(0, 0, 0, 0.15)",
-              "&:hover": { backgroundColor: "rgba(245, 247, 250, 1)" },
-            }}
-          >
-            <ZoomIn />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Zoom out" arrow placement="left">
-          <IconButton
-            onClick={handleZoomOut}
-            sx={{
-              backgroundColor: "rgba(245, 247, 250, 0.95)",
-              color: "#424242",
-              border: "1px solid rgba(0, 0, 0, 0.15)",
-              "&:hover": { backgroundColor: "rgba(245, 247, 250, 1)" },
-            }}
-          >
-            <ZoomOut />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Fit to view" arrow placement="left">
-          <IconButton
-            onClick={handleFitView}
-            sx={{
-              backgroundColor: "rgba(245, 247, 250, 0.95)",
-              color: "#424242",
-              border: "1px solid rgba(0, 0, 0, 0.15)",
-              "&:hover": { backgroundColor: "rgba(245, 247, 250, 1)" },
-            }}
-          >
-            <CenterFocusStrong />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip
-          title={navigationData.nodesByDuration.length > 0
-            ? `Focus on biggest node duration (${currentDurationIndex + 1}/${navigationData.nodesByDuration.length}) - ${navigationData.nodesByDuration[currentDurationIndex]?.durationPercentage.toFixed(1)}%`
-            : "No duration data available"
-          }
-          arrow
-          placement="left"
-        >
-          <IconButton
-            onClick={handleFocusNextDuration}
-            disabled={navigationData.nodesByDuration.length === 0}
-            sx={{
-              backgroundColor: "rgba(245, 247, 250, 0.95)",
-              color: navigationData.nodesByDuration.length > 0 ? "#424242" : "#bdbdbd",
-              border: "1px solid rgba(0, 0, 0, 0.15)",
-              "&:hover": {
-                backgroundColor: navigationData.nodesByDuration.length > 0 ? "rgba(245, 247, 250, 1)" : "rgba(245, 247, 250, 0.95)"
-              },
-              "&:disabled": {
-                backgroundColor: "rgba(245, 247, 250, 0.5)",
-              }
-            }}
-          >
-            <Speed />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip
-          title={navigationData.nodesWithAlerts.length > 0
-            ? `Focus on alerts (${currentAlertIndex + 1}/${navigationData.nodesWithAlerts.length})`
-            : "No alerts found"
-          }
-          arrow
-          placement="left"
-        >
-          <IconButton
-            onClick={handleFocusNextAlert}
-            disabled={navigationData.nodesWithAlerts.length === 0}
-            sx={{
-              backgroundColor: "rgba(245, 247, 250, 0.95)",
-              color: navigationData.nodesWithAlerts.length > 0 ? "#424242" : "#bdbdbd",
-              border: "1px solid rgba(0, 0, 0, 0.15)",
-              "&:hover": {
-                backgroundColor: navigationData.nodesWithAlerts.length > 0 ? "rgba(245, 247, 250, 1)" : "rgba(245, 247, 250, 0.95)"
-              },
-              "&:disabled": {
-                backgroundColor: "rgba(245, 247, 250, 0.5)",
-              }
-            }}
-          >
-            <Warning />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip
-          title={navigationData.nodesWithSpill.length > 0
-            ? `Focus on spill (${currentSpillIndex + 1}/${navigationData.nodesWithSpill.length}) - ${navigationData.nodesWithSpill[currentSpillIndex]?.spillSizeFormatted}`
-            : "No spill detected"
-          }
-          arrow
-          placement="left"
-        >
-          <IconButton
-            onClick={handleFocusNextSpill}
-            disabled={navigationData.nodesWithSpill.length === 0}
-            sx={{
-              backgroundColor: "rgba(245, 247, 250, 0.95)",
-              color: navigationData.nodesWithSpill.length > 0 ? "#424242" : "#bdbdbd",
-              border: "1px solid rgba(0, 0, 0, 0.15)",
-              "&:hover": {
-                backgroundColor: navigationData.nodesWithSpill.length > 0 ? "rgba(245, 247, 250, 1)" : "rgba(245, 247, 250, 0.95)"
-              },
-              "&:disabled": {
-                backgroundColor: "rgba(245, 247, 250, 0.5)",
-              }
-            }}
-          >
-            <Storage />
-          </IconButton>
-        </Tooltip>
-      </Box>
-
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -628,7 +492,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
           showInteractive={false}
         />
 
-        {/* Bottom controls container - View Mode and Legend side by side */}
+        {/* Bottom controls container - Navigation, View Mode and Legend side by side */}
         <Box
           sx={{
             position: "absolute",
@@ -641,6 +505,132 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
             gap: 1.5,
           }}
         >
+          {/* Navigation buttons */}
+          <Box sx={{ display: "flex", flexDirection: "row", gap: 0.5 }}>
+            <Tooltip title="Zoom in" arrow placement="top">
+              <IconButton
+                onClick={handleZoomIn}
+                sx={{
+                  backgroundColor: "rgba(245, 247, 250, 0.95)",
+                  color: "#424242",
+                  border: "1px solid rgba(0, 0, 0, 0.15)",
+                  "&:hover": { backgroundColor: "rgba(245, 247, 250, 1)" },
+                }}
+              >
+                <ZoomIn />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="Zoom out" arrow placement="top">
+              <IconButton
+                onClick={handleZoomOut}
+                sx={{
+                  backgroundColor: "rgba(245, 247, 250, 0.95)",
+                  color: "#424242",
+                  border: "1px solid rgba(0, 0, 0, 0.15)",
+                  "&:hover": { backgroundColor: "rgba(245, 247, 250, 1)" },
+                }}
+              >
+                <ZoomOut />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="Fit to view" arrow placement="top">
+              <IconButton
+                onClick={handleFitView}
+                sx={{
+                  backgroundColor: "rgba(245, 247, 250, 0.95)",
+                  color: "#424242",
+                  border: "1px solid rgba(0, 0, 0, 0.15)",
+                  "&:hover": { backgroundColor: "rgba(245, 247, 250, 1)" },
+                }}
+              >
+                <CenterFocusStrong />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip
+              title={navigationData.nodesByDuration.length > 0
+                ? `Focus on biggest node duration (${currentDurationIndex + 1}/${navigationData.nodesByDuration.length}) - ${navigationData.nodesByDuration[currentDurationIndex]?.durationPercentage.toFixed(1)}%`
+                : "No duration data available"
+              }
+              arrow
+              placement="top"
+            >
+              <IconButton
+                onClick={handleFocusNextDuration}
+                disabled={navigationData.nodesByDuration.length === 0}
+                sx={{
+                  backgroundColor: "rgba(245, 247, 250, 0.95)",
+                  color: navigationData.nodesByDuration.length > 0 ? "#424242" : "#bdbdbd",
+                  border: "1px solid rgba(0, 0, 0, 0.15)",
+                  "&:hover": {
+                    backgroundColor: navigationData.nodesByDuration.length > 0 ? "rgba(245, 247, 250, 1)" : "rgba(245, 247, 250, 0.95)"
+                  },
+                  "&:disabled": {
+                    backgroundColor: "rgba(245, 247, 250, 0.5)",
+                  }
+                }}
+              >
+                <Speed />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip
+              title={navigationData.nodesWithAlerts.length > 0
+                ? `Focus on alerts (${currentAlertIndex + 1}/${navigationData.nodesWithAlerts.length})`
+                : "No alerts found"
+              }
+              arrow
+              placement="top"
+            >
+              <IconButton
+                onClick={handleFocusNextAlert}
+                disabled={navigationData.nodesWithAlerts.length === 0}
+                sx={{
+                  backgroundColor: "rgba(245, 247, 250, 0.95)",
+                  color: navigationData.nodesWithAlerts.length > 0 ? "#424242" : "#bdbdbd",
+                  border: "1px solid rgba(0, 0, 0, 0.15)",
+                  "&:hover": {
+                    backgroundColor: navigationData.nodesWithAlerts.length > 0 ? "rgba(245, 247, 250, 1)" : "rgba(245, 247, 250, 0.95)"
+                  },
+                  "&:disabled": {
+                    backgroundColor: "rgba(245, 247, 250, 0.5)",
+                  }
+                }}
+              >
+                <Warning />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip
+              title={navigationData.nodesWithSpill.length > 0
+                ? `Focus on spill (${currentSpillIndex + 1}/${navigationData.nodesWithSpill.length}) - ${navigationData.nodesWithSpill[currentSpillIndex]?.spillSizeFormatted}`
+                : "No spill detected"
+              }
+              arrow
+              placement="top"
+            >
+              <IconButton
+                onClick={handleFocusNextSpill}
+                disabled={navigationData.nodesWithSpill.length === 0}
+                sx={{
+                  backgroundColor: "rgba(245, 247, 250, 0.95)",
+                  color: navigationData.nodesWithSpill.length > 0 ? "#424242" : "#bdbdbd",
+                  border: "1px solid rgba(0, 0, 0, 0.15)",
+                  "&:hover": {
+                    backgroundColor: navigationData.nodesWithSpill.length > 0 ? "rgba(245, 247, 250, 1)" : "rgba(245, 247, 250, 0.95)"
+                  },
+                  "&:disabled": {
+                    backgroundColor: "rgba(245, 247, 250, 0.5)",
+                  }
+                }}
+              >
+                <Storage />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
           {/* View Mode selector */}
           <Paper
             elevation={3}

@@ -68,11 +68,7 @@ const NodeFooter: React.FC<NodeFooterProps> = ({
             <Box className={styles.footerCenter}>
                 {durationPercentage !== undefined && (
                     <Tooltip
-                        title={
-                            nodeDuration !== undefined
-                                ? humanizeTimeDiff(duration(nodeDuration))
-                                : "Duration information"
-                        }
+                        title="Total executor CPU time (resource usage) - max for this node, based on estimation"
                         arrow
                     >
                         <Box
@@ -82,7 +78,7 @@ const NodeFooter: React.FC<NodeFooterProps> = ({
                                 color: getBucketedColor(durationPercentage)
                             }}
                         >
-                            {durationPercentage.toFixed(1)}%
+                            {durationPercentage.toFixed(1)}%{nodeDuration !== undefined ? ` - ${humanizeTimeDiff(duration(nodeDuration))}` : ""}
                         </Box>
                     </Tooltip>
                 )}
