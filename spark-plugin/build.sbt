@@ -69,6 +69,8 @@ lazy val pluginspark3 = (project in file("pluginspark3"))
     
     // Assembly configuration to create fat JAR with common code
     assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}.jar",
+    // Exclude Scala library from assembly - Spark provides its own Scala runtime
+    assembly / assemblyOption := (assembly / assemblyOption).value.withIncludeScala(false),
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", "services", xs @ _*) => MergeStrategy.concat
       case PathList("META-INF", xs @ _*) => MergeStrategy.discard
@@ -115,6 +117,8 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
     
     // Assembly configuration to create fat JAR with common code
     assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}.jar",
+    // Exclude Scala library from assembly - Spark provides its own Scala runtime
+    assembly / assemblyOption := (assembly / assemblyOption).value.withIncludeScala(false),
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", "services", xs @ _*) => MergeStrategy.concat
       case PathList("META-INF", xs @ _*) => MergeStrategy.discard
