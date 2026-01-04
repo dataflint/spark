@@ -68,7 +68,7 @@ const NodeFooter: React.FC<NodeFooterProps> = ({
             <Box className={styles.footerCenter}>
                 {durationPercentage !== undefined && (
                     <Tooltip
-                        title="Total executor CPU time (resource usage) - max for this node, based on estimation"
+                        title="Estimated CPU time (upper bound). May include time from adjacent nodes due to Spark's CodeGen combining multiple operations."
                         arrow
                     >
                         <Box
