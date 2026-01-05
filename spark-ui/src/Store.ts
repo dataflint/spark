@@ -11,6 +11,12 @@ const store = configureStore({
     general: GeneralSlice,
     jobsColumns: jobsColumnsReducer,
   },
+  // Disable expensive dev middleware that causes slowdowns with large state (800+ SQL queries)
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+      immutableCheck: false,
+    }),
 });
 
 // Infer the `RootState` and `AppDispatch` types from the store itself

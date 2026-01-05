@@ -38,6 +38,18 @@ type SQLFinishTime = {
   finishTime: number;
 };
 
+// Hash function for string comparison (djb2 algorithm)
+function hashString(str: string): number {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+  }
+  return hash;
+}
+
+// Cache entry storing both length and hash for efficient comparison
+type ResponseCache = { length: number; hash: number } | null;
+
 class SparkAPI {
   basePath: string;
   baseCurrentPage: string;
@@ -54,6 +66,12 @@ class SparkAPI {
   historyServerMode: boolean = false;
   icebergEnabled: boolean = false;
   sparkVersion: string | undefined = undefined;
+
+  // Cache for response length+hash to skip processing when data hasn't changed
+  // Length is checked first (O(1)), hash only calculated if lengths match
+  private lastStagesCache: ResponseCache = null;
+  private lastExecutorsCache: ResponseCache = null;
+  private lastJobsCache: ResponseCache = null;
 
   private findSqlIdToQueryFrom(): number {
     const currentTime = Date.now();
@@ -130,6 +148,10 @@ class SparkAPI {
     this.lastCompletedSqlId = -1;
     this.appId = "";
     this.sparkVersion = undefined;
+    // Reset cached values on reconnection
+    this.lastStagesCache = null;
+    this.lastExecutorsCache = null;
+    this.lastJobsCache = null;
   }
 
   constructor(
@@ -186,6 +208,56 @@ class SparkAPI {
     }
 
     return "unknown";
+  }
+
+  // Fetch data and return null if response matches cache (skip JSON parsing and Redux dispatch)
+  // Checks length first (O(1)), only calculates hash if lengths are equal
+  private async fetchWithCache(
+    path: string,
+    lastCache: ResponseCache
+  ): Promise<{ data: any; cache: ResponseCache } | null> {
+    try {
+      const requestContent = await fetch(path);
+      const responseText = await requestContent.text();
+      const currentLength = responseText.length;
+
+      // If length differs, data definitely changed - skip hash calculation
+      if (lastCache !== null && currentLength !== lastCache.length) {
+        // Length changed, need to process - calculate hash for next comparison
+        const currentHash = hashString(responseText);
+
+        // Check if response is valid JSON format
+        const trimmedResponse = responseText.trim();
+        if (!((trimmedResponse.startsWith('{') && trimmedResponse.endsWith('}')) ||
+          (trimmedResponse.startsWith('[') && trimmedResponse.endsWith(']')))) {
+          const responseSize = humanFileSize(currentLength);
+          throw new Error(`Spark API returned too large of a result, json response is not valid. Response size: ${responseSize}`);
+        }
+
+        return { data: JSON.parse(responseText), cache: { length: currentLength, hash: currentHash } };
+      }
+
+      // Length matches (or first request) - calculate hash for comparison
+      const currentHash = hashString(responseText);
+
+      // If both length and hash match, skip JSON parsing entirely
+      if (lastCache !== null && currentHash === lastCache.hash) {
+        return null;
+      }
+
+      // Check if response is valid JSON format
+      const trimmedResponse = responseText.trim();
+      if (!((trimmedResponse.startsWith('{') && trimmedResponse.endsWith('}')) ||
+        (trimmedResponse.startsWith('[') && trimmedResponse.endsWith(']')))) {
+        const responseSize = humanFileSize(currentLength);
+        throw new Error(`Spark API returned too large of a result, json response is not valid. Response size: ${responseSize}`);
+      }
+
+      return { data: JSON.parse(responseText), cache: { length: currentLength, hash: currentHash } };
+    } catch (e) {
+      console.log(`request to path: ${path} failed, error: ${e}`);
+      throw e;
+    }
   }
 
   async queryData(path: string, isSqlRequest: boolean = false): Promise<any> {
@@ -292,19 +364,32 @@ class SparkAPI {
         this.dispatch(updateDuration({ epocCurrentTime: Date.now() }));
       }
 
-      const stagesRdd: StagesRdd = await this.queryData(this.buildStageRdd());
-      const sparkStages: SparkStages = await this.queryData(this.stagesPath);
-      const cachedStorage: CachedStorage = await this.queryData(this.cachedstoragePath());
+      // Fetch stages with caching - skip JSON parsing and Redux dispatch if unchanged
+      const stagesResult = await this.fetchWithCache(this.stagesPath, this.lastStagesCache);
+      const stagesChanged = stagesResult !== null;
+      if (stagesChanged) {
+        this.lastStagesCache = stagesResult.cache;
+        const sparkStages: SparkStages = stagesResult.data;
+        const stagesRdd: StagesRdd = await this.queryData(this.buildStageRdd());
+        const cachedStorage: CachedStorage = await this.queryData(this.cachedstoragePath());
+        this.dispatch(setStages({ value: sparkStages, stagesRdd: stagesRdd, cachedStorage: cachedStorage }));
+      }
 
-      this.dispatch(setStages({ value: sparkStages, stagesRdd: stagesRdd, cachedStorage: cachedStorage }));
+      // Fetch executors with caching - skip if unchanged
+      const executorsResult = await this.fetchWithCache(this.executorsPath, this.lastExecutorsCache);
+      if (executorsResult !== null) {
+        this.lastExecutorsCache = executorsResult.cache;
+        const sparkExecutors: SparkExecutors = executorsResult.data;
+        this.dispatch(setSparkExecutors({ value: sparkExecutors }));
+      }
 
-      const sparkExecutors: SparkExecutors = await this.queryData(
-        this.executorsPath,
-      );
-      this.dispatch(setSparkExecutors({ value: sparkExecutors }));
-
-      const sparkJobs: SparkJobs = await this.queryData(this.jobsPath);
-      this.dispatch(setSparkJobs({ value: sparkJobs }));
+      // Fetch jobs with caching - skip if unchanged
+      const jobsResult = await this.fetchWithCache(this.jobsPath, this.lastJobsCache);
+      if (jobsResult !== null) {
+        this.lastJobsCache = jobsResult.cache;
+        const sparkJobs: SparkJobs = jobsResult.data;
+        this.dispatch(setSparkJobs({ value: sparkJobs }));
+      }
 
       const sqlIdToQueryFrom = this.findSqlIdToQueryFrom();
       const sparkSQLs: SparkSQLs = await this.queryData(
@@ -331,7 +416,10 @@ class SparkAPI {
         // Delta Lake instrumentation might not be enabled, silently continue
       }
 
-      if (sparkSQLs.length !== 0) {
+      // Track if SQL has changed (new queries returned from API)
+      const sqlChanged = sparkSQLs.length !== 0;
+
+      if (sqlChanged) {
         this.dispatch(
           setSQL({
             sqls: sparkSQLs,
@@ -375,7 +463,9 @@ class SparkAPI {
           this.dispatch(setSQLMetrics({ value: nodesMetrics, sqlId: sqlId }));
         }
       }
-      this.dispatch(onCycleEnd());
+
+      // Pass change flags to onCycleEnd - if nothing changed, skip expensive calculations
+      this.dispatch(onCycleEnd({ sqlChanged, stagesChanged }));
     } catch (e) {
       console.log(e);
       this.isConnected = false;

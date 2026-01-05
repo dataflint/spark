@@ -2,8 +2,8 @@ import { duration } from "moment";
 import {
   Alerts,
   SparkSQLStore,
-  SparkStagesStore,
 } from "../../interfaces/AppStore";
+import { StageMap } from "../../interfaces/StageMap";
 import { humanizeTimeDiff } from "../../utils/FormatUtils";
 
 const LARGE_TASKS_NUM_THRESHOLD = 5000;
@@ -12,30 +12,29 @@ const TASKS_RECOMMENDED_DECREASE_RATIO = 10;
 
 export function reduceSmallTasksAlert(
   sql: SparkSQLStore,
-  stages: SparkStagesStore,
+  stageMap: StageMap,
   alerts: Alerts,
 ) {
   // Track which stages we've already created alerts for to avoid duplicates
   const alertedStages = new Set<string>();
 
-  sql.sqls.forEach((sql) => {
-    sql.nodes.forEach((node) => {
+  for (const sqlItem of sql.sqls) {
+    for (const node of sqlItem.nodes) {
       const stageInfo = node.stage;
       if (stageInfo === undefined || stageInfo.type !== "onestage") {
-        return;
+        continue;
       }
 
       const stageId = stageInfo.stageId;
-      const alertKey = `${sql.id}_${stageId}`;
+      const alertKey = `${sqlItem.id}_${stageId}`;
 
       // Skip if we've already created an alert for this stage in this SQL
       if (alertedStages.has(alertKey)) {
-        return;
+        continue;
       }
 
-      const stageData = stages.find(
-        (stage) => stage.stageId === stageId,
-      );
+      // O(1) lookup instead of O(n) find
+      const stageData = stageMap.get(stageId);
 
       if (stageData !== undefined &&
         stageData.numTasks > LARGE_TASKS_NUM_THRESHOLD &&
@@ -51,10 +50,10 @@ export function reduceSmallTasksAlert(
         const recommendedTaskNum = Math.ceil(stageData.numTasks / TASKS_RECOMMENDED_DECREASE_RATIO);
 
         alerts.push({
-          id: `SmallTasks_${sql.id}_stage_${stageId}`,
+          id: `SmallTasks_${sqlItem.id}_stage_${stageId}`,
           name: "smallTasks",
           title: "Large Number Of Small Tasks",
-          location: `In: SQL query "${sql.description}" (id: ${sql.id}), Stage ${stageId}`,
+          location: `In: SQL query "${sqlItem.description}" (id: ${sqlItem.id}), Stage ${stageId}`,
           message: `${stageData.numTasks} tasks with median task duration of ${medianTaskDurationTxt}, which causes large scheduling overhead for Spark`,
           suggestion: `
   1. Repartition to less tasks, so you will have less overhead, by running .repartition(${recommendedTaskNum})
@@ -65,11 +64,11 @@ export function reduceSmallTasksAlert(
           type: "warning",
           source: {
             type: "stage",
-            sqlId: sql.id,
+            sqlId: sqlItem.id,
             stageId: stageId,
           },
         });
       }
-    });
-  });
+    }
+  }
 }

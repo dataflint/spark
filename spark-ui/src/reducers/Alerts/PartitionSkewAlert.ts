@@ -2,40 +2,39 @@ import { duration } from "moment";
 import {
   Alerts,
   SparkSQLStore,
-  SparkStagesStore,
 } from "../../interfaces/AppStore";
+import { StageMap } from "../../interfaces/StageMap";
 import { humanizeTimeDiff } from "../../utils/FormatUtils";
 
 export function reducePartitionSkewAlert(
   sql: SparkSQLStore,
-  stages: SparkStagesStore,
+  stageMap: StageMap,
   alerts: Alerts,
 ) {
   // Track which stages we've already created alerts for to avoid duplicates
   const alertedStages = new Set<string>();
 
-  sql.sqls.forEach((sql) => {
-    sql.nodes.forEach((node) => {
+  for (const sqlItem of sql.sqls) {
+    for (const node of sqlItem.nodes) {
       const stageInfo = node.stage;
       if (stageInfo === undefined || stageInfo.type !== "onestage") {
-        return;
+        continue;
       }
-      
+
       const stageId = stageInfo.stageId;
-      const alertKey = `${sql.id}_${stageId}`;
-      
+      const alertKey = `${sqlItem.id}_${stageId}`;
+
       // Skip if we've already created an alert for this stage in this SQL
       if (alertedStages.has(alertKey)) {
-        return;
+        continue;
       }
-      
-      const stageData = stages.find(
-        (stage) => stage.stageId === stageId,
-      );
+
+      // O(1) lookup instead of O(n) find
+      const stageData = stageMap.get(stageId);
 
       if (stageData?.hasPartitionSkew === true) {
         alertedStages.add(alertKey);
-        
+
         const maxTaskDurationTxt =
           stageData.maxTaskDuration === undefined
             ? ""
@@ -48,13 +47,13 @@ export function reducePartitionSkewAlert(
           stageData.maxTaskDuration === 0
             ? 0
             : (stageData.maxTaskDuration ?? 0) /
-              (stageData.mediumTaskDuration ?? 1);
+            (stageData.mediumTaskDuration ?? 1);
 
         alerts.push({
-          id: `partitionSkew_${sql.id}_stage_${stageId}`,
+          id: `partitionSkew_${sqlItem.id}_stage_${stageId}`,
           name: "partitionSkew",
           title: "Partition Skew",
-          location: `In: SQL query "${sql.description}" (id: ${sql.id}), Stage ${stageId}`,
+          location: `In: SQL query "${sqlItem.description}" (id: ${sqlItem.id}), Stage ${stageId}`,
           message: `Partition skew ratio of ${skewRatio.toFixed(
             1,
           )}X, median task duration is ${medianTaskDurationTxt} and max task duration is ${maxTaskDurationTxt}`,
@@ -65,11 +64,11 @@ export function reducePartitionSkewAlert(
           type: "warning",
           source: {
             type: "stage",
-            sqlId: sql.id,
+            sqlId: sqlItem.id,
             stageId: stageId,
           },
         });
       }
-    });
-  });
+    }
+  }
 }

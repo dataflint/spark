@@ -1,8 +1,8 @@
 import {
     Alerts,
     SparkSQLStore,
-    SparkStagesStore,
 } from "../../interfaces/AppStore";
+import { StageMap } from "../../interfaces/StageMap";
 import { humanFileSize } from "../../utils/FormatUtils";
 
 // 5GB threshold in bytes
@@ -10,53 +10,52 @@ const MAX_PARTITION_SIZE_THRESHOLD = 5 * 1024 * 1024 * 1024;
 
 export function reduceMaxPartitionToBigAlert(
     sql: SparkSQLStore,
-    stages: SparkStagesStore,
+    stageMap: StageMap,
     alerts: Alerts,
 ) {
     // Track which stages we've already created alerts for to avoid duplicates
     const alertedStages = new Set<string>();
 
-    sql.sqls.forEach((sql) => {
-        sql.nodes.forEach((node) => {
+    for (const sqlItem of sql.sqls) {
+        for (const node of sqlItem.nodes) {
             const stageInfo = node.stage;
             if (stageInfo === undefined) {
-                return;
+                continue;
             }
 
             // Handle both one-stage and exchange (shuffle) operations
             if (stageInfo.type === "onestage") {
                 // For single stage operations
-                checkStageForLargePartitions(sql, stageInfo.stageId, stages, alerts, alertedStages);
+                checkStageForLargePartitions(sqlItem, stageInfo.stageId, stageMap, alerts, alertedStages);
             } else if (stageInfo.type === "exchange") {
                 // For shuffle operations, check the write stage
                 if (stageInfo.writeStage !== -1) {
-                    checkStageForLargePartitions(sql, stageInfo.writeStage, stages, alerts, alertedStages);
+                    checkStageForLargePartitions(sqlItem, stageInfo.writeStage, stageMap, alerts, alertedStages);
                 }
                 if (stageInfo.readStage !== -1) {
-                    checkStageForLargePartitions(sql, stageInfo.readStage, stages, alerts, alertedStages);
+                    checkStageForLargePartitions(sqlItem, stageInfo.readStage, stageMap, alerts, alertedStages);
                 }
             }
-        });
-    });
+        }
+    }
 }
 
 function checkStageForLargePartitions(
-    sql: any,
+    sqlItem: any,
     stageId: number,
-    stages: SparkStagesStore,
+    stageMap: StageMap,
     alerts: Alerts,
     alertedStages: Set<string>
 ) {
-    const alertKey = `${sql.id}_${stageId}`;
-    
+    const alertKey = `${sqlItem.id}_${stageId}`;
+
     // Skip if we've already created an alert for this stage in this SQL
     if (alertedStages.has(alertKey)) {
         return;
     }
 
-    const stageData = stages.find(
-        (stage) => stage.stageId === stageId,
-    );
+    // O(1) lookup instead of O(n) find
+    const stageData = stageMap.get(stageId);
 
     if (stageData !== undefined) {
         // Check shuffle write distribution (output) first
@@ -86,14 +85,14 @@ function checkStageForLargePartitions(
         // If the maximum partition size exceeds our threshold, add an alert
         if (maxPartitionSize !== 0) {
             alertedStages.add(alertKey);
-            
+
             const maxPartitionSizeFormatted = humanFileSize(maxPartitionSize);
 
             alerts.push({
-                id: `maxPartitionToBig_${sql.id}_stage_${stageId}`,
+                id: `maxPartitionToBig_${sqlItem.id}_stage_${stageId}`,
                 name: "maxPartitionToBig",
                 title: "Large Partition Size",
-                location: `In: SQL query "${sql.description}" (id: ${sql.id}), Stage ${stageId}`,
+                location: `In: SQL query "${sqlItem.description}" (id: ${sqlItem.id}), Stage ${stageId}`,
                 message: `Maximum ${dataType} partition size in stage ${stageId} is ${maxPartitionSizeFormatted}, which is too big and can cause performance issues or OOM errors`,
                 suggestion: `
   1. Increase the number of partitions to reduce the size of each partition
@@ -102,7 +101,7 @@ function checkStageForLargePartitions(
                 type: "warning",
                 source: {
                     type: "stage",
-                    sqlId: sql.id,
+                    sqlId: sqlItem.id,
                     stageId: stageId,
                 },
             });

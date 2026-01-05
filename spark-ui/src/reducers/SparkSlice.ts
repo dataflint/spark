@@ -244,7 +244,10 @@ const sparkSlice = createSlice({
         state.sql = sqlStore;
       }
     },
-    onCycleEnd: (state) => {
+    onCycleEnd: (
+      state,
+      action: PayloadAction<{ sqlChanged: boolean; stagesChanged: boolean }>
+    ) => {
       if (state.status === undefined) {
         return;
       }
@@ -255,6 +258,11 @@ const sparkSlice = createSlice({
           calculateSqlIdleTime(state.sql!, state.status!, state.runMetadata!),
         );
       }
+      // If nothing changed (no new SQL queries and stages unchanged), skip all expensive calculations
+      if (!action.payload.sqlChanged && !action.payload.stagesChanged) {
+        return;
+      }
+
       if (
         state.config &&
         state.jobs &&
