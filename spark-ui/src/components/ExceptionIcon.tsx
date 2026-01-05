@@ -1,4 +1,4 @@
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import CancelIcon from "@mui/icons-material/Cancel";
 import { Fade, Snackbar } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import Tooltip, { tooltipClasses, TooltipProps } from "@mui/material/Tooltip";
@@ -66,7 +66,7 @@ const ExceptionIcon: React.FC<{ failureReason: string }> = ({
         TransitionComponent={Fade}
         TransitionProps={{ timeout: 300 }}
       >
-        <ErrorOutlineIcon
+        <CancelIcon
           color="error"
           style={{ width: "30px", height: "30px" }}
         />

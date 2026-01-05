@@ -1,10 +1,9 @@
-import CheckIcon from "@mui/icons-material/Check";
+import CancelIcon from "@mui/icons-material/Cancel";
 import ErrorIcon from "@mui/icons-material/Error";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import PendingIcon from "@mui/icons-material/Pending";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import WarningIcon from "@mui/icons-material/Warning";
-import { Alert, AlertTitle, Box, CircularProgress, IconButton, Tooltip, Typography } from "@mui/material";
+import { Alert, AlertTitle, Box, IconButton, Tooltip, Typography } from "@mui/material";
 import { duration } from "moment";
 import React, { FC, memo, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -34,24 +33,6 @@ export interface StageGroupData {
 
 interface StageGroupNodeProps extends NodeProps<StageGroupData> { }
 
-// Get status tooltip text
-const getStatusTooltip = (status: string): string => {
-    switch (status) {
-        case "ACTIVE":
-            return "Stage is currently running";
-        case "COMPLETE":
-            return "Stage completed successfully";
-        case "COMPLETE_WITH_RETRIES":
-            return "Stage completed with task retries";
-        case "FAILED":
-            return "Stage failed with an error";
-        case "PENDING":
-            return "Stage is waiting to start";
-        default:
-            return "Unknown status";
-    }
-};
-
 // Task progress indicator component
 interface TaskProgressProps {
     numTasks: number;
@@ -61,6 +42,15 @@ interface TaskProgressProps {
     status: string;
     compact?: boolean;
 }
+
+// Status colors matching the status icons
+const STATUS_COLORS = {
+    complete: "#4caf50",           // Green - matches CheckIcon color
+    completeWithRetries: "#ff9800", // Orange - matches CheckIcon warning color
+    active: "#1976d2",             // Blue - matches CircularProgress color
+    failed: "#f44336",             // Red - matches ErrorIcon color
+    pending: "#b2a300",            // Yellow - matches PendingIcon color
+};
 
 const TaskProgressIndicator: FC<TaskProgressProps> = ({
     numTasks,
@@ -72,9 +62,21 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
 }) => {
     const progress = numTasks > 0 ? (numCompleteTasks / numTasks) * 100 : 0;
     const hasFailedTasks = numFailedTasks > 0;
-    const isComplete = status === "COMPLETE" || status === "COMPLETE_WITH_RETRIES";
+    const isComplete = status === "COMPLETE";
+    const isCompleteWithRetries = status === "COMPLETE_WITH_RETRIES";
     const isActive = status === "ACTIVE";
-    const isPending = status === "PENDING";
+    const isFailed = status === "FAILED";
+
+    // Get the appropriate color based on status
+    const getStatusColor = () => {
+        if (hasFailedTasks || isFailed) return STATUS_COLORS.failed;
+        if (isCompleteWithRetries) return STATUS_COLORS.completeWithRetries;
+        if (isComplete) return STATUS_COLORS.complete;
+        if (isActive) return STATUS_COLORS.active;
+        return STATUS_COLORS.pending;
+    };
+
+    const statusColor = getStatusColor();
 
     // Compact version for single-node stages
     if (compact) {
@@ -86,12 +88,12 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
                             {numCompleteTasks}/{numTasks} tasks
                         </Typography>
                         {hasFailedTasks && (
-                            <Typography sx={{ fontSize: 10, color: "#ff5252" }}>
+                            <Typography sx={{ fontSize: 10, color: STATUS_COLORS.failed }}>
                                 {numFailedTasks} failed
                             </Typography>
                         )}
                         {numActiveTasks > 0 && (
-                            <Typography sx={{ fontSize: 10, color: "#64b5f6" }}>
+                            <Typography sx={{ fontSize: 10, color: STATUS_COLORS.active }}>
                                 {numActiveTasks} running
                             </Typography>
                         )}
@@ -107,43 +109,24 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
                         px: 0.8,
                         py: 0.3,
                         borderRadius: 1,
-                        backgroundColor: hasFailedTasks
-                            ? "rgba(244, 67, 54, 0.15)"
-                            : isComplete
-                                ? "rgba(76, 175, 80, 0.15)"
-                                : isActive
-                                    ? "rgba(33, 150, 243, 0.15)"
-                                    : "rgba(158, 158, 158, 0.15)",
-                        border: `1px solid ${hasFailedTasks
-                            ? "rgba(244, 67, 54, 0.4)"
-                            : isComplete
-                                ? "rgba(76, 175, 80, 0.4)"
-                                : isActive
-                                    ? "rgba(33, 150, 243, 0.4)"
-                                    : "rgba(158, 158, 158, 0.4)"
-                            }`,
+                        backgroundColor: `${statusColor}22`,
+                        border: `1px solid ${statusColor}66`,
                     }}
                 >
                     {isActive && (
-                        <PlayArrowIcon sx={{ fontSize: 12, color: "#64b5f6" }} />
+                        <PlayArrowIcon sx={{ fontSize: 12, color: statusColor }} />
                     )}
                     <Typography
                         sx={{
                             fontSize: 10,
                             fontWeight: 600,
-                            color: hasFailedTasks
-                                ? "#ff5252"
-                                : isComplete
-                                    ? "#81c784"
-                                    : isActive
-                                        ? "#64b5f6"
-                                        : "#9e9e9e",
+                            color: statusColor,
                         }}
                     >
                         {numCompleteTasks}/{numTasks}
                     </Typography>
                     {hasFailedTasks && (
-                        <ErrorIcon sx={{ fontSize: 12, color: "#ff5252" }} />
+                        <CancelIcon sx={{ fontSize: 12, color: STATUS_COLORS.failed }} />
                     )}
                 </Box>
             </Tooltip>
@@ -160,14 +143,14 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
                     </Typography>
                     <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
                         <Typography sx={{ fontSize: 11 }}>Completed:</Typography>
-                        <Typography sx={{ fontSize: 11, fontWeight: 600, color: "#81c784" }}>
+                        <Typography sx={{ fontSize: 11, fontWeight: 600, color: STATUS_COLORS.complete }}>
                             {numCompleteTasks}
                         </Typography>
                     </Box>
                     {numActiveTasks > 0 && (
                         <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
                             <Typography sx={{ fontSize: 11 }}>Running:</Typography>
-                            <Typography sx={{ fontSize: 11, fontWeight: 600, color: "#64b5f6" }}>
+                            <Typography sx={{ fontSize: 11, fontWeight: 600, color: STATUS_COLORS.active }}>
                                 {numActiveTasks}
                             </Typography>
                         </Box>
@@ -175,7 +158,7 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
                     {hasFailedTasks && (
                         <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
                             <Typography sx={{ fontSize: 11 }}>Failed:</Typography>
-                            <Typography sx={{ fontSize: 11, fontWeight: 600, color: "#ff5252" }}>
+                            <Typography sx={{ fontSize: 11, fontWeight: 600, color: STATUS_COLORS.failed }}>
                                 {numFailedTasks}
                             </Typography>
                         </Box>
@@ -199,14 +182,7 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
                     py: 0.4,
                     borderRadius: 1.5,
                     backgroundColor: "rgba(0, 0, 0, 0.3)",
-                    border: `1px solid ${hasFailedTasks
-                        ? "rgba(244, 67, 54, 0.5)"
-                        : isComplete
-                            ? "rgba(76, 175, 80, 0.4)"
-                            : isActive
-                                ? "rgba(33, 150, 243, 0.4)"
-                                : "rgba(158, 158, 158, 0.3)"
-                        }`,
+                    border: `1px solid ${statusColor}66`,
                 }}
             >
                 {/* Mini progress bar */}
@@ -228,7 +204,7 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
                             top: 0,
                             height: "100%",
                             width: `${progress}%`,
-                            backgroundColor: hasFailedTasks ? "#ff5252" : "#4caf50",
+                            backgroundColor: hasFailedTasks ? STATUS_COLORS.failed : isCompleteWithRetries ? STATUS_COLORS.completeWithRetries : STATUS_COLORS.complete,
                             transition: "width 0.3s ease",
                         }}
                     />
@@ -241,7 +217,7 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
                                 top: 0,
                                 height: "100%",
                                 width: `${(numActiveTasks / numTasks) * 100}%`,
-                                backgroundColor: "#2196f3",
+                                backgroundColor: STATUS_COLORS.active,
                                 animation: "pulse 1.5s ease-in-out infinite",
                                 "@keyframes pulse": {
                                     "0%, 100%": { opacity: 0.6 },
@@ -257,13 +233,7 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
                     sx={{
                         fontSize: 11,
                         fontWeight: 600,
-                        color: hasFailedTasks
-                            ? "#ff5252"
-                            : isComplete
-                                ? "#81c784"
-                                : isActive
-                                    ? "#64b5f6"
-                                    : "#9e9e9e",
+                        color: statusColor,
                         whiteSpace: "nowrap",
                     }}
                 >
@@ -277,10 +247,10 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
                             display: "flex",
                             alignItems: "center",
                             gap: 0.25,
-                            color: "#ff5252",
+                            color: STATUS_COLORS.failed,
                         }}
                     >
-                        <ErrorIcon sx={{ fontSize: 12 }} />
+                        <CancelIcon sx={{ fontSize: 12 }} />
                         <Typography sx={{ fontSize: 10, fontWeight: 700 }}>
                             {numFailedTasks}
                         </Typography>
@@ -289,55 +259,6 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
             </Box>
         </Tooltip>
     );
-};
-
-// Status icon component for stage header
-const StageStatusIcon: FC<{ status: string; stageId: number }> = ({ status, stageId }) => {
-    const stages = useAppSelector((state) => state.spark.stages);
-    const stageData = stages?.find((s) => s.stageId === stageId);
-    const progress = stageData?.stageProgress ?? 0;
-    const failureReason = stageData?.failureReason;
-
-    const tooltipText = getStatusTooltip(status);
-
-    switch (status) {
-        case "ACTIVE":
-            return (
-                <Tooltip title={`${tooltipText} (${progress}%)`} arrow>
-                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <CircularProgress
-                            color="info"
-                            variant="determinate"
-                            value={progress}
-                            size={20}
-                            thickness={5}
-                        />
-                    </Box>
-                </Tooltip>
-            );
-        case "COMPLETE":
-            return (
-                <Tooltip title={tooltipText} arrow>
-                    <CheckIcon sx={{ color: "#4caf50", fontSize: 20 }} />
-                </Tooltip>
-            );
-        case "COMPLETE_WITH_RETRIES":
-            return (
-                <Tooltip title={tooltipText} arrow>
-                    <CheckIcon sx={{ color: "#ff9800", fontSize: 20 }} />
-                </Tooltip>
-            );
-        case "FAILED":
-            return <ExceptionIcon failureReason={failureReason ?? ""} />;
-        case "PENDING":
-            return (
-                <Tooltip title={tooltipText} arrow>
-                    <PendingIcon sx={{ color: "#b2a300", fontSize: 20 }} />
-                </Tooltip>
-            );
-        default:
-            return null;
-    }
 };
 
 const StageGroupNodeComponent: FC<StageGroupNodeProps> = ({ data }) => {
@@ -405,8 +326,20 @@ const StageGroupNodeComponent: FC<StageGroupNodeProps> = ({ data }) => {
                     />
                 )}
 
-                {/* Left side - Title and Alert Badge */}
+                {/* Left side - Exception icon, Title and Alert Badge */}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {/* Exception icon for failed stages - positioned first */}
+                    {status === "FAILED" && stageData?.failureReason && (
+                        <Box sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transform: "scale(0.7)",
+                            transformOrigin: "center",
+                        }}>
+                            <ExceptionIcon failureReason={stageData.failureReason} />
+                        </Box>
+                    )}
                     <Typography className={isSingleNodeStage ? styles.stageGroupTitleCompact : styles.stageGroupTitle}>
                         {stageTitle}
                     </Typography>
@@ -513,11 +446,6 @@ const StageGroupNodeComponent: FC<StageGroupNodeProps> = ({ data }) => {
                             </Box>
                         </Tooltip>
                     )}
-
-                    {/* Status Icon */}
-                    <Box className={styles.stageGroupStatusIcon}>
-                        <StageStatusIcon status={status} stageId={stageId} />
-                    </Box>
 
                     {/* Summary Button - icon only */}
                     <Tooltip title="View stage summary" arrow>
