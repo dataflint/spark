@@ -15,8 +15,18 @@ import { findExchangeStageIds, isExchangeNode } from "./SqlReducerUtils";
 export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkStagesStore): EnrichedSparkSQL {
   let nodes = sql.nodes;
 
+  // Build node lookup map for O(1) access
+  let nodeById = new Map<number, EnrichedSqlNode>();
+  function rebuildNodeMap() {
+    nodeById.clear();
+    for (const node of nodes) {
+      nodeById.set(node.nodeId, node);
+    }
+  }
+  rebuildNodeMap();
+
   function findNode(id: number): EnrichedSqlNode {
-    return nodes.find((node) => node.nodeId === id) as EnrichedSqlNode;
+    return nodeById.get(id) as EnrichedSqlNode;
   }
 
   const graph = generateGraph(sql.edges, nodes);
@@ -83,6 +93,8 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     };
   }
 
+  rebuildNodeMap(); // Rebuild after initial stage assignments
+
   nodes = nodes.map((node) => {
     if (
       node.nodeName == "CollectLimit" ||
@@ -105,6 +117,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     }
     return node;
   });
+  rebuildNodeMap();
   nodes = nodes.map((node) => {
     // Convert Exchange nodes to exchange stage type if they have adjacent nodes with different stages
     // This handles both nodes without stage data and nodes with onestage type that should be exchange type
@@ -202,6 +215,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     }
     return node;
   });
+  rebuildNodeMap();
   nodes = nodes.map((node) => {
     if (node.stage === undefined) {
       const nextNode = findNextNode(node.nodeId);
@@ -339,36 +353,43 @@ export function calculateSqlStage(
   const allJobsIds = sql.successJobIds
     .concat(sql.failedJobIds)
     .concat(sql.runningJobIds);
-  const sqlJobs = jobs.filter((job) => allJobsIds.includes(job.jobId));
-  const stagesIds = sqlJobs.flatMap((job) => job.stageIds);
-  const sqlStages = stages.filter((stage) => stagesIds.includes(stage.stageId));
+  const allJobsIdSet = new Set(allJobsIds);
+  const sqlJobs = jobs.filter((job) => allJobsIdSet.has(job.jobId));
+  const stagesIdSet = new Set(sqlJobs.flatMap((job) => job.stageIds));
+  const sqlStages = stages.filter((stage) => stagesIdSet.has(stage.stageId));
+
+  // Pre-build lookup maps for O(1) access
+  const rddValueToStageId = new Map<string, number>();
+  const rddKeyToStageId = new Map<string, number>();
+  for (const stage of sqlStages) {
+    if (stage.stagesRdd !== undefined) {
+      for (const [key, value] of Object.entries(stage.stagesRdd)) {
+        rddKeyToStageId.set(key, stage.stageId);
+        rddValueToStageId.set(value, stage.stageId);
+      }
+    }
+  }
 
   const codegenNodes = sql.codegenNodes.map((node) => {
+    const stageIdByName = rddValueToStageId.get(node.nodeName);
+    const stageIdByRddScope = node.rddScopeId !== undefined ? rddKeyToStageId.get(node.rddScopeId) : undefined;
     return {
       ...node,
-      stage: stageDataFromStage(
-        sqlStages.find(
-          (stage) =>
-            stage.stagesRdd !== undefined &&
-            (Object.values(stage.stagesRdd).includes(node.nodeName) ||
-              (node.rddScopeId !== undefined &&
-                Object.keys(stage.stagesRdd).includes(node.rddScopeId))),
-        )?.stageId,
-        stages,
-      ),
+      stage: stageDataFromStage(stageIdByName ?? stageIdByRddScope, stages),
     };
   });
+
+  // Build codegen lookup map
+  const codegenByWholeStageId = new Map<number, typeof codegenNodes[0]>();
+  for (const cg of codegenNodes) {
+    if (cg.wholeStageCodegenId !== undefined) {
+      codegenByWholeStageId.set(cg.wholeStageCodegenId, cg);
+    }
+  }
+
   const nodes = sql.nodes.map((node) => {
-    const databricksRddStageId = sqlStages.find(
-      (stage) =>
-        stage.stagesRdd !== undefined &&
-        node.rddScopeId !== undefined &&
-        Object.keys(stage.stagesRdd).includes(node.rddScopeId),
-    )?.stageId;
-    const stageCodegen = codegenNodes.find(
-      (codegenNode) =>
-        codegenNode.wholeStageCodegenId === node.wholeStageCodegenId,
-    );
+    const databricksRddStageId = node.rddScopeId !== undefined ? rddKeyToStageId.get(node.rddScopeId) : undefined;
+    const stageCodegen = node.wholeStageCodegenId !== undefined ? codegenByWholeStageId.get(node.wholeStageCodegenId) : undefined;
 
     // Handle Exchange nodes separately with special metric-based stage identification
     let stageData: SQLNodeStageData | SQLNodeExchangeStageData | undefined = undefined;
@@ -400,25 +421,41 @@ export function calculateSqlStage(
 
   const calculatedStageSql = calculateSQLNodeStage(knownStageSql, sqlStages);
 
+  // Pre-categorize nodes by stage ID for O(1) lookups
+  const codegensByStageId = new Map<number, typeof calculatedStageSql.codegenNodes>();
+  const exchangeWriteByStageId = new Map<number, typeof calculatedStageSql.nodes>();
+  const exchangeReadByStageId = new Map<number, typeof calculatedStageSql.nodes>();
+  const broadcastByStageId = new Map<number, typeof calculatedStageSql.nodes>();
+
+  for (const node of calculatedStageSql.codegenNodes) {
+    if (node?.stage?.type === "onestage") {
+      const arr = codegensByStageId.get(node.stage.stageId) ?? [];
+      arr.push(node);
+      codegensByStageId.set(node.stage.stageId, arr);
+    }
+  }
+  for (const node of calculatedStageSql.nodes) {
+    if (node?.stage?.type === "exchange") {
+      const writeArr = exchangeWriteByStageId.get(node.stage.writeStage) ?? [];
+      writeArr.push(node);
+      exchangeWriteByStageId.set(node.stage.writeStage, writeArr);
+      const readArr = exchangeReadByStageId.get(node.stage.readStage) ?? [];
+      readArr.push(node);
+      exchangeReadByStageId.set(node.stage.readStage, readArr);
+    }
+    if (node.nodeName === "BroadcastExchange" && node?.stage?.type === "onestage") {
+      const arr = broadcastByStageId.get(node.stage.stageId) ?? [];
+      arr.push(node);
+      broadcastByStageId.set(node.stage.stageId, arr);
+    }
+  }
+
   const otherStageDuration = sqlStages.map((stage) => {
     const id = stage.stageId;
-    const codegensNodes = calculatedStageSql.codegenNodes.filter(
-      (node) => node?.stage?.type === "onestage" && node?.stage?.stageId === id,
-    );
-    const exchangeWriteNodes = calculatedStageSql.nodes.filter(
-      (node) =>
-        node?.stage?.type === "exchange" && node?.stage?.writeStage === id,
-    );
-    const exchangeReadNodes = calculatedStageSql.nodes.filter(
-      (node) =>
-        node?.stage?.type === "exchange" && node?.stage?.readStage === id,
-    );
-    const broadcastExchangeNodes = calculatedStageSql.nodes.filter(
-      (node) =>
-        node.nodeName === "BroadcastExchange" &&
-        node?.stage?.type === "onestage" &&
-        node?.stage?.stageId === id,
-    );
+    const codegensNodes = codegensByStageId.get(id) ?? [];
+    const exchangeWriteNodes = exchangeWriteByStageId.get(id) ?? [];
+    const exchangeReadNodes = exchangeReadByStageId.get(id) ?? [];
+    const broadcastExchangeNodes = broadcastByStageId.get(id) ?? [];
 
     const codegensDuration = codegensNodes
       .map((node) => node.codegenDuration ?? 0)
@@ -445,6 +482,12 @@ export function calculateSqlStage(
     return { id: id, restOfStageDuration: restOfStageDuration };
   });
 
+  // Build lookup map for restOfStageDuration
+  const restOfStageDurationMap = new Map<number, number | undefined>();
+  for (const item of otherStageDuration) {
+    restOfStageDurationMap.set(item.id, item.restOfStageDuration);
+  }
+
   const nodesWithStageDuration: EnrichedSqlNode[] =
     calculatedStageSql.nodes.map((node) => {
       if (
@@ -456,10 +499,9 @@ export function calculateSqlStage(
       if (node.stage === undefined) {
         return node;
       }
-      const restOfStageDuration = otherStageDuration.find(
-        (stage) =>
-          node.stage?.type === "onestage" && stage.id === node.stage?.stageId,
-      )?.restOfStageDuration;
+      const restOfStageDuration = node.stage?.type === "onestage"
+        ? restOfStageDurationMap.get(node.stage.stageId)
+        : undefined;
       return {
         ...node,
         stage: { ...node.stage, restOfStageDuration: restOfStageDuration },
@@ -468,10 +510,9 @@ export function calculateSqlStage(
 
   const nodesWithDuration: EnrichedSqlNode[] = nodesWithStageDuration.map(
     (node) => {
-      const stageCodegen = codegenNodes.find(
-        (codegenNode) =>
-          codegenNode.wholeStageCodegenId === node.wholeStageCodegenId,
-      );
+      const stageCodegen = node.wholeStageCodegenId !== undefined
+        ? codegenByWholeStageId.get(node.wholeStageCodegenId)
+        : undefined;
       const duration =
         stageCodegen?.codegenDuration ??
         node.exchangeMetrics?.duration ??
@@ -496,11 +537,13 @@ export function calculateSqlStage(
   );
 
   const nodesToStorageInfo = calculateNodeToStorageInfo(stages, nodesWithDuration);
+  // Build lookup map for storage info
+  const storageInfoByNodeId = new Map<number, typeof nodesToStorageInfo[0]["storageInfo"]>();
+  for (const item of nodesToStorageInfo) {
+    storageInfoByNodeId.set(item.nodeId, item.storageInfo);
+  }
   const nodesWithStorageInfo = nodesWithDuration.map((node) => {
-    const stageToStorageInfo = nodesToStorageInfo.find(
-      (nodeToStorageInfo) => nodeToStorageInfo.nodeId === node.nodeId,
-    );
-    return { ...node, cachedStorage: stageToStorageInfo?.storageInfo };
+    return { ...node, cachedStorage: storageInfoByNodeId.get(node.nodeId) };
   });
   return { ...calculatedStageSql, nodes: nodesWithStorageInfo };
 }
