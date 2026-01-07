@@ -76,6 +76,8 @@ lazy val pluginspark3 = (project in file("pluginspark3"))
       case "reference.conf" => MergeStrategy.concat
       case _ => MergeStrategy.first
     },
+    // Exclude Scala library JARs – provided by the runtime environment (e.g. Spark)
+    assembly / assemblyPackageScala / assembleArtifact := false,
     
     // Publish the assembled JAR instead of the regular JAR
     Compile / packageBin := assembly.value,
