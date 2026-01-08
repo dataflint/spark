@@ -45,6 +45,11 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "num bytes written",
     "output columnar batches",
     "partition data size",
+    "records read",
+    "local bytes read",
+    "remote bytes read",
+    "fetch wait time",
+    "data size",
   ],
 
   broadcast: ["number of output rows", "data size", "output columnar batches"],
@@ -65,6 +70,11 @@ const metricsValueTransformer: Record<
   "data sent to Python workers": extractTotalFromStatisticsMetric,
   "data returned from Python workers": extractTotalFromStatisticsMetric,
   "total bytes in files merged by ZOrderBy": bytesToHumanReadableSize,
+  // Shuffle read metric transformers
+  "local bytes read": extractTotalFromStatisticsMetric,
+  "remote bytes read": extractTotalFromStatisticsMetric,
+  "fetch wait time": extractTotalFromStatisticsMetric,
+  "data size": extractTotalFromStatisticsMetric,
   "number of dynamic part": (value: string) => {
     // if dynamic part is 0 we want to remove it from metrics
     if (value === "0") {
@@ -102,6 +112,11 @@ const metricsRenamer: Record<string, string> = {
   "number of files pruned": "files pruned",
   "total number of files merged by ZOrderBy": "optimized num of files",
   "total bytes in files merged by ZOrderBy": "total optimized bytes",
+  "records read": "shuffle records read",
+  "local bytes read": "shuffle read (local)",
+  "remote bytes read": "shuffle read (remote)",
+  "fetch wait time": "fetch wait time",
+  "data size": "shuffle data size",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {

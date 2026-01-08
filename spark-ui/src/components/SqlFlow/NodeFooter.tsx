@@ -56,8 +56,8 @@ const NodeFooter: React.FC<NodeFooterProps> = ({
 
     const showSummaryButton = hasExchangeStageData || hasExchangeNodeStageData;
 
-    // Show stage icon for exchange nodes
-    const showStageIcon = stage && (isExchangeStage || isExchangeNodeByName);
+    // Show stage icon for exchange nodes (but not for split exchange variants)
+    const showStageIcon = stage && (isExchangeStage || isExchangeNodeByName) && !hideStageDetails;
 
     return (
         <Box className={styles.nodeFooter}>

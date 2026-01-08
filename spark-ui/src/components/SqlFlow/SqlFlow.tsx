@@ -70,8 +70,9 @@ interface NavigationData {
 const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   sparkSQL,
 }): JSX.Element => {
-  // Get alerts for passing to nodes
+  // Get alerts and stages for passing to nodes
   const alerts = useAppSelector((state) => state.spark.alerts);
+  const stages = useAppSelector((state) => state.spark.stages);
 
   const [instance, setInstance] = useState<ReactFlowInstance | undefined>();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -216,6 +217,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
         sparkSQL,
         graphFilter,
         alerts,
+        stages,
       );
 
       setNodes(layoutNodes);
@@ -224,7 +226,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
       setError(`Failed to update metrics: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setIsLoading(false);
     }
-  }, [sparkSQL.metricUpdateId]);
+  }, [sparkSQL.metricUpdateId, stages]);
 
   // Effect for SQL structure or filter changes
   useEffect(() => {
@@ -238,6 +240,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
         sparkSQL,
         graphFilter,
         alerts,
+        stages,
       );
 
       setNodes(layoutNodes);
@@ -247,7 +250,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
       setError(`Failed to layout SQL flow: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setIsLoading(false);
     }
-  }, [sparkSQL.uniqueId, graphFilter]);
+  }, [sparkSQL.uniqueId, graphFilter, stages]);
 
   // Handle initial focus only when instance or search params change
   useEffect(() => {

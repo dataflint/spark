@@ -262,10 +262,11 @@ const TaskProgressIndicator: FC<TaskProgressProps> = ({
 };
 
 const StageGroupNodeComponent: FC<StageGroupNodeProps> = ({ data }) => {
-    const { stageId, status, stageDuration, stageInfo, attemptCount, durationPercentage, alerts, nodeCount } = data;
+    const { stageId, status, stageDuration, stageInfo, attemptCount, durationPercentage, alerts, nodeCount, sqlId } = data;
     const dispatch = useAppDispatch();
     const [searchParams] = useSearchParams();
     const stages = useAppSelector((state) => state.spark.stages);
+    const sqls = useAppSelector((state) => state.spark.sql?.sqls);
     const stageData = stages?.find((s) => s.stageId === stageId);
 
     // Check if this stage is highlighted via URL param
@@ -278,6 +279,15 @@ const StageGroupNodeComponent: FC<StageGroupNodeProps> = ({ data }) => {
 
     // Get resource duration (executorRunTime) from stage metrics
     const resourceDuration = stageData?.metrics?.executorRunTime;
+
+    // Calculate resource duration percentage: stage resource time / total SQL resource time
+    const resourceDurationPercentage = useMemo(() => {
+        if (resourceDuration === undefined || !sqlId || !sqls) return undefined;
+        const sql = sqls.find(s => s.id === sqlId);
+        const totalResourceTime = sql?.stageMetrics?.executorRunTime;
+        if (!totalResourceTime || totalResourceTime === 0) return undefined;
+        return (resourceDuration / totalResourceTime) * 100;
+    }, [resourceDuration, sqlId, sqls]);
 
     // Build stage title - show attempts only if > 1
     const stageTitle = attemptCount && attemptCount > 1
@@ -300,6 +310,11 @@ const StageGroupNodeComponent: FC<StageGroupNodeProps> = ({ data }) => {
     // Get progress bar color based on percentage
     const progressBarColor = durationPercentage !== undefined
         ? getBucketedColor(durationPercentage)
+        : "#78909c";
+
+    // Get resource progress bar color based on resource duration percentage
+    const resourceProgressBarColor = resourceDurationPercentage !== undefined
+        ? getBucketedColor(resourceDurationPercentage)
         : "#78909c";
 
     // Determine if there are alerts and get the most severe one
@@ -438,11 +453,11 @@ const StageGroupNodeComponent: FC<StageGroupNodeProps> = ({ data }) => {
                             <Box
                                 className={styles.stageGroupDuration}
                                 sx={{
-                                    border: `1.5px solid ${progressBarColor}`,
-                                    color: progressBarColor,
+                                    border: `1.5px solid ${resourceProgressBarColor}`,
+                                    color: resourceProgressBarColor,
                                 }}
                             >
-                                Resource Time: {durationPercentage !== undefined ? `${durationPercentage.toFixed(1)}% - ` : ""}{humanizeTimeDiff(duration(resourceDuration))}
+                                Resource Time: {resourceDurationPercentage !== undefined ? `${resourceDurationPercentage.toFixed(1)}% - ` : ""}{humanizeTimeDiff(duration(resourceDuration))}
                             </Box>
                         </Tooltip>
                     )}

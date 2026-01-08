@@ -227,7 +227,7 @@ export const processExchangeMetrics = (node: EnrichedSqlNode): MetricWithTooltip
         const avgPartitionSize = shuffleWriteMetric / partitionsMetric;
         const avgPartitionSizeString = humanFileSize(avgPartitionSize);
         metrics.push({
-            name: "Average Write Partition Size",
+            name: "Avg Write Partition Size",
             value: avgPartitionSizeString
         });
     }

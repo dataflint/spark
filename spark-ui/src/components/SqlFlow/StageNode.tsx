@@ -4,7 +4,8 @@ import { Alert, AlertTitle, Box, Typography } from "@mui/material";
 import React, { FC, memo, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Handle, Position } from "reactflow";
-import { Alert as AppAlert, EnrichedSqlNode } from "../../interfaces/AppStore";
+import { Alert as AppAlert, EnrichedSqlNode, SQLNodeExchangeStageData, SQLNodeStageData } from "../../interfaces/AppStore";
+import { humanFileSize, parseBytesString } from "../../utils/FormatUtils";
 import { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import MetricDisplay, { MetricWithTooltip } from "./MetricDisplay";
 import {
@@ -33,14 +34,16 @@ interface StageNodeProps {
     sqlUniqueId?: string;
     sqlMetricUpdateId?: string;
     alert?: AppAlert; // Alert for this specific node
+    exchangeVariant?: "write" | "read"; // For split exchange nodes
   };
 }
 
 const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
   const [searchParams] = useSearchParams();
+  const exchangeVariant = data.exchangeVariant;
 
   // Memoized computations for better performance
-  const { isHighlighted, allMetrics, hasDeltaOptimizeWrite } = useMemo(() => {
+  const { isHighlighted, allMetrics, hasDeltaOptimizeWrite, displayName, variantStage, variantDuration, variantDurationPercentage } = useMemo(() => {
     // Parse nodeIds from URL parameters
     const nodeIdsParam = searchParams.get('nodeids');
     const highlightedNodeIds = nodeIdsParam
@@ -56,16 +59,22 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
 
     // Check if current node should be highlighted by stageId
     // For single-stage nodes, check the stageId
-    // For exchange nodes, check both readStage and writeStage
+    // For exchange nodes, check both readStage and writeStage (or specific one for split nodes)
     let highlightedByStageId = false;
     if (highlightedStageId !== null && data.node.stage) {
       if (data.node.stage.type === 'onestage') {
         highlightedByStageId = data.node.stage.stageId === highlightedStageId;
       } else if (data.node.stage.type === 'exchange') {
-        // Exchange nodes are highlighted if either read or write stage matches
-        highlightedByStageId = 
-          data.node.stage.readStage === highlightedStageId || 
-          data.node.stage.writeStage === highlightedStageId;
+        if (exchangeVariant === "write") {
+          highlightedByStageId = data.node.stage.writeStage === highlightedStageId;
+        } else if (exchangeVariant === "read") {
+          highlightedByStageId = data.node.stage.readStage === highlightedStageId;
+        } else {
+          // Non-split exchange nodes are highlighted if either read or write stage matches
+          highlightedByStageId =
+            data.node.stage.readStage === highlightedStageId ||
+            data.node.stage.writeStage === highlightedStageId;
+        }
       }
     }
 
@@ -79,34 +88,169 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
       data.node.parsedPlan.plan.deltaOptimizeWrite !== undefined;
 
     // Process all metrics
-    const metrics: MetricWithTooltip[] = [
-      ...processBaseMetrics(data.node),
-      ...processCachedStorageMetrics(data.node),
-      ...processIcebergCommitMetrics(data.node),
-      ...processDeltaLakeScanMetrics(data.node),
-      ...processExchangeMetrics(data.node),
-      ...processShuffleReadMetrics(data.node),
-      ...processInputNodeMetrics(data.node),
-      ...processOutputNodeMetrics(data.node),
-      ...processOptimizeTableMetrics(data.node),
-    ];
+    let metrics: MetricWithTooltip[] = [];
+    const baseMetrics = processBaseMetrics(data.node);
+    const findMetric = (pattern: string) => baseMetrics.find(m => m.name.toLowerCase().includes(pattern));
 
-    // Process plan-specific metrics
-    if (data.node.parsedPlan) {
+    if (exchangeVariant === "write") {
+      // Write: Partitions → Records Written → Shuffle Write → Avg Size
+      const partitions = findMetric("partitions");
+      const records = findMetric("shuffle records written") || findMetric("records written");
+      const bytes = baseMetrics.find(m => m.name.toLowerCase().includes("shuffle write") && !m.name.toLowerCase().includes("records"));
+      const avg = processExchangeMetrics(data.node).find(m => m.name.toLowerCase().includes("avg"));
+
+      if (partitions) metrics.push({ name: "Partitions", value: partitions.value });
+      if (records) metrics.push(records);
+      if (bytes) metrics.push(bytes);
+      if (avg) metrics.push(avg);
+    } else if (exchangeVariant === "read") {
+      // Read: Partitions → Records Read → Shuffle Read → Avg Size
+      const partitions = findMetric("partitions");
+      const records = findMetric("shuffle records read");
+      const localBytes = parseBytesString(findMetric("shuffle read (local)")?.value || "0");
+      const remoteBytes = parseBytesString(findMetric("shuffle read (remote)")?.value || "0");
+      const totalBytes = localBytes + remoteBytes;
+      const numPartitions = parseInt(partitions?.value?.replace(/,/g, '') || '0', 10);
+
+      if (partitions) metrics.push({ name: "Partitions", value: partitions.value });
+      if (records) metrics.push(records);
+      if (totalBytes > 0) {
+        metrics.push({ name: "Shuffle Read", value: humanFileSize(totalBytes) });
+        if (numPartitions > 0) {
+          metrics.push({ name: "Avg Read Partition Size", value: humanFileSize(totalBytes / numPartitions) });
+        }
+      }
+    } else {
+      // Non-split node: show all metrics
+      let allBaseMetrics = processBaseMetrics(data.node);
+
+      // For Exchange nodes not in a stage (non-split), filter out shuffle read metrics
+      // since they're only relevant when showing the read side separately
+      const isNonSplitExchange = data.node.nodeName === "Exchange" && !exchangeVariant;
+      if (isNonSplitExchange) {
+        const shuffleReadMetricPatterns = [
+          "shuffle records read",
+          "shuffle read",
+          "fetch wait time",
+          "blocks read",
+          "remote reqs",
+          "remote merged reqs",
+          "local blocks",
+          "remote blocks",
+        ];
+        allBaseMetrics = allBaseMetrics.filter(m => {
+          const nameLower = m.name.toLowerCase();
+          return !shuffleReadMetricPatterns.some(pattern => nameLower.includes(pattern));
+        });
+      }
+
+      metrics = [
+        ...allBaseMetrics,
+        ...processCachedStorageMetrics(data.node),
+        ...processIcebergCommitMetrics(data.node),
+        ...processDeltaLakeScanMetrics(data.node),
+        ...processExchangeMetrics(data.node),
+        ...processShuffleReadMetrics(data.node),
+        ...processInputNodeMetrics(data.node),
+        ...processOutputNodeMetrics(data.node),
+        ...processOptimizeTableMetrics(data.node),
+      ];
+    }
+
+    // Process plan-specific metrics (for non-split or write variant only)
+    if (data.node.parsedPlan && exchangeVariant !== "read") {
       metrics.push(...PlanMetricsProcessor.processPlanMetrics(data.node.parsedPlan));
+    }
+
+    // Keep original name - use icon indicator instead of text suffix
+    const name = data.node.enrichedName;
+
+    // Create variant-specific stage for footer (only show relevant stage for split nodes)
+    let stage: SQLNodeStageData | SQLNodeExchangeStageData | undefined = data.node.stage;
+    let duration: number | undefined = data.node.duration;
+    let durationPct: number | undefined = data.node.durationPercentage;
+
+    if (exchangeVariant && data.node.stage?.type === 'exchange') {
+      const exchangeStage = data.node.stage as SQLNodeExchangeStageData;
+      const exchangeMetrics = data.node.exchangeMetrics;
+      const originalDuration = data.node.duration;
+      const originalDurationPct = data.node.durationPercentage;
+
+      if (exchangeVariant === "write") {
+        // Create a single-stage representation for write stage
+        stage = {
+          type: "onestage" as const,
+          stageId: exchangeStage.writeStage,
+          status: exchangeStage.status,
+          stageDuration: 0,
+          restOfStageDuration: undefined,
+        };
+        // Use shuffle write time for write node duration
+        if (exchangeMetrics) {
+          const writeDuration = exchangeMetrics.writeDuration;
+          const totalExchangeDuration = exchangeMetrics.duration;
+          duration = writeDuration;
+          // Calculate percentage proportionally, or use original if total is 0
+          if (totalExchangeDuration > 0 && originalDurationPct !== undefined) {
+            durationPct = (writeDuration / totalExchangeDuration) * originalDurationPct;
+          } else if (writeDuration > 0 && originalDuration !== undefined && originalDuration > 0) {
+            // Fallback: estimate percentage based on write duration ratio
+            durationPct = originalDurationPct;
+          } else {
+            durationPct = originalDurationPct;
+          }
+        } else {
+          // No exchange metrics: use original duration/percentage
+          duration = originalDuration;
+          durationPct = originalDurationPct;
+        }
+      } else if (exchangeVariant === "read") {
+        // Create a single-stage representation for read stage
+        stage = {
+          type: "onestage" as const,
+          stageId: exchangeStage.readStage,
+          status: exchangeStage.status,
+          stageDuration: 0,
+          restOfStageDuration: undefined,
+        };
+        // Use fetch wait time for read node duration
+        if (exchangeMetrics) {
+          const readDuration = exchangeMetrics.readDuration;
+          const totalExchangeDuration = exchangeMetrics.duration;
+          duration = readDuration;
+          // Calculate percentage proportionally, or use original if total is 0
+          if (totalExchangeDuration > 0 && originalDurationPct !== undefined) {
+            durationPct = (readDuration / totalExchangeDuration) * originalDurationPct;
+          } else if (readDuration > 0 && originalDuration !== undefined && originalDuration > 0) {
+            // Fallback: estimate percentage based on read duration ratio
+            durationPct = originalDurationPct;
+          } else {
+            durationPct = originalDurationPct;
+          }
+        } else {
+          // No exchange metrics: use original duration/percentage
+          duration = originalDuration;
+          durationPct = originalDurationPct;
+        }
+      }
     }
 
     return {
       isHighlighted: highlighted,
       allMetrics: metrics,
-      hasDeltaOptimizeWrite: hasDeltaOptimize,
+      hasDeltaOptimizeWrite: hasDeltaOptimize && exchangeVariant !== "read",
+      displayName: name,
+      variantStage: stage,
+      variantDuration: duration,
+      variantDurationPercentage: durationPct,
     };
   }, [
     // Use SQL identifiers for optimal memoization when available
     data.sqlUniqueId || data.node.nodeId,
     data.sqlMetricUpdateId || data.node.metrics,
     data.sqlId,
-    searchParams
+    searchParams,
+    exchangeVariant
   ]);
 
   // Use the alert passed in data prop
@@ -124,12 +268,14 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
         aria-label="Input connection"
       />
 
-      <Box className={nodeClass} role="article" aria-label={`SQL node: ${data.node.enrichedName}`}>
+      <Box className={nodeClass} role="article" aria-label={`SQL node: ${displayName}`}>
         {/* Performance indicator bar */}
         <PerformanceIndicator durationPercentage={data.node.durationPercentage} />
 
-        {/* Node type indicator */}
-        <NodeTypeIndicator nodeType={data.node.type} nodeName={data.node.nodeName} />
+        {/* Node type indicator - only show for non-exchange nodes */}
+        {!exchangeVariant && (
+          <NodeTypeIndicator nodeType={data.node.type} nodeName={data.node.nodeName} />
+        )}
 
         {/* Alert badge */}
         {sqlNodeAlert && (
@@ -178,28 +324,45 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
         )}
 
         {/* Header with title */}
-        <Box className={styles.nodeHeader}>
-          <Typography className={styles.nodeTitle} variant="h6" component="h3">
-            {data.node.enrichedName}
-          </Typography>
-          {hasDeltaOptimizeWrite && (
-            <Box
+        <Box className={styles.nodeHeader} sx={exchangeVariant ? { flexDirection: 'column', py: 0.5 } : undefined}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Typography className={styles.nodeTitle} variant="h6" component="h3">
+              {displayName}
+            </Typography>
+            {hasDeltaOptimizeWrite && (
+              <Box
+                sx={{
+                  display: "inline-block",
+                  ml: 1,
+                  px: 0.75,
+                  py: 0.25,
+                  backgroundColor: "#1976d2",
+                  color: "white",
+                  borderRadius: "4px",
+                  fontSize: "0.65rem",
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Δ Optimized
+              </Box>
+            )}
+          </Box>
+          {/* Subtitle for exchange nodes */}
+          {exchangeVariant && (
+            <Typography
               sx={{
-                display: "inline-block",
-                ml: 1,
-                px: 0.75,
-                py: 0.25,
-                backgroundColor: "#1976d2",
-                color: "white",
-                borderRadius: "4px",
-                fontSize: "0.65rem",
-                fontWeight: "bold",
+                fontSize: "0.75rem",
+                color: exchangeVariant === "write" ? "#ff9800" : "#42a5f5",
+                fontWeight: 600,
+                mt: 0.25,
                 textTransform: "uppercase",
                 letterSpacing: "0.5px",
               }}
             >
-              Δ Optimized
-            </Box>
+              {exchangeVariant === "write" ? "↑ shuffle write" : "↓ shuffle read"}
+            </Typography>
           )}
         </Box>
 
@@ -208,10 +371,11 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
 
         {/* Footer with controls */}
         <NodeFooter
-          stage={data.node.stage}
-          duration={data.node.duration}
-          durationPercentage={data.node.durationPercentage}
+          stage={variantStage}
+          duration={variantDuration}
+          durationPercentage={variantDurationPercentage}
           nodeName={data.node.nodeName}
+          hideStageDetails={!!exchangeVariant}
         />
       </Box>
 
