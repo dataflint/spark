@@ -126,10 +126,14 @@ function groupNodesByStage(
       const stageId = stage.stageId;
 
       if (!stageGroups.has(stageId)) {
+        // Get actual wall-clock stage duration from stages data
+        const stageData = stageMap.get(stageId);
+        const wallClockDuration = stageData?.stageRealTimeDurationMs ?? stage.stageDuration;
         stageGroups.set(stageId, {
           stageId,
-          status: stage.status,
-          stageDuration: stage.stageDuration,
+          status: stageData?.status ?? stage.status,
+          stageDuration: wallClockDuration,
+          stageInfo: stageData,
           nodeIds: [],
         });
       }
@@ -600,7 +604,7 @@ class SqlLayoutService {
     };
 
     // Create cache key based on SQL structure and filter
-    const cacheKey = `${sql.uniqueId}-${graphFilter}-staged-v8`;
+    const cacheKey = `${sql.uniqueId}-${graphFilter}-staged-v9`;
 
     // Check if we have a cached result for this exact configuration
     const cached = layoutCache.get(cacheKey);
