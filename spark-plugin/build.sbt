@@ -1,7 +1,7 @@
 import xerial.sbt.Sonatype._
 import sbtassembly.AssemblyPlugin.autoImport._
 
-lazy val versionNum: String = "0.8.0"
+lazy val versionNum: String = "0.8.1"
 lazy val scala212 = "2.12.20"
 lazy val scala213 = "2.13.16"
 lazy val supportedScalaVersions = List(scala212, scala213)
@@ -43,9 +43,6 @@ lazy val plugin = (project in file("plugin"))
     // Sonatype Central Portal repository configuration
     publishTo := {
       val realm = "Sonatype Nexus Repository Manager"
-      if (isSnapshot.value)
-        Some(realm at "https://central.sonatype.com/repository/maven-snapshots/")
-      else  
         sonatypePublishToBundle.value
     }
   )
@@ -84,9 +81,6 @@ lazy val pluginspark3 = (project in file("pluginspark3"))
     // Sonatype Central Portal repository configuration
     publishTo := {
       val realm = "Sonatype Nexus Repository Manager"
-      if (isSnapshot.value)
-        Some(realm at "https://central.sonatype.com/repository/maven-snapshots/")
-      else  
         sonatypePublishToBundle.value
     },
     
@@ -132,9 +126,6 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
     // Sonatype Central Portal repository configuration
     publishTo := {
       val realm = "Sonatype Nexus Repository Manager"
-      if (isSnapshot.value)
-        Some(realm at "https://central.sonatype.com/repository/maven-snapshots/")
-      else  
         sonatypePublishToBundle.value
     },
     
