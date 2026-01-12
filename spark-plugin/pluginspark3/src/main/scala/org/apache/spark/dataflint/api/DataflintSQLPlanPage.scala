@@ -11,6 +11,31 @@ import scala.xml.Node
 class DataflintSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListener: () => Option[SQLAppStatusListener])
   extends WebUIPage("sqlplan") with Logging {
   private var sqlListenerCache: Option[SQLAppStatusListener] = None
+  // Cache for rootExecutionId method - None means not yet checked, Some(None) means method doesn't exist, Some(Some(method)) means method exists
+  private var rootExecutionIdMethodCache: Option[Option[java.lang.reflect.Method]] = None
+
+  /**
+   * Gets the rootExecutionId using reflection. Returns None if the method doesn't exist (Spark 3.3)
+   * or if rootExecutionId equals executionId.
+   */
+  private def getRootExecutionId(exec: Any, executionId: Long): Option[Long] = {
+    if (rootExecutionIdMethodCache.isEmpty) {
+      rootExecutionIdMethodCache = Some(
+        try {
+          Some(exec.getClass.getMethod("rootExecutionId"))
+        } catch {
+          case _: NoSuchMethodException => None
+        }
+      )
+    }
+
+    rootExecutionIdMethodCache.get match {
+      case Some(method) =>
+        val rootId = method.invoke(exec).asInstanceOf[Long]
+        if (rootId == executionId) None else Some(rootId)
+      case None => None
+    }
+  }
 
   override def renderJson(request: HttpServletRequest) = {
     try {
@@ -44,7 +69,7 @@ class DataflintSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListe
           val rddScopesToStages = if (isDatabricks) Some(rddScopesToStagesReader.get.invoke(exec).asInstanceOf[Map[String, Set[Object]]]) else None
 
           val nodeIdToRddScopeId = nodeIdToRddScopeIdList.find(_.executionId == exec.executionId).map(_.nodeIdToRddScopeId)
-          SqlEnrichedData(exec.executionId, if (exec.rootExecutionId == exec.executionId) None else Some(exec.rootExecutionId), graph.allNodes.length, rddScopesToStages,
+          SqlEnrichedData(exec.executionId, getRootExecutionId(exec, exec.executionId), graph.allNodes.length, rddScopesToStages,
             graph.allNodes.map(node => {
               val rddScopeId = nodeIdToRddScopeId.flatMap(_.get(node.id))
               NodePlan(node.id, node.desc, rddScopeId)
