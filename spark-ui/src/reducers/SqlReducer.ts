@@ -217,7 +217,8 @@ export function getMetricDuration(
   metricName: string,
   metrics: EnrichedSqlMetric[],
 ): number | undefined {
-  const durationStr = metrics.find((metric) => metric.name === metricName)
+  // Use startsWith for efficient matching - Spark metrics often have suffixes like "total (min, med, max )"
+  const durationStr = metrics.find((metric) => metric.name.startsWith(metricName))
     ?.value;
   if (durationStr === undefined) {
     return undefined;
@@ -510,9 +511,11 @@ export function updateSqlNodeMetrics(
 
     // TODO: cache the graph
     const graph = generateGraph(runningSql.edges, runningSql.nodes);
-    const nodeIdFromMetrics = findStageIdFromMetrics(matchedMetricsNodes[0].metrics);
-    const metrics = updateNodeMetrics(node, matchedMetricsNodes[0].metrics, graph, runningSql.nodes);
-    const exchangeMetrics = calcExchangeMetrics(node.nodeName, metrics);
+    const originalMetrics = matchedMetricsNodes[0].metrics;
+    const nodeIdFromMetrics = findStageIdFromMetrics(originalMetrics);
+    const metrics = updateNodeMetrics(node, originalMetrics, graph, runningSql.nodes);
+    // Use original metrics for exchange - shuffle write time is filtered out by allowlist
+    const exchangeMetrics = calcExchangeMetrics(node.nodeName, originalMetrics);
 
     // TODO: maybe do a smarter replacement, or send only the initialized metrics
     return {

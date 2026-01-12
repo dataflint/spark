@@ -75,49 +75,58 @@ function groupNodesByStage(
     const stage = node.stage;
     if (!stage) continue;
 
-    // For exchange nodes that are split, add write/read nodes to their respective stages
-    if (stage.type === "exchange" && splitExchangeNodeIds.has(node.nodeId.toString())) {
+    // For split exchange nodes, add write/read nodes to their respective stages if we have stage info
+    if (splitExchangeNodeIds.has(node.nodeId.toString())) {
       const writeNodeId = `write-${node.nodeId}`;
       const readNodeId = `read-${node.nodeId}`;
 
-      // Add write node to write stage
-      if (stage.writeStage !== -1) {
-        if (!stageGroups.has(stage.writeStage)) {
-          // Get actual stage duration from stages data
-          const stageData = stageMap.get(stage.writeStage);
+      // Determine write stage ID: from exchange type or from onestage type (during execution)
+      let writeStageId: number | undefined;
+      if (stage.type === "exchange" && stage.writeStage !== -1) {
+        writeStageId = stage.writeStage;
+      } else if (stage.type === "onestage") {
+        // During execution, the node might have onestage type from the write stage
+        writeStageId = stage.stageId;
+      }
+
+      // Determine read stage ID: only from exchange type
+      let readStageId: number | undefined;
+      if (stage.type === "exchange" && stage.readStage !== -1) {
+        readStageId = stage.readStage;
+      }
+
+      // Add write node to write stage (even if read stage is not known yet)
+      if (writeStageId !== undefined) {
+        if (!stageGroups.has(writeStageId)) {
+          const stageData = stageMap.get(writeStageId);
           const actualStageDuration = stageData?.stageRealTimeDurationMs ?? node.duration ?? 0;
-          stageGroups.set(stage.writeStage, {
-            stageId: stage.writeStage,
+          stageGroups.set(writeStageId, {
+            stageId: writeStageId,
             status: stageData?.status ?? stage.status,
             stageDuration: actualStageDuration,
             stageInfo: stageData,
             nodeIds: [],
           });
         }
-        stageGroups.get(stage.writeStage)!.nodeIds.push(writeNodeId);
+        stageGroups.get(writeStageId)!.nodeIds.push(writeNodeId);
       }
 
-      // Add read node to read stage
-      if (stage.readStage !== -1) {
-        if (!stageGroups.has(stage.readStage)) {
-          // Get actual stage duration from stages data
-          const stageData = stageMap.get(stage.readStage);
+      // Add read node to read stage (only when read stage is known)
+      if (readStageId !== undefined) {
+        if (!stageGroups.has(readStageId)) {
+          const stageData = stageMap.get(readStageId);
           const actualStageDuration = stageData?.stageRealTimeDurationMs ?? node.duration ?? 0;
-          stageGroups.set(stage.readStage, {
-            stageId: stage.readStage,
+          stageGroups.set(readStageId, {
+            stageId: readStageId,
             status: stageData?.status ?? stage.status,
             stageDuration: actualStageDuration,
             stageInfo: stageData,
             nodeIds: [],
           });
         }
-        stageGroups.get(stage.readStage)!.nodeIds.push(readNodeId);
+        stageGroups.get(readStageId)!.nodeIds.push(readNodeId);
       }
-      continue;
-    }
-
-    // Exchange nodes by name (e.g., "Repartition By Round Robin") that aren't split - keep outside groups
-    if (node.nodeName === "Exchange" && !splitExchangeNodeIds.has(node.nodeId.toString())) {
+      // Read node stays outside stage groups if read stage is not yet known
       continue;
     }
 
@@ -604,7 +613,7 @@ class SqlLayoutService {
     };
 
     // Create cache key based on SQL structure and filter
-    const cacheKey = `${sql.uniqueId}-${graphFilter}-staged-v9`;
+    const cacheKey = `${sql.uniqueId}-${graphFilter}-staged-v13`;
 
     // Check if we have a cached result for this exact configuration
     const cached = layoutCache.get(cacheKey);
@@ -675,13 +684,11 @@ class SqlLayoutService {
     const flowNodeIds = new Set(nodesIds.map(id => id.toString()));
 
     // Identify exchange nodes that should be split into write/read nodes
-    // Split if they have valid read AND write stages (not -1)
+    // Always split Exchange nodes into shuffle write and shuffle read
     const splitExchangeNodeIds = new Set<string>();
     for (const nodeId of nodesIds) {
       const node = nodeMap.get(nodeId);
-      if (node?.stage?.type === "exchange" &&
-        node.stage.readStage !== -1 &&
-        node.stage.writeStage !== -1) {
+      if (node?.nodeName === "Exchange") {
         splitExchangeNodeIds.add(nodeId.toString());
       }
     }
