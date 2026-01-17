@@ -20,6 +20,7 @@ import {
   processShuffleReadMetrics,
 } from "./MetricProcessors";
 import styles from "./node-style.module.css";
+import { DebugButton } from "./NodeDebugDialog";
 import NodeFooter from "./NodeFooter";
 import NodeTypeIndicator from "./NodeTypeIndicator";
 import PerformanceIndicator from "./PerformanceIndicator";
@@ -41,6 +42,7 @@ interface StageNodeProps {
 const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
   const [searchParams] = useSearchParams();
   const exchangeVariant = data.exchangeVariant;
+  const isDebugMode = localStorage.getItem("DATAFLINT_DEBUG_MODE_VIEW") === "true";
 
   // Memoized computations for better performance
   const { isHighlighted, allMetrics, hasDeltaOptimizeWrite, displayName, variantStage, variantDuration, variantDurationPercentage } = useMemo(() => {
@@ -275,6 +277,23 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
         {/* Node type indicator - only show for non-exchange nodes */}
         {!exchangeVariant && (
           <NodeTypeIndicator nodeType={data.node.type} nodeName={data.node.nodeName} />
+        )}
+
+        {/* Debug button - only visible when DATAFLINT_DEBUG_MODE_VIEW is enabled */}
+        {isDebugMode && (
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 8,
+              right: 8,
+              zIndex: 15,
+            }}
+          >
+            <DebugButton
+              nodeData={data}
+              title={`Node ${data.node.nodeId}: ${displayName}`}
+            />
+          </Box>
         )}
 
         {/* Alert badge */}

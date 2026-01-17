@@ -15,6 +15,7 @@ import { humanizeTimeDiff } from "../../utils/FormatUtils";
 import { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import ExceptionIcon from "../ExceptionIcon";
 import styles from "./node-style.module.css";
+import { DebugButton } from "./NodeDebugDialog";
 import { getBucketedColor } from "./PerformanceIndicator";
 
 export const StageGroupNodeName: string = "stageGroupNode";
@@ -268,6 +269,7 @@ const StageGroupNodeComponent: FC<StageGroupNodeProps> = ({ data }) => {
     const stages = useAppSelector((state) => state.spark.stages);
     const sqls = useAppSelector((state) => state.spark.sql?.sqls);
     const stageData = stages?.find((s) => s.stageId === stageId);
+    const isDebugMode = localStorage.getItem("DATAFLINT_DEBUG_MODE_VIEW") === "true";
 
     // Check if this stage is highlighted via URL param
     const isHighlighted = useMemo(() => {
@@ -480,6 +482,15 @@ const StageGroupNodeComponent: FC<StageGroupNodeProps> = ({ data }) => {
                             <InfoOutlinedIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                     </Tooltip>
+
+                    {/* Debug Button - only visible when DATAFLINT_DEBUG_MODE_VIEW is enabled */}
+                    {isDebugMode && (
+                        <DebugButton
+                            nodeData={{ ...data, stageInfo: stageData }}
+                            title={`Stage ${stageId} Debug Info`}
+                            size="small"
+                        />
+                    )}
                 </Box>
             </Box>
         </Box>

@@ -538,7 +538,9 @@ export function isExchangeNode(nodeName: string): boolean {
  */
 const EXCHANGE_READ_STAGE_METRICS = [
   "local bytes read",
-  "fetch wait time total"
+  "fetch wait time total",
+  "fetch wait time",
+  "local bytes read total"
 ];
 
 /**
@@ -546,7 +548,10 @@ const EXCHANGE_READ_STAGE_METRICS = [
  */
 const EXCHANGE_WRITE_STAGE_METRICS = [
   "shuffle write time",
-  "shuffle bytes written"
+  "shuffle write",
+  "shuffle write time total",
+  "shuffle bytes written",
+  "shuffle write time total"
 ];
 
 /**

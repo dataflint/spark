@@ -255,6 +255,29 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     }
     return node;
   });
+
+  // Propagate stage info from exchange nodes to adjacent nodes without stage data
+  rebuildNodeMap();
+  nodes = nodes.map((node) => {
+    if (node.stage !== undefined) {
+      return node;
+    }
+
+    // If this node is after an exchange (previousNode is exchange), assign writeStage
+    const previousNode = findPreviousNode(node.nodeId);
+    if (previousNode?.stage?.type === "exchange" && previousNode.stage.writeStage !== -1) {
+      return { ...node, stage: stageDataFromStage(previousNode.stage.writeStage, sqlStages) };
+    }
+
+    // If this node is before an exchange (nextNode is exchange), assign readStage
+    const nextNode = findNextNode(node.nodeId);
+    if (nextNode?.stage?.type === "exchange" && nextNode.stage.writeStage !== -1) {
+      return { ...node, stage: stageDataFromStage(nextNode.stage.writeStage, sqlStages) };
+    }
+
+    return node;
+  });
+
   return { ...sql, nodes: nodes };
 }
 
