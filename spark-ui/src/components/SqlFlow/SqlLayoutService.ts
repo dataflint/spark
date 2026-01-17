@@ -22,15 +22,15 @@ const edgeIdCache = new Map<string, string>();
 
 const nodeWidth = 320;
 const nodeHeight = 320;
-const stagePadding = 20; // Padding inside stage group
+const stagePadding = 15; // Padding inside stage group
 const stageHeaderHeight = 40; // Height of stage header
 
 // Layout parameters - aligned with cleaner algorithm from dataflint-engine
-const NODE_SEP = 20;      // Spacing between nodes (vertical in LR layout)
-const RANK_SEP = 100;     // Spacing between layers (horizontal in LR layout)
-const EDGE_SEP = 100;     // Spacing between edges
-const MARGIN_X = 20;      // Horizontal margin
-const MARGIN_Y = 20;      // Vertical margin
+const NODE_SEP = 10;      // Spacing between nodes (vertical in LR layout)
+const RANK_SEP = 80;     // Spacing between layers (horizontal in LR layout)
+const EDGE_SEP = 80;     // Spacing between edges
+const MARGIN_X = 10;      // Horizontal margin
+const MARGIN_Y = 10;      // Vertical margin
 
 interface StageGroupAlert {
   id: string;
@@ -470,7 +470,8 @@ function getLayoutedElementsWithStages(
         const parentY = parentPos.y - parentPos.height / 2;
         // Child position relative to parent
         x = x - parentX;
-        y = y - parentY;
+        // Offset y by half the header height so nodes are centered in content area below header
+        y = y - parentY + stageHeaderHeight / 2;
       }
     }
 
@@ -516,8 +517,8 @@ class SqlLayoutService {
     };
 
     // Create cache key based on SQL structure, filter, and stage visibility
-    // v14: Switched to compound dagre layout with improved join visualization
-    const cacheKey = `${sql.uniqueId}-${graphFilter}-${showStages ? 'staged' : 'unstaged'}-v14`;
+    // v16: Fixed vertical centering to account for stage header height
+    const cacheKey = `${sql.uniqueId}-${graphFilter}-${showStages ? 'staged' : 'unstaged'}-v16`;
 
     // Check if we have a cached result for this exact configuration
     const cached = layoutCache.get(cacheKey);
