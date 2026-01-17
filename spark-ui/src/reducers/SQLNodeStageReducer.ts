@@ -404,11 +404,21 @@ export function calculateSqlStage(
     };
   });
 
-  // Build codegen lookup map
+  // Build codegen lookup map, excluding duplicate codegen IDs
+  // If the same codegen ID appears multiple times, we can't reliably determine which stage it belongs to
   const codegenByWholeStageId = new Map<number, typeof codegenNodes[0]>();
+  const duplicateCodegenIds = new Set<number>();
+
   for (const cg of codegenNodes) {
     if (cg.wholeStageCodegenId !== undefined) {
-      codegenByWholeStageId.set(cg.wholeStageCodegenId, cg);
+      if (codegenByWholeStageId.has(cg.wholeStageCodegenId)) {
+        // This codegen ID appears multiple times, mark as duplicate and remove
+        duplicateCodegenIds.add(cg.wholeStageCodegenId);
+        codegenByWholeStageId.delete(cg.wholeStageCodegenId);
+      } else if (!duplicateCodegenIds.has(cg.wholeStageCodegenId)) {
+        // Only add if not already marked as duplicate
+        codegenByWholeStageId.set(cg.wholeStageCodegenId, cg);
+      }
     }
   }
 
