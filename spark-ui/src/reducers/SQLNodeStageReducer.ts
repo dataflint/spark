@@ -124,16 +124,17 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     if (node.nodeName === "Exchange" && (node.stage === undefined || node.stage.type === "onestage")) {
       const nextNode = findNextNode(node.nodeId);
       const previousNode = findPreviousNode(node.nodeId);
+      const metricsExchangeStageIds = findExchangeStageIds(node.metrics);
 
       // Get write stage from previous node
-      const writeStageId = previousNode?.stage?.type === "onestage"
+      const writeStageId = metricsExchangeStageIds.writeStageId ?? (previousNode?.stage?.type === "onestage"
         ? previousNode.stage.stageId
-        : (previousNode?.stage?.type === "exchange" ? previousNode.stage.writeStage : -1);
+        : (previousNode?.stage?.type === "exchange" ? previousNode.stage.writeStage : -1));
 
       // Get read stage from next node
-      const readStageId = nextNode?.stage?.type === "onestage"
+      const readStageId = metricsExchangeStageIds.readStageId ?? (nextNode?.stage?.type === "onestage"
         ? nextNode.stage.stageId
-        : (nextNode?.stage?.type === "exchange" ? nextNode.stage.readStage : -1);
+        : (nextNode?.stage?.type === "exchange" ? nextNode.stage.readStage : -1));
 
       // Convert to exchange type if we have at least the write stage (read stage may not be known yet during execution)
       // or if both stages are known and different
