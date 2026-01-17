@@ -5,10 +5,12 @@ export const initialState: {
   sqlMode: GraphFilter;
   selectedStage: SQLNodeStageData | SQLNodeExchangeStageData | undefined;
   telemetryEnabled: boolean;
+  showStages: boolean;
 } = {
   sqlMode: "advanced",
   selectedStage: undefined,
-  telemetryEnabled: false
+  telemetryEnabled: false,
+  showStages: true,
 };
 
 const generalSlice = createSlice({
@@ -39,10 +41,18 @@ const generalSlice = createSlice({
     ) => {
       state.telemetryEnabled = action.payload.enabled;
     },
+    setShowStages: (
+      state,
+      action: PayloadAction<{
+        showStages: boolean;
+      }>,
+    ) => {
+      state.showStages = action.payload.showStages;
+    },
   },
 });
 
 // Export the action creators and the reducer
-export const { setSQLMode, setSelectedStage, setTelemetryEnabled } = generalSlice.actions;
+export const { setSQLMode, setSelectedStage, setTelemetryEnabled, setShowStages } = generalSlice.actions;
 
 export default generalSlice.reducer;

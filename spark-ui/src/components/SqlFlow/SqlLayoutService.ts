@@ -598,6 +598,7 @@ class SqlLayoutService {
     graphFilter: GraphFilter,
     alerts?: AlertsStore,
     stages?: SparkStageStore[],
+    showStages: boolean = true,
   ): { layoutNodes: Node[]; layoutEdges: Edge[] } {
     // Helper function to find alert for a specific node
     const findNodeAlert = (nodeId: number): Alert | undefined => {
@@ -612,8 +613,8 @@ class SqlLayoutService {
       );
     };
 
-    // Create cache key based on SQL structure and filter
-    const cacheKey = `${sql.uniqueId}-${graphFilter}-staged-v13`;
+    // Create cache key based on SQL structure, filter, and stage visibility
+    const cacheKey = `${sql.uniqueId}-${graphFilter}-${showStages ? 'staged' : 'unstaged'}-v13`;
 
     // Check if we have a cached result for this exact configuration
     const cached = layoutCache.get(cacheKey);
@@ -801,20 +802,54 @@ class SqlLayoutService {
       });
     });
 
-    // Group nodes by stage
-    const stageGroups = groupNodesByStage(sql.nodes, flowNodeIds, splitExchangeNodeIds, stages, sql.duration);
+    // Group nodes by stage (only if showStages is true)
+    if (showStages) {
+      const stageGroups = groupNodesByStage(sql.nodes, flowNodeIds, splitExchangeNodeIds, stages, sql.duration);
 
-    // Use staged layout
-    const { layoutNodes, layoutEdges } = getLayoutedElementsWithStages(
-      flowNodes,
-      flowEdges,
-      stageGroups,
-      cacheKey,
-      sql.id,
-      alerts?.alerts,
-    );
+      // Use staged layout
+      const { layoutNodes, layoutEdges } = getLayoutedElementsWithStages(
+        flowNodes,
+        flowEdges,
+        stageGroups,
+        cacheKey,
+        sql.id,
+        alerts?.alerts,
+      );
 
-    return { layoutNodes, layoutEdges };
+      return { layoutNodes, layoutEdges };
+    } else {
+      // Use simple layout without stages
+      const { layoutNodes, layoutEdges } = getLayoutedElements(flowNodes, flowEdges, cacheKey);
+
+      // Update node data with current metrics and alerts
+      const updatedNodes = layoutNodes.map(node => {
+        // Handle split exchange nodes (write-* and read-*)
+        let nodeIdStr = node.id;
+        let exchangeVariant: "write" | "read" | undefined = undefined;
+        if (node.id.startsWith("write-")) {
+          nodeIdStr = node.id.substring(6);
+          exchangeVariant = "write";
+        } else if (node.id.startsWith("read-")) {
+          nodeIdStr = node.id.substring(5);
+          exchangeVariant = "read";
+        }
+
+        const originalNode = sql.nodes.find(n => n.nodeId.toString() === nodeIdStr);
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            node: originalNode || node.data.node,
+            sqlUniqueId: sql.uniqueId,
+            sqlMetricUpdateId: sql.metricUpdateId,
+            alert: findNodeAlert(parseInt(nodeIdStr)),
+            exchangeVariant: exchangeVariant,
+          }
+        };
+      });
+
+      return { layoutNodes: updatedNodes, layoutEdges };
+    }
   }
 
   // Method to clear cache when needed

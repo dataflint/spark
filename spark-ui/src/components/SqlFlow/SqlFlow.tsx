@@ -8,7 +8,7 @@ import ReactFlow, {
   useNodesState,
 } from "reactflow";
 
-import { CenterFocusStrong, ExpandLess, ExpandMore, Speed, Storage, Warning, ZoomIn, ZoomOut } from "@mui/icons-material";
+import { CenterFocusStrong, ExpandLess, ExpandMore, Layers, LayersClear, Speed, Storage, Warning, ZoomIn, ZoomOut } from "@mui/icons-material";
 import {
   Alert,
   Box,
@@ -25,7 +25,7 @@ import { useSearchParams } from "react-router-dom";
 import "reactflow/dist/style.css";
 import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
-import { setSQLMode, setSelectedStage } from "../../reducers/GeneralSlice";
+import { setSQLMode, setSelectedStage, setShowStages } from "../../reducers/GeneralSlice";
 import { parseBytesString } from "../../utils/FormatUtils";
 import FlowLegend from "./FlowLegend";
 import CustomMiniMap from "./MiniMap";
@@ -92,6 +92,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const dispatch = useAppDispatch();
   const graphFilter = useAppSelector((state) => state.general.sqlMode);
   const selectedStage = useAppSelector((state) => state.general.selectedStage);
+  const showStages = useAppSelector((state) => state.general.showStages);
 
   // Memoized statistics about the SQL flow
   const flowStats = useMemo(() => {
@@ -218,6 +219,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
         graphFilter,
         alerts,
         stages,
+        showStages,
       );
 
       setNodes(layoutNodes);
@@ -226,7 +228,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
       setError(`Failed to update metrics: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setIsLoading(false);
     }
-  }, [sparkSQL.metricUpdateId, stages]);
+  }, [sparkSQL.metricUpdateId, stages, showStages]);
 
   // Effect for SQL structure or filter changes
   useEffect(() => {
@@ -241,6 +243,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
         graphFilter,
         alerts,
         stages,
+        showStages,
       );
 
       setNodes(layoutNodes);
@@ -250,7 +253,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
       setError(`Failed to layout SQL flow: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setIsLoading(false);
     }
-  }, [sparkSQL.uniqueId, graphFilter, stages]);
+  }, [sparkSQL.uniqueId, graphFilter, stages, showStages]);
 
   // Handle initial focus only when instance or search params change
   useEffect(() => {
@@ -630,6 +633,26 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
                 }}
               >
                 <Storage />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip
+              title={showStages ? "Hide stages grouping" : "Show stages grouping"}
+              arrow
+              placement="top"
+            >
+              <IconButton
+                onClick={() => dispatch(setShowStages({ showStages: !showStages }))}
+                sx={{
+                  backgroundColor: showStages ? "rgba(25, 118, 210, 0.2)" : "rgba(245, 247, 250, 0.95)",
+                  color: showStages ? "#1976d2" : "#424242",
+                  border: showStages ? "1px solid rgba(25, 118, 210, 0.5)" : "1px solid rgba(0, 0, 0, 0.15)",
+                  "&:hover": {
+                    backgroundColor: showStages ? "rgba(25, 118, 210, 0.3)" : "rgba(245, 247, 250, 1)"
+                  },
+                }}
+              >
+                {showStages ? <Layers /> : <LayersClear />}
               </IconButton>
             </Tooltip>
           </Box>
