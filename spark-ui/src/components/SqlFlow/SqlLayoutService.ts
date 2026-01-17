@@ -24,7 +24,13 @@ const nodeWidth = 320;
 const nodeHeight = 320;
 const stagePadding = 20; // Padding inside stage group
 const stageHeaderHeight = 40; // Height of stage header
-const stageGap = 40; // Gap between stages
+
+// Layout parameters - aligned with cleaner algorithm from dataflint-engine
+const NODE_SEP = 20;      // Spacing between nodes (vertical in LR layout)
+const RANK_SEP = 100;     // Spacing between layers (horizontal in LR layout)
+const EDGE_SEP = 100;     // Spacing between edges
+const MARGIN_X = 20;      // Horizontal margin
+const MARGIN_Y = 20;      // Vertical margin
 
 interface StageGroupAlert {
   id: string;
@@ -163,151 +169,6 @@ function groupNodesByStage(
   return stageGroups;
 }
 
-/**
- * Calculates layout for nodes within a stage group using dagre.
- * Returns the positions relative to the stage group's origin.
- * 
- * The algorithm considers not just direct edges within the stage, but also
- * indirect connections through nodes outside the stage (like Exchange nodes).
- */
-function layoutNodesInStage(
-  nodeIds: string[],
-  edges: Edge[],
-  allNodes: Map<string, Node>,
-  allEdges: Edge[]
-): { positions: Map<string, { x: number; y: number }>; width: number; height: number } {
-  const positions = new Map<string, { x: number; y: number }>();
-
-  if (nodeIds.length === 0) {
-    return { positions, width: 0, height: 0 };
-  }
-
-  // For a single node, use simple positioning
-  if (nodeIds.length === 1) {
-    const nodeId = nodeIds[0];
-    positions.set(nodeId, {
-      x: stagePadding,
-      y: stagePadding + stageHeaderHeight,
-    });
-    return {
-      positions,
-      width: nodeWidth + stagePadding * 2,
-      height: nodeHeight + stagePadding * 2 + stageHeaderHeight,
-    };
-  }
-
-  const nodeIdSet = new Set(nodeIds);
-
-  // Build adjacency lists for the full graph to find indirect connections
-  const outgoingEdges = new Map<string, string[]>();
-  const incomingEdges = new Map<string, string[]>();
-
-  for (const edge of allEdges) {
-    if (!outgoingEdges.has(edge.source)) {
-      outgoingEdges.set(edge.source, []);
-    }
-    outgoingEdges.get(edge.source)!.push(edge.target);
-
-    if (!incomingEdges.has(edge.target)) {
-      incomingEdges.set(edge.target, []);
-    }
-    incomingEdges.get(edge.target)!.push(edge.source);
-  }
-
-  // Find connections between stage nodes, including indirect ones through outside nodes
-  // This handles cases like: NodeA (in stage) -> Exchange (outside) -> NodeB (in stage)
-  const stageEdges: Array<{ source: string; target: string }> = [];
-
-  // Direct edges within the stage
-  for (const edge of edges) {
-    if (nodeIdSet.has(edge.source) && nodeIdSet.has(edge.target)) {
-      stageEdges.push({ source: edge.source, target: edge.target });
-    }
-  }
-
-  // Find indirect connections (through nodes outside the stage)
-  for (const nodeId of nodeIds) {
-    // Look for paths: nodeId -> outside node -> another stage node
-    const directTargets = outgoingEdges.get(nodeId) || [];
-    for (const intermediateNode of directTargets) {
-      if (!nodeIdSet.has(intermediateNode)) {
-        // This is an outside node, check if it connects to another stage node
-        const indirectTargets = outgoingEdges.get(intermediateNode) || [];
-        for (const targetNode of indirectTargets) {
-          if (nodeIdSet.has(targetNode) && targetNode !== nodeId) {
-            // Found indirect connection: nodeId -> intermediateNode -> targetNode
-            stageEdges.push({ source: nodeId, target: targetNode });
-          }
-        }
-      }
-    }
-
-    // Also check reverse: outside node -> nodeId, and that outside node comes from another stage node
-    const directSources = incomingEdges.get(nodeId) || [];
-    for (const intermediateNode of directSources) {
-      if (!nodeIdSet.has(intermediateNode)) {
-        const indirectSources = incomingEdges.get(intermediateNode) || [];
-        for (const sourceNode of indirectSources) {
-          if (nodeIdSet.has(sourceNode) && sourceNode !== nodeId) {
-            // Found indirect connection: sourceNode -> intermediateNode -> nodeId
-            stageEdges.push({ source: sourceNode, target: nodeId });
-          }
-        }
-      }
-    }
-  }
-
-  // Create a subgraph for this stage's nodes
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({ rankdir: "LR", ranksep: 60, nodesep: 30 });
-
-  for (const nodeId of nodeIds) {
-    dagreGraph.setNode(nodeId, { width: nodeWidth, height: nodeHeight });
-  }
-
-  // Add all discovered edges (direct and indirect)
-  const addedEdges = new Set<string>();
-  for (const edge of stageEdges) {
-    const edgeKey = `${edge.source}-${edge.target}`;
-    if (!addedEdges.has(edgeKey)) {
-      dagreGraph.setEdge(edge.source, edge.target);
-      addedEdges.add(edgeKey);
-    }
-  }
-
-  dagre.layout(dagreGraph);
-
-  let minX = Infinity, minY = Infinity;
-  let maxX = -Infinity, maxY = -Infinity;
-
-  for (const nodeId of nodeIds) {
-    const pos = dagreGraph.node(nodeId);
-    if (pos) {
-      minX = Math.min(minX, pos.x - nodeWidth / 2);
-      minY = Math.min(minY, pos.y - nodeHeight / 2);
-      maxX = Math.max(maxX, pos.x + nodeWidth / 2);
-      maxY = Math.max(maxY, pos.y + nodeHeight / 2);
-    }
-  }
-
-  // Normalize positions to start from (0, 0) with padding
-  for (const nodeId of nodeIds) {
-    const pos = dagreGraph.node(nodeId);
-    if (pos) {
-      positions.set(nodeId, {
-        x: pos.x - nodeWidth / 2 - minX + stagePadding,
-        y: pos.y - nodeHeight / 2 - minY + stagePadding + stageHeaderHeight,
-      });
-    }
-  }
-
-  const width = maxX - minX + stagePadding * 2;
-  const height = maxY - minY + stagePadding * 2 + stageHeaderHeight;
-
-  return { positions, width, height };
-}
-
 const getLayoutedElements = (
   nodes: Node[],
   edges: Edge[],
@@ -319,10 +180,17 @@ const getLayoutedElements = (
     return cached;
   }
 
-  // Create new Dagre graph for layout calculation
+  // Create new Dagre graph for layout calculation with updated parameters
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({ rankdir: "LR" });
+  dagreGraph.setGraph({
+    rankdir: "LR",
+    nodesep: NODE_SEP,
+    ranksep: RANK_SEP,
+    edgesep: EDGE_SEP,
+    marginx: MARGIN_X,
+    marginy: MARGIN_Y,
+  });
 
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
@@ -358,8 +226,39 @@ const getLayoutedElements = (
 };
 
 /**
- * Creates layout with stage grouping.
- * Nodes are grouped by their stage ID into parent group nodes.
+ * Calculate stage size based on the number of child nodes.
+ * Uses a simple heuristic: arrange nodes in a grid-like pattern.
+ */
+function calculateStageSize(nodeCount: number): { width: number; height: number } {
+  if (nodeCount === 0) {
+    return { width: nodeWidth + stagePadding * 2, height: nodeHeight + stagePadding * 2 + stageHeaderHeight };
+  }
+
+  // For a single node
+  if (nodeCount === 1) {
+    return {
+      width: nodeWidth + stagePadding * 2,
+      height: nodeHeight + stagePadding * 2 + stageHeaderHeight,
+    };
+  }
+
+  // Estimate layout: dagre will arrange nodes, but we need an estimate
+  // Assume roughly sqrt(n) rows and columns for estimation
+  const nodesPerRow = Math.ceil(Math.sqrt(nodeCount));
+  const numRows = Math.ceil(nodeCount / nodesPerRow);
+
+  const contentWidth = nodesPerRow * (nodeWidth + NODE_SEP) - NODE_SEP;
+  const contentHeight = numRows * (nodeHeight + NODE_SEP) - NODE_SEP;
+
+  return {
+    width: contentWidth + stagePadding * 2,
+    height: contentHeight + stagePadding * 2 + stageHeaderHeight,
+  };
+}
+
+/**
+ * Creates layout with stage grouping using dagre compound nodes.
+ * This approach uses dagre's native parent/child support for better join visualization.
  */
 function getLayoutedElementsWithStages(
   flowNodes: Node[],
@@ -421,71 +320,84 @@ function getLayoutedElementsWithStages(
     return getLayoutedElements(flowNodes, flowEdges, cacheKey);
   }
 
-  const allNodes: Node[] = [];
   const nodeMap = new Map(flowNodes.map(n => [n.id, n]));
 
-  // Identify nodes that belong to a stage group vs standalone nodes
-  const groupedNodeIds = new Set<string>();
-  stageGroups.forEach((group) => {
+  // Build a map from nodeId to stageId for quick lookup
+  const nodeToStage = new Map<string, number>();
+  stageGroups.forEach((group, stageId) => {
     group.nodeIds.forEach((nodeId) => {
-      groupedNodeIds.add(nodeId);
+      nodeToStage.set(nodeId, stageId);
     });
   });
 
-  // Standalone nodes (exchanges and nodes without stage)
-  const standaloneNodes = flowNodes.filter(n => !groupedNodeIds.has(n.id));
-
-  // Create a high-level graph with stage groups as single nodes
-  const highLevelGraph = new dagre.graphlib.Graph();
-  highLevelGraph.setDefaultEdgeLabel(() => ({}));
-  highLevelGraph.setGraph({ rankdir: "LR", ranksep: stageGap, nodesep: stageGap });
-
-  // Calculate dimensions for each stage group
-  const stageDimensions = new Map<number, { width: number; height: number; positions: Map<string, { x: number; y: number }> }>();
-
-  stageGroups.forEach((group, stageId) => {
-    const { positions, width, height } = layoutNodesInStage(
-      group.nodeIds,
-      flowEdges,
-      nodeMap,
-      flowEdges
-    );
-    stageDimensions.set(stageId, { positions, width, height });
-
-    // Add stage group as a node in high-level graph
-    highLevelGraph.setNode(`stage-${stageId}`, {
-      width: width,
-      height: height
-    });
-  });
-
-  // Add standalone nodes to high-level graph
-  for (const node of standaloneNodes) {
-    highLevelGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
-  }
-
-  // Add edges to high-level graph (connecting stage groups and standalone nodes)
-  for (const edge of flowEdges) {
-    const sourceStage = findNodeStage(edge.source, stageGroups);
-    const targetStage = findNodeStage(edge.target, stageGroups);
-
-    const sourceId = sourceStage !== null ? `stage-${sourceStage}` : edge.source;
-    const targetId = targetStage !== null ? `stage-${targetStage}` : edge.target;
-
-    // Only add edge if it connects different entities
-    if (sourceId !== targetId) {
-      highLevelGraph.setEdge(sourceId, targetId);
+  // Identify standalone nodes (not in any stage)
+  const standaloneNodeIds = new Set<string>();
+  flowNodes.forEach(n => {
+    if (!nodeToStage.has(n.id)) {
+      standaloneNodeIds.add(n.id);
     }
-  }
+  });
 
-  // Layout the high-level graph
-  dagre.layout(highLevelGraph);
+  // Create dagre graph with compound node support
+  const g = new dagre.graphlib.Graph({ compound: true });
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({
+    rankdir: "LR",
+    nodesep: NODE_SEP,
+    ranksep: RANK_SEP,
+    edgesep: EDGE_SEP,
+    marginx: MARGIN_X,
+    marginy: MARGIN_Y,
+  });
 
-  // Create stage group nodes with calculated positions
-  stageGroups.forEach((group, stageId) => {
+  // Step 1: Add all stage group nodes first (parent nodes must be added before children)
+  // Sort stages by stageId to ensure consistent ordering
+  const sortedStageIds = Array.from(stageGroups.keys()).sort((a, b) => a - b);
+
+  sortedStageIds.forEach(stageId => {
+    const group = stageGroups.get(stageId)!;
     const stageNodeId = `stage-${stageId}`;
-    const pos = highLevelGraph.node(stageNodeId);
-    const dims = stageDimensions.get(stageId)!;
+    const stageSize = calculateStageSize(group.nodeIds.length);
+
+    g.setNode(stageNodeId, {
+      width: stageSize.width,
+      height: stageSize.height,
+    });
+  });
+
+  // Step 2: Add all child nodes and set their parents
+  flowNodes.forEach(node => {
+    const stageId = nodeToStage.get(node.id);
+
+    g.setNode(node.id, {
+      width: nodeWidth,
+      height: nodeHeight,
+    });
+
+    // Set parent if node belongs to a stage
+    if (stageId !== undefined) {
+      g.setParent(node.id, `stage-${stageId}`);
+    }
+  });
+
+  // Step 3: Add all edges
+  flowEdges.forEach(edge => {
+    g.setEdge(edge.source, edge.target);
+  });
+
+  // Step 4: Run dagre layout
+  dagre.layout(g);
+
+  // Step 5: Extract positions and build result nodes
+  const allNodes: Node[] = [];
+
+  // Create stage group nodes with dagre-calculated positions
+  sortedStageIds.forEach(stageId => {
+    const group = stageGroups.get(stageId)!;
+    const stageNodeId = `stage-${stageId}`;
+    const pos = g.node(stageNodeId);
+
+    if (!pos) return;
 
     // Find alerts for this stage
     const stageAlerts: StageGroupAlert[] = [];
@@ -510,8 +422,8 @@ function getLayoutedElementsWithStages(
       id: stageNodeId,
       type: StageGroupNodeName,
       position: {
-        x: pos.x - dims.width / 2,
-        y: pos.y - dims.height / 2,
+        x: pos.x - pos.width / 2,
+        y: pos.y - pos.height / 2,
       },
       data: {
         stageId: group.stageId,
@@ -525,71 +437,61 @@ function getLayoutedElementsWithStages(
         alerts: stageAlerts.length > 0 ? stageAlerts : undefined,
       },
       style: {
-        width: dims.width,
-        height: dims.height,
+        width: pos.width,
+        height: pos.height,
       },
-      // Don't make it draggable or selectable
       draggable: false,
       selectable: false,
     };
 
     allNodes.push(stageGroupNode);
-
-    // Add child nodes with positions relative to parent
-    const childPositions = dims.positions;
-    group.nodeIds.forEach((nodeId) => {
-      const originalNode = nodeMap.get(nodeId);
-      if (originalNode) {
-        const relativePos = childPositions.get(nodeId);
-        if (relativePos) {
-          const childNode: Node = {
-            ...originalNode,
-            parentNode: stageNodeId,
-            extent: "parent" as const,
-            position: relativePos,
-            targetPosition: Position.Left,
-            sourcePosition: Position.Right,
-          };
-          allNodes.push(childNode);
-        }
-      }
-    });
   });
 
-  // Add standalone nodes with their positions
-  for (const node of standaloneNodes) {
-    const pos = highLevelGraph.node(node.id);
-    if (pos) {
-      const standaloneNode: Node = {
-        ...node,
-        position: {
-          x: pos.x - nodeWidth / 2,
-          y: pos.y - nodeHeight / 2,
-        },
-        targetPosition: Position.Left,
-        sourcePosition: Position.Right,
-      };
-      allNodes.push(standaloneNode);
+  // Add child nodes with positions relative to their parent stage
+  flowNodes.forEach(node => {
+    const nodePos = g.node(node.id);
+    if (!nodePos) return;
+
+    const stageId = nodeToStage.get(node.id);
+    const originalNode = nodeMap.get(node.id);
+    if (!originalNode) return;
+
+    // Convert dagre center coords to top-left
+    let x = nodePos.x - nodeWidth / 2;
+    let y = nodePos.y - nodeHeight / 2;
+
+    // If node has a parent stage, calculate position relative to parent
+    if (stageId !== undefined) {
+      const stageNodeId = `stage-${stageId}`;
+      const parentPos = g.node(stageNodeId);
+      if (parentPos) {
+        // Parent's top-left corner in absolute coordinates
+        const parentX = parentPos.x - parentPos.width / 2;
+        const parentY = parentPos.y - parentPos.height / 2;
+        // Child position relative to parent
+        x = x - parentX;
+        y = y - parentY;
+      }
     }
-  }
+
+    const layoutedNode: Node = {
+      ...originalNode,
+      position: { x, y },
+      targetPosition: Position.Left,
+      sourcePosition: Position.Right,
+      ...(stageId !== undefined && {
+        parentNode: `stage-${stageId}`,
+        extent: "parent" as const,
+      }),
+    };
+
+    allNodes.push(layoutedNode);
+  });
 
   const result = { layoutNodes: allNodes, layoutEdges: flowEdges };
   layoutCache.set(cacheKey, result);
 
   return result;
-}
-
-/**
- * Finds which stage a node belongs to.
- */
-function findNodeStage(nodeId: string, stageGroups: Map<number, StageGroup>): number | null {
-  let foundStageId: number | null = null;
-  stageGroups.forEach((group, stageId) => {
-    if (group.nodeIds.includes(nodeId)) {
-      foundStageId = stageId;
-    }
-  });
-  return foundStageId;
 }
 
 class SqlLayoutService {
@@ -614,7 +516,8 @@ class SqlLayoutService {
     };
 
     // Create cache key based on SQL structure, filter, and stage visibility
-    const cacheKey = `${sql.uniqueId}-${graphFilter}-${showStages ? 'staged' : 'unstaged'}-v13`;
+    // v14: Switched to compound dagre layout with improved join visualization
+    const cacheKey = `${sql.uniqueId}-${graphFilter}-${showStages ? 'staged' : 'unstaged'}-v14`;
 
     // Check if we have a cached result for this exact configuration
     const cached = layoutCache.get(cacheKey);
