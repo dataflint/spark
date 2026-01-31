@@ -9,6 +9,7 @@ import { humanFileSize, parseBytesString } from "../../utils/FormatUtils";
 import { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import MetricDisplay, { MetricWithTooltip } from "./MetricDisplay";
 import {
+  addTruncatedCodeTooltip,
   processBaseMetrics,
   processCachedStorageMetrics,
   processDeltaLakeScanMetrics,
@@ -162,6 +163,18 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
     // Process plan-specific metrics (for non-split or write variant only)
     if (data.node.parsedPlan && exchangeVariant !== "read") {
       metrics.push(...PlanMetricsProcessor.processPlanMetrics(data.node.parsedPlan));
+    }
+
+    // For read variant of Exchange, show hash/range partitioning fields as code block
+    if (exchangeVariant === "read" && data.node.parsedPlan?.type === "Exchange") {
+      const plan = data.node.parsedPlan.plan;
+      if (plan.fields && plan.fields.length > 0 && (plan.type === "hashpartitioning" || plan.type === "rangepartitioning")) {
+        const fieldLabel = plan.type === "hashpartitioning"
+          ? (plan.fields.length === 1 ? "Hashed Field" : "Hashed Fields")
+          : (plan.fields.length === 1 ? "Ranged Field" : "Ranged Fields");
+        // Format as multi-line code block (same as write side)
+        addTruncatedCodeTooltip(metrics, fieldLabel, plan.fields.join(",\n"), 120, true, true);
+      }
     }
 
     // Keep original name - use icon indicator instead of text suffix
