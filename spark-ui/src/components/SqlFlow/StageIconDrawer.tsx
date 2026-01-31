@@ -1,4 +1,13 @@
 import {
+    Input as InputIcon,
+    Output as OutputIcon,
+    SwapVert as ShuffleReadIcon,
+    SwapHoriz as ShuffleWriteIcon,
+    WarningAmber as SpillIcon,
+    Timer as DurationIcon,
+    Schedule as ResourceDurationIcon,
+} from "@mui/icons-material";
+import {
     Box,
     LinearProgress,
     LinearProgressProps,
@@ -136,88 +145,161 @@ function SingleStageIconTooltip({
     )
 }
 
+interface MetricData {
+    icon: React.ReactNode;
+    label: string;
+    value: string;
+    color: string;
+}
+
+function StageMetricItem({ icon, label, value, color }: MetricData): JSX.Element {
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1, minWidth: 0 }}>
+            <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: color,
+                flexShrink: 0
+            }}>
+                {icon}
+            </Box>
+            <Typography variant="body2" sx={{ color: 'text.secondary', flexShrink: 0 }}>
+                {label}:
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {value}
+            </Typography>
+        </Box>
+    );
+}
+
+function MetricRow({ left, right, centered }: { left: MetricData; right?: MetricData; centered?: boolean }): JSX.Element {
+    if (centered) {
+        return (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 0.25 }}>
+                <StageMetricItem {...left} />
+            </Box>
+        );
+    }
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 0.25 }}>
+            <StageMetricItem {...left} />
+            {right && <StageMetricItem {...right} />}
+        </Box>
+    );
+}
+
 function StageSummary({
     stageData,
 }: {
     stageData: SparkStageStore;
 }): JSX.Element {
-    const executors = useAppSelector((state) => state.spark.executors);
-    if (executors === undefined || executors.length === 0) return <div></div>;
+    const { inputBytes, outputBytes, shuffleReadBytes, shuffleWriteBytes, diskBytesSpilled, executorRunTime } = stageData.metrics;
+    const stageDurationMs = stageData.stageRealTimeDurationMs;
 
-    const maxTasks = executors[0].maxTasks;
+    // Build metric objects
+    const durationMetric: MetricData | null = stageDurationMs !== undefined && stageDurationMs > 0 
+        ? { icon: <DurationIcon sx={{ fontSize: 16 }} />, label: "Duration", value: humanizeTimeDiff(duration(stageDurationMs)), color: "#607d8b" }
+        : null;
+    
+    const resourceTimeMetric: MetricData | null = executorRunTime > 0 
+        ? { icon: <ResourceDurationIcon sx={{ fontSize: 16 }} />, label: "Resource Time", value: humanizeTimeDiff(duration(executorRunTime)), color: "#795548" }
+        : null;
+    
+    const inputMetric: MetricData | null = inputBytes > 0 
+        ? { icon: <InputIcon sx={{ fontSize: 16 }} />, label: "Input", value: humanFileSize(inputBytes), color: "#3f51b5" }
+        : null;
+    
+    const shuffleReadMetric: MetricData | null = shuffleReadBytes > 0 
+        ? { icon: <ShuffleReadIcon sx={{ fontSize: 16 }} />, label: "Shuffle Read", value: humanFileSize(shuffleReadBytes), color: "#2196f3" }
+        : null;
+    
+    const shuffleWriteMetric: MetricData | null = shuffleWriteBytes > 0 
+        ? { icon: <ShuffleWriteIcon sx={{ fontSize: 16 }} />, label: "Shuffle Write", value: humanFileSize(shuffleWriteBytes), color: "#ff9800" }
+        : null;
+    
+    const outputMetric: MetricData | null = outputBytes > 0 
+        ? { icon: <OutputIcon sx={{ fontSize: 16 }} />, label: "Output", value: humanFileSize(outputBytes), color: "#9c27b0" }
+        : null;
+    
+    const spillMetric: MetricData | null = diskBytesSpilled > 0 
+        ? { icon: <SpillIcon sx={{ fontSize: 16 }} />, label: "Spill", value: humanFileSize(diskBytesSpilled), color: "#f44336" }
+        : null;
+
+    // Build rows with pairing logic
+    const rows: { left: MetricData; right?: MetricData }[] = [];
+
+    // Row 1: Duration (left) and Resource Time (right)
+    if (durationMetric || resourceTimeMetric) {
+        if (durationMetric && resourceTimeMetric) {
+            rows.push({ left: durationMetric, right: resourceTimeMetric });
+        } else if (durationMetric) {
+            rows.push({ left: durationMetric });
+        } else if (resourceTimeMetric) {
+            rows.push({ left: resourceTimeMetric });
+        }
+    }
+
+    // Track which data metrics are used
+    const usedMetrics = new Set<string>();
+
+    // Pairing rules for data metrics:
+    // 1. Input + Shuffle Write
+    // 2. Shuffle Read + Shuffle Write
+    // 3. Shuffle Read + Output
+    // 4. Input + Output
+    
+    if (inputMetric && shuffleWriteMetric && !usedMetrics.has('input') && !usedMetrics.has('shuffleWrite')) {
+        rows.push({ left: inputMetric, right: shuffleWriteMetric });
+        usedMetrics.add('input');
+        usedMetrics.add('shuffleWrite');
+    }
+    
+    if (shuffleReadMetric && shuffleWriteMetric && !usedMetrics.has('shuffleRead') && !usedMetrics.has('shuffleWrite')) {
+        rows.push({ left: shuffleReadMetric, right: shuffleWriteMetric });
+        usedMetrics.add('shuffleRead');
+        usedMetrics.add('shuffleWrite');
+    }
+    
+    if (shuffleReadMetric && outputMetric && !usedMetrics.has('shuffleRead') && !usedMetrics.has('output')) {
+        rows.push({ left: shuffleReadMetric, right: outputMetric });
+        usedMetrics.add('shuffleRead');
+        usedMetrics.add('output');
+    }
+    
+    if (inputMetric && outputMetric && !usedMetrics.has('input') && !usedMetrics.has('output')) {
+        rows.push({ left: inputMetric, right: outputMetric });
+        usedMetrics.add('input');
+        usedMetrics.add('output');
+    }
+
+    // Add remaining unpaired metrics (excluding spill)
+    const remainingMetrics: MetricData[] = [];
+    if (inputMetric && !usedMetrics.has('input')) remainingMetrics.push(inputMetric);
+    if (shuffleReadMetric && !usedMetrics.has('shuffleRead')) remainingMetrics.push(shuffleReadMetric);
+    if (shuffleWriteMetric && !usedMetrics.has('shuffleWrite')) remainingMetrics.push(shuffleWriteMetric);
+    if (outputMetric && !usedMetrics.has('output')) remainingMetrics.push(outputMetric);
+
+    // Pair remaining metrics
+    for (let i = 0; i < remainingMetrics.length; i += 2) {
+        if (i + 1 < remainingMetrics.length) {
+            rows.push({ left: remainingMetrics[i], right: remainingMetrics[i + 1] });
+        } else {
+            rows.push({ left: remainingMetrics[i] });
+        }
+    }
+
+    if (rows.length === 0 && !spillMetric) return <div></div>;
 
     return (
-        <Box>
-            {stageData.activeTasks === 0 ? undefined : (
-                <Typography variant="body2">
-                    <strong>Running tasks: </strong> {stageData.activeTasks}
-                </Typography>)}
-            {stageData.failedTasks === 0 ? undefined : (
-                <Typography variant="body2">
-                    <strong>Failed tasks: </strong> {stageData.failedTasks}
-                </Typography>)}
-            {stageData.stageRealTimeDurationMs === undefined ? undefined : <Typography variant="body2">
-                <strong>Stage duration:</strong>{" "}
-                {humanizeTimeDiff(
-                    duration(stageData.stageRealTimeDurationMs),
-                )}
-            </Typography>}
-            <Typography variant="body2">
-                <strong>Total executors time:</strong>{" "}
-                {humanizeTimeDiff(
-                    duration(stageData.metrics.executorRunTime / maxTasks),
-                )}
-            </Typography>
-            <Typography variant="body2">
-                <strong>Median task duration:</strong>{" "}
-                {humanizeTimeDiff(
-                    duration(
-                        stageData.durationDistribution !== undefined
-                            ? stageData.durationDistribution[5]
-                            : 0,
-                    ),
-                )}
-            </Typography>
-            {stageData.metrics.inputBytes !== 0 ? (
-                <Typography variant="body2">
-                    <strong>Median task input size:</strong>{" "}
-                    {humanFileSize(
-                        stageData.inputDistribution !== undefined
-                            ? stageData.inputDistribution[5]
-                            : 0,
-                    )}
-                </Typography>
-            ) : undefined}
-            {stageData.metrics.outputBytes !== 0 ? (
-                <Typography variant="body2">
-                    <strong>Median task output size:</strong>{" "}
-                    {humanFileSize(
-                        stageData.outputDistribution !== undefined
-                            ? stageData.outputDistribution[5]
-                            : 0,
-                    )}
-                </Typography>
-            ) : undefined}
-            {stageData.metrics.shuffleReadBytes !== 0 ? (
-                <Typography variant="body2">
-                    <strong>Median task shuffle read size:</strong>{" "}
-                    {humanFileSize(
-                        stageData.shuffleReadDistribution !== undefined
-                            ? stageData.shuffleReadDistribution[5]
-                            : 0,
-                    )}
-                </Typography>
-            ) : undefined}
-            {stageData.metrics.shuffleWriteBytes !== 0 ? (
-                <Typography variant="body2">
-                    <strong>Median task shuffle write size:</strong>{" "}
-                    {humanFileSize(
-                        stageData.shuffleWriteDistribution !== undefined
-                            ? stageData.shuffleWriteDistribution[5]
-                            : 0,
-                    )}
-                </Typography>
-            ) : undefined}
+        <Box sx={{ py: 0.5 }}>
+            {rows.map((row, index) => (
+                <MetricRow key={index} left={row.left} right={row.right} />
+            ))}
+            {spillMetric && (
+                <MetricRow key="spill" left={spillMetric} centered />
+            )}
         </Box>
     );
 }
