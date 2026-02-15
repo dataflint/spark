@@ -171,6 +171,10 @@ export function parseNodePlan(
       case "BatchEvalPython":
       case "ArrowEvalPython":
       case "MapInPandas":
+      case "DataFlintMapInPandas":
+      case "MapInArrow":
+      case "PythonMapInArrow":
+      case "DataFlintMapInArrow":
       case "FlatMapGroupsInPandas":
         return {
           type: "BatchEvalPython",
@@ -671,6 +675,21 @@ function updateNodeEnrichedName(
   return node.enrichedName;
 }
 
+const PYTHON_EVAL_NODE_NAMES = new Set([
+  "BatchEvalPython",
+  "ArrowEvalPython",
+  "MapInPandas",
+  "DataFlintMapInPandas",
+  "MapInArrow",
+  "PythonMapInArrow",
+  "DataFlintMapInArrow",
+  "FlatMapGroupsInPandas",
+]);
+
+function isPythonEvalNode(nodeName: string): boolean {
+  return PYTHON_EVAL_NODE_NAMES.has(nodeName);
+}
+
 function findBatchEvalPythonInputNode(
   node: EnrichedSqlNode,
   allNodes: EnrichedSqlNode[],
@@ -686,8 +705,8 @@ function findBatchEvalPythonInputNode(
     return null;
   }
 
-  // Check if the direct input is BatchEvalPython
-  if (inputNode.nodeName === "BatchEvalPython") {
+  // Check if the direct input is a Python evaluation node
+  if (isPythonEvalNode(inputNode.nodeName)) {
     const inputNodePlan = inputNode.parsedPlan;
     if (inputNodePlan && inputNodePlan.type === "BatchEvalPython") {
       return inputNode;
@@ -702,7 +721,7 @@ function findBatchEvalPythonInputNode(
     }
     const secondLevelInputEdge = secondLevelInputEdges[0];
     const secondLevelInputNode = allNodes.find((n) => n.nodeId.toString() === secondLevelInputEdge.v);
-    if (!secondLevelInputNode || secondLevelInputNode.nodeName !== "BatchEvalPython") {
+    if (!secondLevelInputNode || !isPythonEvalNode(secondLevelInputNode.nodeName)) {
       return null;
     }
     const secondLevelInputNodePlan = secondLevelInputNode.parsedPlan;

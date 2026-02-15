@@ -9,7 +9,7 @@ import {
 } from "../interfaces/AppStore";
 import { calculatePercentage } from "../utils/FormatUtils";
 import { generateGraph } from "./PlanGraphUtils";
-import { calculateNodeToStorageInfo } from "./SqlReducer";
+import { calculateNodeToStorageInfo, getMetricDuration } from "./SqlReducer";
 import { findExchangeStageIds, isExchangeNode } from "./SqlReducerUtils";
 
 export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkStagesStore): EnrichedSparkSQL {
@@ -109,7 +109,9 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
   });
   nodes = nodes.map((node) => {
     if (node.nodeName === "AQEShuffleRead" || node.nodeName === "Coalesce" ||
-      node.nodeName === "BatchEvalPython" || node.nodeName === "MapInPandas" || node.nodeName === "ArrowEvalPython" || node.nodeName === "FlatMapGroupsInPandas") {
+      node.nodeName === "BatchEvalPython" || node.nodeName === "MapInPandas" || node.nodeName === "DataFlintMapInPandas" ||
+      node.nodeName === "MapInArrow" || node.nodeName === "PythonMapInArrow" || node.nodeName === "DataFlintMapInArrow" ||
+      node.nodeName === "ArrowEvalPython" || node.nodeName === "FlatMapGroupsInPandas") {
       const nextNode = findNextNode(node.nodeId);
       if (nextNode !== undefined && nextNode.stage !== undefined) {
         return { ...node, stage: nextNode.stage };
@@ -485,6 +487,29 @@ export function calculateSqlStage(
     }
   }
 
+  // Collect MapInPandas/MapInArrow nodes and extract their "duration" metric for stage subtraction
+  const mapInBatchByStageId = new Map<number, typeof calculatedStageSql.nodes>();
+  const mapInBatchDurationByNodeId = new Map<number, number>();
+
+  const mapInBatchNodeNames = [
+    "MapInPandas", "DataFlintMapInPandas",
+    "MapInArrow", "PythonMapInArrow", "DataFlintMapInArrow",
+  ];
+
+  for (const node of calculatedStageSql.nodes) {
+    if (mapInBatchNodeNames.includes(node.nodeName)) {
+      const duration = getMetricDuration("duration", node.metrics);
+      if (duration !== undefined) {
+        mapInBatchDurationByNodeId.set(node.nodeId, duration);
+        if (node?.stage?.type === "onestage") {
+          const arr = mapInBatchByStageId.get(node.stage.stageId) ?? [];
+          arr.push(node);
+          mapInBatchByStageId.set(node.stage.stageId, arr);
+        }
+      }
+    }
+  }
+
   const otherStageDuration = sqlStages.map((stage) => {
     const id = stage.stageId;
     const codegensNodes = codegensByStageId.get(id) ?? [];
@@ -505,13 +530,19 @@ export function calculateSqlStage(
       .map((node) => node.exchangeBroadcastDuration ?? 0)
       .reduce((a, b) => a + b, 0);
 
+    const mapInBatchNodes = mapInBatchByStageId.get(id) ?? [];
+    const mapInBatchDuration = mapInBatchNodes
+      .map((node) => mapInBatchDurationByNodeId.get(node.nodeId) ?? 0)
+      .reduce((a, b) => a + b, 0);
+
     const restOfStageDuration = Math.max(
       0,
       (stage.metrics.executorRunTime ?? 0) -
       codegensDuration -
       exchangeWriteDuration -
       exchangeReadDuration -
-      broadcastExchangeDuration,
+      broadcastExchangeDuration -
+      mapInBatchDuration,
     );
 
     return { id: id, restOfStageDuration: restOfStageDuration };
@@ -527,7 +558,8 @@ export function calculateSqlStage(
     calculatedStageSql.nodes.map((node) => {
       if (
         node.exchangeMetrics !== undefined ||
-        node.wholeStageCodegenId !== undefined
+        node.wholeStageCodegenId !== undefined ||
+        mapInBatchDurationByNodeId.has(node.nodeId)
       ) {
         return node;
       }
@@ -551,6 +583,7 @@ export function calculateSqlStage(
       const duration =
         stageCodegen?.codegenDuration ??
         node.exchangeMetrics?.duration ??
+        mapInBatchDurationByNodeId.get(node.nodeId) ??
         (node.stage?.type === "onestage"
           ? node.stage?.restOfStageDuration ?? node.stage?.stageDuration
           : undefined);

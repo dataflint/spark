@@ -19,6 +19,7 @@ class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
 
   override def init(sc: SparkContext, pluginContext: PluginContext): util.Map[String, String] = {
     this.sc = sc
+    DataflintSparkUICommonLoader.registerInstrumentationExtension(sc)
     Map[String, String]().asJava
   }
 
