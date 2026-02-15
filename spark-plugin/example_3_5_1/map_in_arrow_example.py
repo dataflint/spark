@@ -18,7 +18,7 @@ from pyspark.sql.types import StructType, StructField, StringType, IntegerType, 
 # Resolve the plugin JAR path relative to this script's location
 _script_dir = Path(__file__).resolve().parent
 _project_root = _script_dir.parent  # up to spark-plugin/
-_plugin_jar = _project_root / "pluginspark3" / "target" / "scala-2.12" / "spark_2.12-0.8.3-SNAPSHOT.jar"
+_plugin_jar = _project_root / "pluginspark3" / "target" / "scala-2.12" / "spark_2.12-0.8.4-SNAPSHOT.jar"
 
 if not _plugin_jar.exists():
     raise FileNotFoundError(
