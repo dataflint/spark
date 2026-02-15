@@ -197,6 +197,7 @@ export type ParsedTakeOrderedAndProjectPlan = {
 export type ParseFileScanPlan = {
   Location?: string;
   tableName?: string;
+  isIcebergRead?: boolean;
   orderBy?: string[];
   PartitionFilters?: string[];
   PushedFilters?: string[];

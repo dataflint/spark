@@ -71,7 +71,19 @@ export function parseFileScan(
       result.ReadSchema = schema;
     }
   }
-  if (nodeName.split(" ").length === 3) {
+  if (nodeName.startsWith("Read ")) {
+    const tableName = nodeName.slice("Read ".length).trim();
+    if (tableName.length > 0) {
+      result.tableName = tableName;
+      result.isIcebergRead = true;
+    }
+  } else if (nodeName.startsWith("BatchScan ")) {
+    const parts = nodeName.split(" ");
+    if (parts.length === 2) {
+      result.tableName = parts[1];
+      result.isIcebergRead = true;
+    }
+  } else if (nodeName.split(" ").length === 3) {
     result.tableName = nodeName.split(" ")[2];
   }
 

@@ -582,6 +582,9 @@ export function findExchangeStageIds(metrics: EnrichedSqlMetric[]): {
 }
 
 export function calcNodeType(name: string): NodeType {
+  if (name.startsWith("Read ")) {
+    return "input";
+  }
   if (name.includes("Scan")) {
     return "input";
   }

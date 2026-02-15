@@ -147,14 +147,15 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
         });
       }
 
+      const inputMetrics = processInputNodeMetrics(data.node);
       metrics = [
+        ...inputMetrics,
         ...allBaseMetrics,
         ...processCachedStorageMetrics(data.node),
         ...processIcebergCommitMetrics(data.node),
         ...processDeltaLakeScanMetrics(data.node),
         ...processExchangeMetrics(data.node),
         ...processShuffleReadMetrics(data.node),
-        ...processInputNodeMetrics(data.node),
         ...processOutputNodeMetrics(data.node),
         ...processOptimizeTableMetrics(data.node),
       ];
@@ -175,6 +176,20 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
         // Format as multi-line code block (same as write side)
         addTruncatedCodeTooltip(metrics, fieldLabel, plan.fields.join(",\n"), 120, true, true);
       }
+    }
+
+    const tableName =
+      data.node.parsedPlan?.type === "FileScan"
+        ? data.node.parsedPlan.plan.tableName
+        : undefined;
+    const isIcebergRead =
+      data.node.parsedPlan?.type === "FileScan" &&
+      data.node.parsedPlan.plan.isIcebergRead;
+    if (tableName && isIcebergRead) {
+      metrics = [
+        { name: "Table Name", value: tableName },
+        ...metrics.filter((metric) => metric.name !== "Table Name"),
+      ];
     }
 
     // Keep original name - use icon indicator instead of text suffix

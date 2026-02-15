@@ -264,6 +264,16 @@ export const processInputNodeMetrics = (node: EnrichedSqlNode): MetricWithToolti
 
     if (node.type !== "input") return metrics;
 
+    if (node.nodeName.startsWith("Read ")) {
+        const tableName = node.nodeName.slice("Read ".length).trim();
+        if (tableName.length > 0) {
+            metrics.push({
+                name: "Table Name",
+                value: tableName,
+            });
+        }
+    }
+
     const filesReadMetric = parseFloat(
         node.metrics
             .find((metric) => metric.name === "files read")

@@ -157,7 +157,14 @@ class PlanMetricsProcessor {
         }
 
         if (plan.tableName !== undefined) {
-            addTruncatedSmallTooltip(metrics, "Table", plan.tableName);
+            if (plan.isIcebergRead) {
+                metrics.push({
+                    name: "Table Name",
+                    value: plan.tableName,
+                });
+            } else {
+                addTruncatedSmallTooltip(metrics, "Table", plan.tableName);
+            }
         }
 
         return metrics;
