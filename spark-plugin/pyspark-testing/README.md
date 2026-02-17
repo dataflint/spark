@@ -53,8 +53,8 @@ The `run-with-spark.sh` script will check Java version and fail with a helpful m
 
 ### Plugin JARs
 The scripts automatically detect the Spark major version and load the appropriate plugin:
-- **Spark 3.x**: `pluginspark3/target/scala-2.12/spark_2.12-0.8.4.jar`
-- **Spark 4.x**: `pluginspark4/target/scala-2.13/spark_2.13-0.8.4.jar`
+- **Spark 3.x**: `pluginspark3/target/scala-2.12/spark_2.12-0.8.5.jar`
+- **Spark 4.x**: `pluginspark4/target/scala-2.13/spark_2.13-0.8.5.jar`
 
 Build the required JAR before running:
 ```bash
