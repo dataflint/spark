@@ -1,13 +1,16 @@
 /*
- * DataFlint instrumented MapInBatchExec for Spark 3.4.x
+ * DataFlint instrumented MapInBatchExec for Spark 3.0.x
  *
- * Spark 3.4 characteristics:
- *   - Added PythonSQLMetrics mixin (SPARK-34265) for Python UDF SQL metrics
- *   - No barrier mode support (added in 3.5)
- *   - No MapInBatchEvaluatorFactory (added in 3.5)
- *   - Inline execution with ArrowPythonRunner (7-arg constructor, adds pythonMetrics)
- *   - ArrowPythonRunner constructor: (funcs, evalType, argOffsets, schema, timeZoneId, workerConf, pythonMetrics)
+ * Spark 3.0 characteristics:
+ *   - MapInPandasExec extends UnaryExecNode directly (no MapInBatchExec trait, introduced in 3.3)
+ *   - No PythonMapInArrowExec (introduced in 3.3 via SPARK-37227)
+ *   - No PythonSQLMetrics mixin (introduced in 3.4 via SPARK-34265)
+ *   - No barrier mode support (introduced in 3.5 via SPARK-42896)
+ *   - No MapInBatchEvaluatorFactory (introduced in 3.5 via SPARK-44361)
+ *   - Inline execution with ArrowPythonRunner (6-arg constructor)
+ *   - ArrowPythonRunner constructor: (funcs, evalType, argOffsets, schema, timeZoneId, confMap)
  *   - MapInPandasExec fields: (func, output, child) — no isBarrier, no profile
+ *   - confMap via ArrowUtils.getPythonRunnerConfMap: SESSION_LOCAL_TIMEZONE + PANDAS_GROUPED_MAP_ASSIGN_COLUMNS_BY_NAME
  */
 package org.apache.spark.sql.execution.python
 
@@ -30,13 +33,13 @@ import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.vectorized.{ArrowColumnVector, ColumnarBatch}
 
 /**
- * DataFlint instrumented version of MapInBatchExec for Spark 3.4.x.
- * Adds a duration metric alongside the standard PythonSQLMetrics.
+ * DataFlint instrumented version of MapInBatchExec for Spark 3.0.x.
+ * Adds a duration metric to measure time spent in Python UDF execution.
  *
- * Uses reflection to construct ArrowPythonRunner since the 3.4 constructor
- * (7-arg) differs from the 3.5 constructor (9-arg) that this code compiles against.
+ * Uses reflection to construct ArrowPythonRunner since the 3.0 constructor
+ * (6-arg) differs from the 3.5 constructor (9-arg) that this code compiles against.
  */
-trait DataFlintMapInBatchExec_3_4 extends SparkPlan with PythonSQLMetrics with Logging {
+trait DataFlintMapInBatchExec_3_0 extends SparkPlan with Logging {
   protected val func: Expression
   protected val pythonEvalType: Int
 
@@ -48,10 +51,11 @@ trait DataFlintMapInBatchExec_3_4 extends SparkPlan with PythonSQLMetrics with L
 
   override def outputPartitioning: Partitioning = child.outputPartitioning
 
+  // No PythonSQLMetrics in 3.0 — only our custom duration metric
   // Note: Cannot use SQLMetrics.createTimingMetric() because it gained a default parameter
   // in 3.5 (size: Long = -1L), and the Scala compiler generates a call to the synthetic
-  // $default$3() method which doesn't exist in 3.3/3.4 at runtime.
-  override lazy val metrics: Map[String, SQLMetric] = pythonMetrics ++ Map(
+  // $default$3() method which doesn't exist in 3.0 at runtime.
+  override lazy val metrics: Map[String, SQLMetric] = Map(
     "duration" -> {
       val metric = new SQLMetric("timing", -1L)
       metric.register(sparkContext, Some("duration"), false)
@@ -60,7 +64,7 @@ trait DataFlintMapInBatchExec_3_4 extends SparkPlan with PythonSQLMetrics with L
   )
 
   override protected def doExecute(): RDD[InternalRow] = {
-    logInfo("DataFlint MapInBatchExec (Spark 3.4) doExecute is running")
+    logInfo("DataFlint MapInBatchExec (Spark 3.0) doExecute is running")
 
     val durationMetric = longMetric("duration")
 
@@ -74,13 +78,11 @@ trait DataFlintMapInBatchExec_3_4 extends SparkPlan with PythonSQLMetrics with L
       val outputTypes = child.schema
       val batchSize = conf.arrowMaxRecordsPerBatch
 
-      // Construct confMap manually (replicates ArrowUtils.getPythonRunnerConfMap for 3.4)
+      // Construct confMap manually (replicates ArrowUtils.getPythonRunnerConfMap for 3.0)
       val pythonRunnerConf = Map(
         SQLConf.SESSION_LOCAL_TIMEZONE.key -> sessionLocalTimeZone,
         SQLConf.PANDAS_GROUPED_MAP_ASSIGN_COLUMNS_BY_NAME.key ->
-          conf.pandasGroupedMapAssignColumnsByName.toString,
-        SQLConf.PANDAS_ARROW_SAFE_TYPE_CONVERSION.key ->
-          conf.arrowSafeTypeConversion.toString
+          conf.pandasGroupedMapAssignColumnsByName.toString
       )
 
       val context = TaskContext.get()
@@ -89,20 +91,19 @@ trait DataFlintMapInBatchExec_3_4 extends SparkPlan with PythonSQLMetrics with L
       val batchIter =
         if (batchSize > 0) new BatchIterator(wrappedIter, batchSize) else Iterator(wrappedIter)
 
-      // Use reflection: Spark 3.4 ArrowPythonRunner has a 7-arg constructor (adds pythonMetrics)
+      // Use reflection: Spark 3.0 ArrowPythonRunner has a 6-arg constructor
       val runnerClass = classOf[ArrowPythonRunner]
       val ctor = runnerClass.getConstructors
-        .find(_.getParameterCount == 7)
+        .find(_.getParameterCount == 6)
         .getOrElse(throw new RuntimeException(
-          "Cannot find ArrowPythonRunner 7-arg constructor. Expected Spark 3.4.x runtime."))
+          "Cannot find ArrowPythonRunner 6-arg constructor. Expected Spark 3.0.x runtime."))
       val runner = ctor.newInstance(
         chainedFunc.asInstanceOf[AnyRef],
         Int.box(pythonEvalType),
         argOffsets.asInstanceOf[AnyRef],
-        StructType(Array(StructField("struct", outputTypes))).asInstanceOf[AnyRef],
+        StructType(StructField("struct", outputTypes) :: Nil).asInstanceOf[AnyRef],
         sessionLocalTimeZone.asInstanceOf[AnyRef],
-        pythonRunnerConf.asInstanceOf[AnyRef],
-        pythonMetrics.asInstanceOf[AnyRef]
+        pythonRunnerConf.asInstanceOf[AnyRef]
       ).asInstanceOf[BasePythonRunner[Iterator[InternalRow], ColumnarBatch]]
 
       val columnarBatchIter = runner.compute(batchIter, context.partitionId(), context)
@@ -124,40 +125,22 @@ trait DataFlintMapInBatchExec_3_4 extends SparkPlan with PythonSQLMetrics with L
 }
 
 /**
- * DataFlint instrumented MapInPandasExec for Spark 3.4.x.
+ * DataFlint instrumented MapInPandasExec for Spark 3.0.x.
  * Replaces the original MapInPandasExec in the physical plan.
+ *
+ * Note: mapInArrow is not available in Spark 3.0 (introduced in 3.3 via SPARK-37227).
  */
-case class DataFlintMapInPandasExec_3_4(
+case class DataFlintMapInPandasExec_3_0(
     func: Expression,
     output: Seq[Attribute],
     child: SparkPlan)
-  extends DataFlintMapInBatchExec_3_4 with Logging {
+  extends DataFlintMapInBatchExec_3_0 with Logging {
 
   override def nodeName: String = "DataFlintMapInPandas"
 
-  logInfo("DataFlint MapInPandas (Spark 3.4) is connected")
+  logInfo("DataFlint MapInPandas (Spark 3.0) is connected")
 
   override protected val pythonEvalType: Int = PythonEvalType.SQL_MAP_PANDAS_ITER_UDF
-
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[SparkPlan]): SparkPlan =
-    copy(child = newChildren.head)
-}
-
-/**
- * DataFlint instrumented PythonMapInArrowExec for Spark 3.4.x.
- * Replaces the original PythonMapInArrowExec in the physical plan.
- */
-case class DataFlintPythonMapInArrowExec_3_4(
-    func: Expression,
-    output: Seq[Attribute],
-    child: SparkPlan)
-  extends DataFlintMapInBatchExec_3_4 with Logging {
-
-  override def nodeName: String = "DataFlintMapInArrow"
-
-  logInfo("DataFlint MapInArrow (Spark 3.4) is connected")
-
-  override protected val pythonEvalType: Int = PythonEvalType.SQL_MAP_ARROW_ITER_UDF
 
   override protected def withNewChildrenInternal(newChildren: IndexedSeq[SparkPlan]): SparkPlan =
     copy(child = newChildren.head)

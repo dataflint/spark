@@ -111,9 +111,9 @@ trait DataFlintMapInBatchExec_4_1 extends SparkPlan with PythonSQLMetrics with L
       } else {
         rddBarrier.mapPartitionsWithIndex { (index, iter) =>
           val startTime = System.nanoTime()
-          val result = evaluatorFactory.createEvaluator().eval(index, iter).toList
+          val result = evaluatorFactory.createEvaluator().eval(index, iter)
           durationMetric += NANOSECONDS.toMillis(System.nanoTime() - startTime)
-          result.iterator
+          result
         }
       }
     } else {
@@ -123,9 +123,9 @@ trait DataFlintMapInBatchExec_4_1 extends SparkPlan with PythonSQLMetrics with L
       } else {
         inputRdd.mapPartitionsWithIndexInternal { (index, iter) =>
           val startTime = System.nanoTime()
-          val result = evaluatorFactory.createEvaluator().eval(index, iter).toList
+          val result = evaluatorFactory.createEvaluator().eval(index, iter)
           durationMetric += NANOSECONDS.toMillis(System.nanoTime() - startTime)
-          result.iterator
+          result
         }
       }
     }

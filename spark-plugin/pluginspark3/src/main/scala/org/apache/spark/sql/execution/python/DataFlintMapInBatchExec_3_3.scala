@@ -114,10 +114,10 @@ trait DataFlintMapInBatchExec_3_3 extends SparkPlan with Logging {
         val flattenedBatch = new ColumnarBatch(outputVectors.toArray)
         flattenedBatch.setNumRows(batch.numRows())
         flattenedBatch.rowIterator.asScala
-      }.map(unsafeProj).toList
+      }.map(unsafeProj)
 
       durationMetric += NANOSECONDS.toMillis(System.nanoTime() - startTime)
-      result.iterator
+      result
     }
   }
 }
