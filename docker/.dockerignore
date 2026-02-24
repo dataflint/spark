@@ -1,0 +1,7 @@
+# Ignore most files
+*.md
+*.sh
+docker-compose.yml
+
+# Allow JARs directory for local builds
+!jars/
