@@ -134,6 +134,7 @@ object DataflintSparkUICommonLoader extends Logging {
   val INSTRUMENT_SPARK_ENABLED = "spark.dataflint.instrument.spark.enabled"
   val INSTRUMENT_MAP_IN_PANDAS_ENABLED = "spark.dataflint.instrument.spark.mapInPandas.enabled"
   val INSTRUMENT_MAP_IN_ARROW_ENABLED = "spark.dataflint.instrument.spark.mapInArrow.enabled"
+  val INSTRUMENT_WINDOW_ENABLED = "spark.dataflint.instrument.spark.window.enabled"
 
   def install(context: SparkContext, pageFactory: DataflintPageFactory): String = {
     new DataflintSparkUICommonInstaller().install(context, pageFactory)
@@ -164,7 +165,8 @@ object DataflintSparkUICommonLoader extends Logging {
     val instrumentEnabled = sc.conf.getBoolean(INSTRUMENT_SPARK_ENABLED, defaultValue = false)
     val mapInPandasEnabled = sc.conf.getBoolean(INSTRUMENT_MAP_IN_PANDAS_ENABLED, defaultValue = false)
     val mapInArrowEnabled = sc.conf.getBoolean(INSTRUMENT_MAP_IN_ARROW_ENABLED, defaultValue = false)
-    val anyInstrumentationEnabled = instrumentEnabled || mapInPandasEnabled || mapInArrowEnabled
+    val windowEnabled = sc.conf.getBoolean(INSTRUMENT_WINDOW_ENABLED, defaultValue = false)
+    val anyInstrumentationEnabled = instrumentEnabled || mapInPandasEnabled || mapInArrowEnabled || windowEnabled
     if (!anyInstrumentationEnabled) {
       logInfo("DataFlint instrumentation extension is disabled (no instrumentation flags enabled)")
       return

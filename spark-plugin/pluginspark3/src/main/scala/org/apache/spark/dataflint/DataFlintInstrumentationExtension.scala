@@ -4,6 +4,8 @@ import org.apache.spark.SPARK_VERSION
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SparkSessionExtensions
+import org.apache.spark.sql.Strategy
+import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Window => LogicalWindow}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.{ColumnarRule, SparkPlan}
 import org.apache.spark.sql.execution.python.{
@@ -17,6 +19,7 @@ import org.apache.spark.sql.execution.python.{
   DataFlintPythonMapInArrowExec_3_5,
   MapInPandasExec
 }
+import org.apache.spark.sql.execution.window.DataFlintWindowExec
 
 /**
  * A SparkSessionExtension that injects DataFlint instrumentation into Spark's physical planning phase.
@@ -45,6 +48,10 @@ class DataFlintInstrumentationExtension extends (SparkSessionExtensions => Unit)
 
     extensions.injectColumnar { session =>
       DataFlintInstrumentationColumnarRule(session)
+    }
+
+    extensions.injectPlannerStrategy { session =>
+      DataFlintWindowPlannerStrategy(session)
     }
   }
 }
@@ -186,6 +193,33 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
       case _: NoClassDefFoundError =>
         logWarning("PythonMapInArrowExec not available in this Spark version (requires 3.3+) - mapInArrow instrumentation disabled")
         plan
+    }
+  }
+}
+
+/**
+ * A planner Strategy that converts the logical Window plan node directly into
+ * DataFlintWindowExec, bypassing WindowExec entirely.
+ *
+ * Using a Strategy (rather than a ColumnarRule) is correct for row-based operators
+ * like WindowExec that do not participate in columnar execution.
+ */
+case class DataFlintWindowPlannerStrategy(session: SparkSession) extends Strategy with Logging {
+
+  private val windowEnabled: Boolean = {
+    val conf = session.sparkContext.conf
+    val globalEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED, defaultValue = false)
+    val specificEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_WINDOW_ENABLED, defaultValue = false)
+    globalEnabled || specificEnabled
+  }
+
+  override def apply(plan: LogicalPlan): Seq[SparkPlan] = {
+    if (!windowEnabled) return Nil
+    plan match {
+      case w: LogicalWindow =>
+        logInfo("Replacing logical Window with DataFlintWindowExec")
+        DataFlintWindowExec(w.windowExpressions, w.partitionSpec, w.orderSpec, planLater(w.child)) :: Nil
+      case _ => Nil
     }
   }
 }

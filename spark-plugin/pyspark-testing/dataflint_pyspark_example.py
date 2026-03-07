@@ -55,6 +55,7 @@ spark = SparkSession \
     .config("spark.dataflint.telemetry.enabled", "false") \
     .config("spark.dataflint.instrument.spark.mapInPandas.enabled", "true") \
     .config("spark.dataflint.instrument.spark.mapInArrow.enabled", "true") \
+    .config("spark.dataflint.instrument.spark.window.enabled", "true") \
     .master("local[*]") \
     .getOrCreate()
 
@@ -179,6 +180,30 @@ else:
     print("="*80)
     print(f"mapInArrow is only supported in Spark 3.3.0+")
     print(f"Current version: {spark_version}")
+
+
+
+print("\n" + "="*80)
+print("Running Window function example")
+print("="*80)
+
+from pyspark.sql import Window
+from pyspark.sql.functions import rank, sum as spark_sum, avg
+
+window_by_category = Window.partitionBy("category").orderBy("price")
+window_category_total = Window.partitionBy("category")
+
+df_window = df.withColumn("rank_in_category", rank().over(window_by_category)) \
+              .withColumn("cumulative_revenue", spark_sum("price").over(window_by_category)) \
+              .withColumn("avg_price_in_category", avg("price").over(window_category_total))
+
+df_window.write \
+    .mode("overwrite") \
+    .parquet("/tmp/dataflint_window_example")
+
+print("\nResult written to /tmp/dataflint_window_example")
+print("\nSample output:")
+df_window.show(10, truncate=False)
 
 
 print("\n" + "="*80)
