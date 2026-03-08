@@ -18,7 +18,8 @@ lazy val dataflint = project
     example_3_4_1,
     example_3_5_1,
     example_3_4_1_remote,
-    example_4_0_1
+    example_4_0_1,
+    example_4_1_0
   ).settings(
     crossScalaVersions := Nil, // Aggregate project version must be Nil, see docs: https://www.scala-sbt.org/1.x/docs/Cross-Build.html
     publish / skip := true
@@ -221,5 +222,17 @@ lazy val example_4_0_1 = (project in file("example_4_0_1"))
     // there is no scala 2.12 version so we need to force 2.13 to make it compile
     libraryDependencies += "org.apache.spark" % "spark-core_2.13" % "4.0.1",
     libraryDependencies += "org.apache.spark" % "spark-sql_2.13" % "4.0.1",
+    publish / skip := true
+  ).dependsOn(pluginspark4)
+
+lazy val example_4_1_0 = (project in file("example_4_1_0"))
+  .settings(
+    name := "DataflintSparkExample410",
+    organization := "io.dataflint",
+    scalaVersion := scala213,
+    crossScalaVersions := List(scala213), // Only Scala 2.13 for Spark 4.x
+    // there is no scala 2.12 version so we need to force 2.13 to make it compile
+    libraryDependencies += "org.apache.spark" % "spark-core_2.13" % "4.1.0",
+    libraryDependencies += "org.apache.spark" % "spark-sql_2.13" % "4.1.0",
     publish / skip := true
   ).dependsOn(pluginspark4)

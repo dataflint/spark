@@ -98,6 +98,10 @@ fi
 # Get current Java version for display
 JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | cut -d'.' -f1)
 
+# Get Scala version from the scala-library JAR bundled with Spark
+SCALA_VERSION=$(ls "${SPARK_HOME}/jars/scala-library-"*.jar 2>/dev/null | sed 's/.*scala-library-\([0-9.]*\)\.jar/\1/' | head -1)
+SCALA_VERSION="${SCALA_VERSION:-unknown}"
+
 # Ensure driver and worker use the same Python interpreter
 PYTHON_BIN="$(which python3)"
 export PYSPARK_PYTHON="${PYTHON_BIN}"
@@ -110,9 +114,12 @@ export PYTHONPATH="${SPARK_HOME}/python${PY4J_ZIP:+:${PY4J_ZIP}}${PYTHONPATH:+:$
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║  SPARK_HOME : ${SPARK_HOME}"
 echo "║  Spark ver  : ${SPARK_VERSION}"
+echo "║  Scala ver  : ${SCALA_VERSION}"
 echo "║  Java ver   : ${JAVA_VERSION}"
 echo "║  Script     : ${PYSPARK_SCRIPT}"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
+
+#export SPARK_LOG_LEVEL="${SPARK_LOG_LEVEL:-WARN}"
 
 exec python3 "${PYSPARK_SCRIPT}" "$@"

@@ -2,23 +2,13 @@ package org.apache.spark.dataflint
 
 import org.apache.spark.SPARK_VERSION
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.SparkSessionExtensions
-import org.apache.spark.sql.Strategy
+import org.apache.spark.sql.{SparkSession, SparkSessionExtensions, Strategy, execution}
+import org.apache.spark.sql.catalyst.expressions.{NamedExpression, WindowFunctionType}
+import org.apache.spark.sql.catalyst.planning.PhysicalWindow
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Window => LogicalWindow}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.{ColumnarRule, SparkPlan}
-import org.apache.spark.sql.execution.python.{
-  DataFlintMapInPandasExec_3_0,
-  DataFlintMapInPandasExec_3_1,
-  DataFlintMapInPandasExec_3_3,
-  DataFlintMapInPandasExec_3_4,
-  DataFlintMapInPandasExec_3_5,
-  DataFlintPythonMapInArrowExec_3_3,
-  DataFlintPythonMapInArrowExec_3_4,
-  DataFlintPythonMapInArrowExec_3_5,
-  MapInPandasExec
-}
+import org.apache.spark.sql.execution.python.{DataFlintMapInPandasExec_3_0, DataFlintMapInPandasExec_3_1, DataFlintMapInPandasExec_3_3, DataFlintMapInPandasExec_3_4, DataFlintMapInPandasExec_3_5, DataFlintPythonMapInArrowExec_3_3, DataFlintPythonMapInArrowExec_3_4, DataFlintPythonMapInArrowExec_3_5, DataFlintWindowInPandasExec, MapInPandasExec, WindowInPandasExec}
 import org.apache.spark.sql.execution.window.DataFlintWindowExec
 
 /**
@@ -216,9 +206,17 @@ case class DataFlintWindowPlannerStrategy(session: SparkSession) extends Strateg
   override def apply(plan: LogicalPlan): Seq[SparkPlan] = {
     if (!windowEnabled) return Nil
     plan match {
-      case w: LogicalWindow =>
+      case PhysicalWindow(
+        WindowFunctionType.SQL, windowExprs, partitionSpec, orderSpec, child) =>
         logInfo("Replacing logical Window with DataFlintWindowExec")
-        DataFlintWindowExec(w.windowExpressions, w.partitionSpec, w.orderSpec, planLater(w.child)) :: Nil
+        DataFlintWindowExec(
+          windowExprs, partitionSpec, orderSpec, planLater(child)) :: Nil
+
+      case PhysicalWindow(
+        WindowFunctionType.Python, windowExprs, partitionSpec, orderSpec, child) =>
+        logInfo("Replacing logical Window (Python UDF) with DataFlintWindowInPandasExec")
+        DataFlintWindowInPandasExec(
+          windowExprs, partitionSpec, orderSpec, planLater(child)) :: Nil
       case _ => Nil
     }
   }
