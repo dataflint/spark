@@ -55,6 +55,7 @@ plugin/src/main/resources/io/
 
 # custom
 .bsp
+.sbtopts
 
 # Downloaded Spark versions (large binaries, not for VCS)
 utils/.spark-versions/
