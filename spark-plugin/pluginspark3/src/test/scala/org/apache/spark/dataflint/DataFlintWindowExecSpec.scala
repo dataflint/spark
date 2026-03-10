@@ -163,7 +163,6 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val durationSlow = resultSlow.queryExecution.executedPlan.collect {
       case w: DataFlintWindowExec => w
     }.head.metrics("duration").value
-    Thread.sleep(50000)
     // The metric must capture the UDAF's sleep time (at least rows*sleepTime ms = 1ms × 200 rows)
     withClue(s"durationSlow=$durationSlow ms should be >= ${rows*sleepTime}ms (UDAF sleep captured in metric)") {
       durationSlow should be >= rows.toLong
