@@ -16,14 +16,13 @@
  */
 package org.apache.spark.sql.execution.python
 
+import org.apache.spark.dataflint.DataFlintRDDUtils
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
-
-import java.util.concurrent.TimeUnit.NANOSECONDS
 
 class DataFlintWindowInPandasExec_4_0 private (
     windowExpression: Seq[NamedExpression],
@@ -39,25 +38,8 @@ class DataFlintWindowInPandasExec_4_0 private (
     "duration" -> SQLMetrics.createTimingMetric(sparkContext, "duration")
   )
 
-  override protected def doExecute(): RDD[InternalRow] = {
-    val durationMetric = longMetric("duration")
-    val innerRDD = super.doExecute()
-    innerRDD.mapPartitions { iter =>
-      val startTime = System.nanoTime()
-      var done = false
-      new Iterator[InternalRow] {
-        override def hasNext: Boolean = {
-          val r = iter.hasNext
-          if (!r && !done) {
-            durationMetric += NANOSECONDS.toMillis(System.nanoTime() - startTime)
-            done = true
-          }
-          r
-        }
-        override def next(): InternalRow = iter.next()
-      }
-    }
-  }
+  override protected def doExecute(): RDD[InternalRow] =
+    DataFlintRDDUtils.withDurationMetric(super.doExecute(), longMetric("duration"))
 
   override protected def withNewChildInternal(newChild: SparkPlan): DataFlintWindowInPandasExec_4_0 =
     DataFlintWindowInPandasExec_4_0(windowExpression, partitionSpec, orderSpec, newChild)
