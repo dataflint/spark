@@ -164,6 +164,10 @@ export function parseNodePlan(
           plan: parseSort(plan.planDescription),
         };
       case "Window":
+      case "DataFlintWindow":
+      case "WindowInPandas":
+      case "DataFlintWindowInPandas":
+      case "DataFlintArrowWindowPython":
         return {
           type: "Window",
           plan: parseWindow(plan.planDescription),

@@ -192,6 +192,10 @@ const nodeTypeDict: Record<string, NodeType> = {
   ArrowEvalPython: "transformation",
   FlatMapGroupsInPandas: "transformation",
   BatchEvalPython: "transformation",
+  WindowInPandas: "transformation",
+  DataFlintWindowInPandas: "transformation",
+  DataFlintArrowWindowPython: "transformation",
+  DataFlintWindow: "transformation",
   Generate: "transformation",
   Expand: "transformation",
 };
@@ -272,6 +276,11 @@ const nodeRenamerDict: Record<string, string> = {
   ArrowEvalPython: "Select (with Arrow)",
   FlatMapGroupsInPandas: "Select Flat (with Pandas)",
   BatchEvalPython: "Run Python UDF",
+  Window: "Window",
+  WindowInPandas: "Window (with Pandas UDF)",
+  DataFlintWindow: "Window",
+  DataFlintWindowInPandas: "Window (with Pandas UDF)",
+  DataFlintArrowWindowPython: "Window (with Pandas UDF)",
   Expand: "Expand",
 };
 

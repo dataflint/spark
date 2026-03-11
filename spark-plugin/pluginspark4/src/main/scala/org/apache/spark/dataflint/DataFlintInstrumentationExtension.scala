@@ -4,16 +4,14 @@ import org.apache.spark.SPARK_VERSION
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.SparkSessionExtensions
+import org.apache.spark.sql.catalyst.expressions.{NamedExpression, WindowFunctionType}
+import org.apache.spark.sql.catalyst.planning.PhysicalWindow
+import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Window => LogicalWindow}
+import org.apache.spark.sql.execution.SparkStrategy
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.{ColumnarRule, SparkPlan}
-import org.apache.spark.sql.execution.python.{
-  DataFlintMapInPandasExec_4_0,
-  DataFlintMapInPandasExec_4_1,
-  DataFlintPythonMapInArrowExec_4_0,
-  DataFlintPythonMapInArrowExec_4_1,
-  MapInArrowExec,
-  MapInPandasExec
-}
+import org.apache.spark.sql.execution.python.{DataFlintArrowWindowPythonExec_4_1, DataFlintMapInPandasExec_4_0, DataFlintMapInPandasExec_4_1, DataFlintPythonMapInArrowExec_4_0, DataFlintPythonMapInArrowExec_4_1, DataFlintWindowInPandasExec_4_0, MapInArrowExec, MapInPandasExec}
+import org.apache.spark.sql.execution.window.DataFlintWindowExec
 
 /**
  * A SparkSessionExtension that injects DataFlint instrumentation into Spark's physical planning phase.
@@ -39,6 +37,10 @@ class DataFlintInstrumentationExtension extends (SparkSessionExtensions => Unit)
 
     extensions.injectColumnar { session =>
       DataFlintInstrumentationColumnarRule(session)
+    }
+
+    extensions.injectPlannerStrategy { session =>
+      DataFlintWindowPlannerStrategy(session)
     }
   }
 }
@@ -71,6 +73,7 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
     val specificEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_MAP_IN_ARROW_ENABLED, defaultValue = false)
     globalEnabled || specificEnabled
   }
+
 
   override def preColumnarTransitions: Rule[SparkPlan] = { plan =>
     if (!mapInPandasEnabled && !mapInArrowEnabled) plan
@@ -117,6 +120,50 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
               profile = mapInArrow.profile
             )
         }
+    }
+  }
+}
+
+/**
+ * A planner Strategy that converts the logical Window plan node directly into
+ * DataFlintWindowExec, bypassing WindowExec entirely.
+ *
+ * Using a Strategy (rather than a ColumnarRule) is correct for row-based operators
+ * like WindowExec that do not participate in columnar execution.
+ */
+case class DataFlintWindowPlannerStrategy(session: SparkSession) extends SparkStrategy with Logging {
+
+  private val sparkMinorVersion: String = {
+    val parts = SPARK_VERSION.split("\\.")
+    if (parts.length >= 2) s"${parts(0)}.${parts(1)}" else SPARK_VERSION
+  }
+
+  private val windowEnabled: Boolean = {
+    val conf = session.sparkContext.conf
+    val globalEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED, defaultValue = false)
+    val specificEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_WINDOW_ENABLED, defaultValue = false)
+    globalEnabled || specificEnabled
+  }
+
+  override def apply(plan: LogicalPlan): Seq[SparkPlan] = {
+    if (!windowEnabled) return Nil
+    plan match {
+      case PhysicalWindow(
+        WindowFunctionType.SQL, windowExprs, partitionSpec, orderSpec, child) =>
+        logInfo("Replacing logical Window with DataFlintWindowExec")
+        DataFlintWindowExec(
+          windowExprs, partitionSpec, orderSpec, planLater(child)) :: Nil
+
+      case PhysicalWindow(
+        WindowFunctionType.Python, windowExprs, partitionSpec, orderSpec, child) =>
+        logInfo(s"Replacing logical Window (Python UDF) with DataFlint version for Spark $sparkMinorVersion")
+        sparkMinorVersion match {
+          case "4.0" =>
+            DataFlintWindowInPandasExec_4_0(windowExprs, partitionSpec, orderSpec, planLater(child)) :: Nil
+          case _ => DataFlintArrowWindowPythonExec_4_1(windowExprs, partitionSpec, orderSpec, planLater(child)) :: Nil
+        }
+
+      case _ => Nil
     }
   }
 }

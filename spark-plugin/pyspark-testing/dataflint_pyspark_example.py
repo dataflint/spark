@@ -25,11 +25,10 @@ spark_home = os.environ.get('SPARK_HOME', '')
 spark_major_version = 3  # default to Spark 3
 
 if spark_home:
-    # Try to extract version from SPARK_HOME path
-    if '4.0' in spark_home or 'spark-4' in spark_home:
-        spark_major_version = 4
-    elif '3.' in spark_home or 'spark-3' in spark_home:
-        spark_major_version = 3
+    import re
+    m = re.search(r'[/_-](\d+)\.\d', spark_home)
+    if m:
+        spark_major_version = int(m.group(1))
 
 # Select the appropriate plugin JAR based on Spark version
 if spark_major_version == 4:
@@ -52,12 +51,15 @@ spark = SparkSession \
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin") \
     .config("spark.ui.port", "10000") \
     .config("spark.sql.maxMetadataStringLength", "10000") \
+    .config("spark.sql.adaptive.enabled", "false") \
     .config("spark.dataflint.telemetry.enabled", "false") \
+    .config("spark.dataflint.instrument.spark.enable", "true") \
     .config("spark.dataflint.instrument.spark.mapInPandas.enabled", "true") \
     .config("spark.dataflint.instrument.spark.mapInArrow.enabled", "true") \
+    .config("spark.dataflint.instrument.spark.window.enabled", "true") \
     .master("local[*]") \
     .getOrCreate()
-
+# spark.sparkContext.setLogLevel("INFO")
 # Get Spark version and check if mapInArrow is supported
 spark_version = spark.version
 version_parts = spark_version.split('.')
@@ -179,6 +181,59 @@ else:
     print("="*80)
     print(f"mapInArrow is only supported in Spark 3.3.0+")
     print(f"Current version: {spark_version}")
+
+
+
+print("\n" + "="*80)
+print("Running Window function example")
+print("="*80)
+
+from pyspark.sql import Window
+from pyspark.sql.functions import rank, sum as spark_sum, avg
+from pyspark.sql.types import DoubleType
+
+window_by_category = Window.partitionBy("category").orderBy("price")
+window_category_total = Window.partitionBy("category")
+
+df_window = df.withColumn("rank_in_category", rank().over(window_by_category)) \
+              .withColumn("cumulative_revenue", spark_sum("price").over(window_by_category)) \
+              .withColumn("avg_price_in_category", avg("price").over(window_category_total))
+
+df_window.write \
+    .mode("overwrite") \
+    .parquet("/tmp/dataflint_window_example")
+
+print("\nResult written to /tmp/dataflint_window_example")
+print("\nSample output:")
+df_window.show(10, truncate=False)
+
+
+print("\n" + "="*80)
+print("Running Window function with Python UDF example")
+print("="*80)
+
+import pandas as pd
+from pyspark.sql.functions import pandas_udf
+
+@pandas_udf(DoubleType())
+def discounted_sum(prices: pd.Series) -> float:
+    """Pandas UDF used as a window aggregate: sum of prices with a 10% discount."""
+    import time
+    time.sleep(2)
+    return prices.sum() * 0.9
+
+df_window_udf = df.withColumn(
+    "discounted_category_revenue",
+    discounted_sum("price").over(window_category_total)
+)
+
+df_window_udf.write \
+    .mode("overwrite") \
+    .parquet("/tmp/dataflint_window_udf_example")
+
+print("\nResult written to /tmp/dataflint_window_udf_example")
+print("\nSample output:")
+df_window_udf.show(10, truncate=False)
 
 
 print("\n" + "="*80)
