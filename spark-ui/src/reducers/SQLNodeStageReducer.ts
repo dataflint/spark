@@ -489,24 +489,24 @@ export function calculateSqlStage(
     }
   }
 
-  // Collect MapInPandas/MapInArrow nodes and extract their "duration" metric for stage subtraction
-  const mapInBatchByStageId = new Map<number, typeof calculatedStageSql.nodes>();
-  const mapInBatchDurationByNodeId = new Map<number, number>();
+  // Collect instrumented nodes (DataFlintWindow, MapInPandas, etc.) and extract their "duration" metric for stage subtraction
+  const instrumentedDurationByNodeId = new Map<number, number>();
+  const instrumentedByStageId = new Map<number, typeof calculatedStageSql.nodes>();
 
-  const mapInBatchNodeNames = [
-    "MapInPandas", "DataFlintMapInPandas",
-    "MapInArrow", "PythonMapInArrow", "DataFlintMapInArrow",
+  const instrumentedNodeNames = [
+    "DataFlintWindow", "DataFlintWindowInPandas", "DataFlintArrowWindowPython",
+    "DataFlintMapInPandas", "DataFlintMapInArrow",
   ];
 
   for (const node of calculatedStageSql.nodes) {
-    if (mapInBatchNodeNames.includes(node.nodeName)) {
+    if (instrumentedNodeNames.includes(node.nodeName)) {
       const duration = getMetricDuration("duration", node.metrics);
       if (duration !== undefined) {
-        mapInBatchDurationByNodeId.set(node.nodeId, duration);
+        instrumentedDurationByNodeId.set(node.nodeId, duration);
         if (node?.stage?.type === "onestage") {
-          const arr = mapInBatchByStageId.get(node.stage.stageId) ?? [];
+          const arr = instrumentedByStageId.get(node.stage.stageId) ?? [];
           arr.push(node);
-          mapInBatchByStageId.set(node.stage.stageId, arr);
+          instrumentedByStageId.set(node.stage.stageId, arr);
         }
       }
     }
@@ -532,9 +532,9 @@ export function calculateSqlStage(
       .map((node) => node.exchangeBroadcastDuration ?? 0)
       .reduce((a, b) => a + b, 0);
 
-    const mapInBatchNodes = mapInBatchByStageId.get(id) ?? [];
-    const mapInBatchDuration = mapInBatchNodes
-      .map((node) => mapInBatchDurationByNodeId.get(node.nodeId) ?? 0)
+    const instrumentedNodes = instrumentedByStageId.get(id) ?? [];
+    const instrumentedDuration = instrumentedNodes
+      .map((node) => instrumentedDurationByNodeId.get(node.nodeId) ?? 0)
       .reduce((a, b) => a + b, 0);
 
     const restOfStageDuration = Math.max(
@@ -544,7 +544,7 @@ export function calculateSqlStage(
       exchangeWriteDuration -
       exchangeReadDuration -
       broadcastExchangeDuration -
-      mapInBatchDuration,
+      instrumentedDuration,
     );
 
     return { id: id, restOfStageDuration: restOfStageDuration };
@@ -561,7 +561,7 @@ export function calculateSqlStage(
       if (
         node.exchangeMetrics !== undefined ||
         node.wholeStageCodegenId !== undefined ||
-        mapInBatchDurationByNodeId.has(node.nodeId)
+        instrumentedDurationByNodeId.has(node.nodeId)
       ) {
         return node;
       }
@@ -585,7 +585,7 @@ export function calculateSqlStage(
       const duration =
         stageCodegen?.codegenDuration ??
         node.exchangeMetrics?.duration ??
-        mapInBatchDurationByNodeId.get(node.nodeId) ??
+        instrumentedDurationByNodeId.get(node.nodeId) ??
         (node.stage?.type === "onestage"
           ? node.stage?.restOfStageDuration ?? node.stage?.stageDuration
           : undefined);
