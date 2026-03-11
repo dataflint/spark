@@ -28,7 +28,7 @@ private class SlowSumAggregator(fromSleep: Long, toSleep: Long) extends Aggregat
   def outputEncoder: Encoder[Long] = Encoders.scalaLong
 }
 
-class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll {
+class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll with SqlMetricTestHelper {
 
   private var spark: SparkSession = _
 
@@ -70,12 +70,12 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
       "SELECT id, cat, rank() OVER (PARTITION BY cat ORDER BY id) AS r FROM test_window_plan"
     )
     // Use sparkPlan (pre-AQE) — our strategy injects DataFlintWindowExec at planning time
-    val windowNodes = finalPlan(result).collect {
+    val windowNodes = result.queryExecution.sparkPlan.collect {
       case w: DataFlintWindowExec => w
     }
 
     withClue("Expected DataFlintWindowExec in physical plan but found: " +
-      finalPlan(result).treeString) {
+      result.queryExecution.sparkPlan.treeString) {
       windowNodes should not be empty
     }
   }
@@ -212,27 +212,17 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     }
 
     // Per-task breakdown: createTimingMetric records each task's value individually.
-    // spark.sharedState.statusStore exposes the formatted string "X ms (N tasks: min Y ms, med Z ms, max W ms)".
     // Randomized sleep must produce variation — min and max across partitions must differ.
-    val sqlStore = spark.sharedState.statusStore
-    val execData = sqlStore.executionsList().maxBy(_.executionId)
-    val metricStr = sqlStore.executionMetrics(execData.executionId)
-      .getOrElse(windowNode.metrics("duration").id, "")
-    // Format: "total (min, med, max (stageId: taskId))\nX ms (min ms, med ms, max ms (stage A.B: task C))"
-    val minMaxPattern = """\((\d+) ms, \d+ ms, (\d+) ms""".r
-    val (minDuration, maxDuration) = minMaxPattern.findFirstMatchIn(metricStr) match {
-      case Some(m) => (m.group(1).toLong, m.group(2).toLong)
-      case None    => fail(s"Expected per-task timing breakdown but got: '$metricStr'")
+    implicit val sparkImplicit: SparkSession = spark
+    val stats = metricMinMax(windowNode.metrics("duration"))
+    withClue(s"min=${stats.min} ms should differ from max=${stats.max} ms (randomized sleep)") {
+      stats.min should be < stats.max
     }
-    withClue(s"minDuration=$minDuration ms should differ from maxDuration=$maxDuration ms (randomized sleep)") {
-      minDuration should be < maxDuration
+    withClue(s"max=${stats.max} ms should be >= sleepTime=$sleepTime ms (sleep was captured in metric)") {
+      stats.max should be >= sleepTime.toLong
     }
-    withClue(s"maxDuration=$maxDuration ms should be >= sleepTime=$sleepTime ms (sleep was captured in metric)") {
-      maxDuration should be >= sleepTime.toLong
-    }
-    withClue(s"minDuration=$minDuration ms should be > sleepTime=$sleepTime ms (sleep was captured in metric)") {
-      minDuration should be >= sleepTime.toLong
+    withClue(s"min=${stats.min} ms should be >= sleepTime=$sleepTime ms (sleep was captured in metric)") {
+      stats.min should be >= sleepTime.toLong
     }
   }
-
 }
