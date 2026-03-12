@@ -322,8 +322,10 @@ function calculateSql(
         node.nodeName !== "AdaptiveSparkPlan" &&
         node.nodeName !== "ResultQueryStage",
     );
-    const lastNode = aqeFilteredNodes[aqeFilteredNodes.length - 1];
-    lastNode.type = "output";
+    if (aqeFilteredNodes.length > 0) {
+      const lastNode = aqeFilteredNodes[aqeFilteredNodes.length - 1];
+      lastNode.type = "output";
+    }
   }
   const graph = generateGraph(enrichedSql.edges, enrichedSql.nodes);
 
