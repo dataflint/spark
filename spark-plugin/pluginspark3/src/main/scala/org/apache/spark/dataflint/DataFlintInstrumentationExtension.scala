@@ -8,7 +8,7 @@ import org.apache.spark.sql.catalyst.planning.PhysicalWindow
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Window => LogicalWindow}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.{ColumnarRule, SparkPlan}
-import org.apache.spark.sql.execution.python.{DataFlintMapInPandasExec_3_0, DataFlintMapInPandasExec_3_1, DataFlintMapInPandasExec_3_3, DataFlintMapInPandasExec_3_4, DataFlintMapInPandasExec_3_5, DataFlintPythonMapInArrowExec_3_3, DataFlintPythonMapInArrowExec_3_4, DataFlintPythonMapInArrowExec_3_5, DataFlintWindowInPandasExec, MapInPandasExec, WindowInPandasExec}
+import org.apache.spark.sql.execution.python.{ArrowEvalPythonExec, DataFlintArrowEvalPythonExec_3_2, DataFlintFlatMapCoGroupsInPandasExec, DataFlintFlatMapGroupsInPandasExec, DataFlintMapInPandasExec_3_0, DataFlintMapInPandasExec_3_1, DataFlintMapInPandasExec_3_3, DataFlintMapInPandasExec_3_4, DataFlintMapInPandasExec_3_5, DataFlintPythonMapInArrowExec_3_3, DataFlintPythonMapInArrowExec_3_4, DataFlintPythonMapInArrowExec_3_5, DataFlintWindowInPandasExec, FlatMapCoGroupsInPandasExec, FlatMapGroupsInPandasExec, MapInPandasExec, WindowInPandasExec}
 import org.apache.spark.sql.execution.window.DataFlintWindowExec
 
 /**
@@ -83,8 +83,29 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
     globalEnabled || specificEnabled
   }
 
+  private val arrowEvalPythonEnabled: Boolean = {
+    val conf = session.sparkContext.conf
+    val globalEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED, defaultValue = false)
+    val specificEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_ARROW_EVAL_PYTHON_ENABLED, defaultValue = false)
+    globalEnabled || specificEnabled
+  }
+
+  private val flatMapGroupsEnabled: Boolean = {
+    val conf = session.sparkContext.conf
+    val globalEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED, defaultValue = false)
+    val specificEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_FLAT_MAP_GROUPS_PANDAS_ENABLED, defaultValue = false)
+    globalEnabled || specificEnabled
+  }
+
+  private val flatMapCoGroupsEnabled: Boolean = {
+    val conf = session.sparkContext.conf
+    val globalEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED, defaultValue = false)
+    val specificEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED, defaultValue = false)
+    globalEnabled || specificEnabled
+  }
+
   override def preColumnarTransitions: Rule[SparkPlan] = { plan =>
-    if (!mapInPandasEnabled && !mapInArrowEnabled) plan
+    if (!mapInPandasEnabled && !mapInArrowEnabled && !arrowEvalPythonEnabled && !flatMapGroupsEnabled && !flatMapCoGroupsEnabled) plan
     else {
       var result = plan
 
@@ -94,6 +115,18 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
 
       if (mapInArrowEnabled) {
         result = replaceMapInArrow(result)
+      }
+
+      if (arrowEvalPythonEnabled) {
+        result = replaceArrowEvalPython(result)
+      }
+
+      if (flatMapGroupsEnabled) {
+        result = replaceFlatMapGroupsInPandas(result)
+      }
+
+      if (flatMapCoGroupsEnabled) {
+        result = replaceFlatMapCoGroupsInPandas(result)
       }
 
       result
@@ -138,6 +171,66 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
               isBarrier = mapInPandas.isBarrier
             )
         }
+    }
+  }
+
+  /**
+   * Replaces ArrowEvalPythonExec nodes (pandas_udf SCALAR) with DataFlint instrumented versions.
+   *
+   * Only supported on Spark 3.2+ which uses the 4-param constructor (udfs, resultAttrs, child,
+   * evalType). Spark 3.0–3.1 used a 3-param constructor incompatible with our wrapper.
+   *
+   * Isolated in its own method with a try-catch so that any unexpected class-loading error
+   * on older Spark versions degrades gracefully.
+   */
+  private def replaceArrowEvalPython(plan: SparkPlan): SparkPlan = {
+    if (sparkMinorVersion == "3.0" || sparkMinorVersion == "3.1") {
+      logWarning("ArrowEvalPython instrumentation requires Spark 3.2+ — skipping on Spark " + sparkMinorVersion)
+      return plan
+    }
+    try {
+      plan.transformUp {
+        case arrowEval: ArrowEvalPythonExec =>
+          logInfo(s"Replacing ArrowEvalPythonExec with DataFlint version for Spark $sparkMinorVersion")
+          DataFlintArrowEvalPythonExec_3_2(
+            udfs = arrowEval.udfs,
+            resultAttrs = arrowEval.resultAttrs,
+            child = arrowEval.child,
+            evalType = arrowEval.evalType
+          )
+      }
+    } catch {
+      case _: NoClassDefFoundError =>
+        logWarning("ArrowEvalPythonExec not available in this Spark version — arrowEvalPython instrumentation disabled")
+        plan
+    }
+  }
+
+  private def replaceFlatMapGroupsInPandas(plan: SparkPlan): SparkPlan = {
+    plan.transformUp {
+      case exec: FlatMapGroupsInPandasExec =>
+        logInfo(s"Replacing FlatMapGroupsInPandasExec with DataFlint version for Spark $sparkMinorVersion")
+        DataFlintFlatMapGroupsInPandasExec(
+          groupingAttributes = exec.groupingAttributes,
+          func = exec.func,
+          output = exec.output,
+          child = exec.child
+        )
+    }
+  }
+
+  private def replaceFlatMapCoGroupsInPandas(plan: SparkPlan): SparkPlan = {
+    plan.transformUp {
+      case exec: FlatMapCoGroupsInPandasExec =>
+        logInfo(s"Replacing FlatMapCoGroupsInPandasExec with DataFlint version for Spark $sparkMinorVersion")
+        DataFlintFlatMapCoGroupsInPandasExec(
+          leftGroup = exec.leftGroup,
+          rightGroup = exec.rightGroup,
+          func = exec.func,
+          output = exec.output,
+          left = exec.left,
+          right = exec.right
+        )
     }
   }
 
