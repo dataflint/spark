@@ -173,13 +173,18 @@ export function parseNodePlan(
           plan: parseWindow(plan.planDescription),
         };
       case "BatchEvalPython":
+      case "DataFlintBatchEvalPython":
       case "ArrowEvalPython":
+      case "DataFlintArrowEvalPython":
       case "MapInPandas":
       case "DataFlintMapInPandas":
       case "MapInArrow":
       case "PythonMapInArrow":
       case "DataFlintMapInArrow":
       case "FlatMapGroupsInPandas":
+      case "DataFlintFlatMapGroupsInPandas":
+      case "FlatMapCoGroupsInPandas":
+      case "DataFlintFlatMapCoGroupsInPandas":
         return {
           type: "BatchEvalPython",
           plan: parseBatchEvalPython(plan.planDescription),
@@ -681,13 +686,18 @@ function updateNodeEnrichedName(
 
 const PYTHON_EVAL_NODE_NAMES = new Set([
   "BatchEvalPython",
+  "DataFlintBatchEvalPython",
   "ArrowEvalPython",
+  "DataFlintArrowEvalPython",
   "MapInPandas",
   "DataFlintMapInPandas",
   "MapInArrow",
   "PythonMapInArrow",
   "DataFlintMapInArrow",
   "FlatMapGroupsInPandas",
+  "DataFlintFlatMapGroupsInPandas",
+  "FlatMapCoGroupsInPandas",
+  "DataFlintFlatMapCoGroupsInPandas",
 ]);
 
 function isPythonEvalNode(nodeName: string): boolean {
