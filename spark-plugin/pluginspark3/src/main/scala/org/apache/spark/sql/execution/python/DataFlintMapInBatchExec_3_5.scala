@@ -8,135 +8,102 @@
  *   - JobArtifactSet for Spark Connect artifact management
  *   - arrowUseLargeVarTypes config (SPARK-39979)
  *   - ArrowPythonRunner.getPythonRunnerConfMap replaces ArrowUtils.getPythonRunnerConfMap (SPARK-44532)
- *   - ArrowPythonRunner constructor: 9-arg (adds largeVarTypes, pythonMetrics, jobArtifactUUID)
  *   - MapInPandasExec fields: (func, output, child, isBarrier)
+ *   - PythonMapInArrowExec fields: (func, output, child, isBarrier)
+ *
+ * Both classes extend the original exec nodes directly and wrap doExecute() with
+ * DataFlintRDDUtils.withDurationMetric, delegating all execution logic to Spark.
+ * This is safe on 3.5 since the constructor signatures match the compile-time artifacts.
+ * On older Spark versions these classes are never instantiated (version-guarded by the extension).
  */
 package org.apache.spark.sql.execution.python
 
-import java.util.concurrent.TimeUnit.NANOSECONDS
-
-import org.apache.spark.JobArtifactSet
-import org.apache.spark.api.python.{ChainedPythonFunctions, PythonEvalType}
+import org.apache.spark.dataflint.DataFlintRDDUtils
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{PythonUDF, _}
-import org.apache.spark.sql.catalyst.plans.physical._
+import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
-
-/**
- * DataFlint instrumented version of MapInBatchExec for Spark 3.5.x.
- * Adds a duration metric alongside PythonSQLMetrics.
- *
- * Uses MapInBatchEvaluatorFactory directly (introduced in 3.5).
- */
-trait DataFlintMapInBatchExec_3_5 extends SparkPlan with PythonSQLMetrics with Logging {
-  protected val func: Expression
-  protected val pythonEvalType: Int
-  protected val isBarrier: Boolean
-
-  def child: SparkPlan
-
-  override def children: Seq[SparkPlan] = Seq(child)
-
-  override def producedAttributes: AttributeSet = AttributeSet(output)
-
-  private[this] val jobArtifactUUID = JobArtifactSet.getCurrentJobArtifactState.map(_.uuid)
-
-  override def outputPartitioning: Partitioning = child.outputPartitioning
-
-  override lazy val metrics: Map[String, SQLMetric] = pythonMetrics ++ Map(
-    "duration" -> SQLMetrics.createTimingMetric(sparkContext, "duration")
-  )
-
-  override protected def doExecute(): RDD[InternalRow] = {
-    logInfo("DataFlint MapInBatchExec (Spark 3.5) doExecute is running")
-
-    val pythonRunnerConf = ArrowPythonRunner.getPythonRunnerConfMap(conf)
-    val pythonFunction = func.asInstanceOf[PythonUDF].func
-    val chainedFunc = Seq(ChainedPythonFunctions(Seq(pythonFunction)))
-
-    val evaluatorFactory = new MapInBatchEvaluatorFactory(
-      output,
-      chainedFunc,
-      child.schema,
-      conf.arrowMaxRecordsPerBatch,
-      pythonEvalType,
-      conf.sessionLocalTimeZone,
-      conf.arrowUseLargeVarTypes,
-      pythonRunnerConf,
-      pythonMetrics,
-      jobArtifactUUID)
-
-    val durationMetric = longMetric("duration")
-
-    if (isBarrier) {
-      val rddBarrier = child.execute().barrier()
-      if (conf.usePartitionEvaluator) {
-        rddBarrier.mapPartitionsWithEvaluator(evaluatorFactory)
-      } else {
-        rddBarrier.mapPartitionsWithIndex { (index, iter) =>
-          val startTime = System.nanoTime()
-          val result = evaluatorFactory.createEvaluator().eval(index, iter)
-          durationMetric += NANOSECONDS.toMillis(System.nanoTime() - startTime)
-          result
-        }
-      }
-    } else {
-      val inputRdd = child.execute()
-      if (conf.usePartitionEvaluator) {
-        inputRdd.mapPartitionsWithEvaluator(evaluatorFactory)
-      } else {
-        inputRdd.mapPartitionsWithIndexInternal { (index, iter) =>
-          val startTime = System.nanoTime()
-          val result = evaluatorFactory.createEvaluator().eval(index, iter)
-          durationMetric += NANOSECONDS.toMillis(System.nanoTime() - startTime)
-          result
-        }
-      }
-    }
-  }
-}
 
 /**
  * DataFlint instrumented MapInPandasExec for Spark 3.5.x.
  * Replaces the original MapInPandasExec in the physical plan.
  */
-case class DataFlintMapInPandasExec_3_5(
+class DataFlintMapInPandasExec_3_5 private (
     func: Expression,
     output: Seq[Attribute],
     child: SparkPlan,
-    override val isBarrier: Boolean)
-  extends DataFlintMapInBatchExec_3_5 with Logging {
+    isBarrier: Boolean)
+  extends MapInPandasExec(func, output, child, isBarrier) with Logging {
 
   override def nodeName: String = "DataFlintMapInPandas"
 
   logInfo("DataFlint MapInPandas (Spark 3.5) is connected")
 
-  override protected val pythonEvalType: Int = PythonEvalType.SQL_MAP_PANDAS_ITER_UDF
+  override lazy val metrics: Map[String, SQLMetric] = pythonMetrics ++ Map(
+    "duration" -> SQLMetrics.createTimingMetric(sparkContext, "duration")
+  )
 
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[SparkPlan]): SparkPlan =
-    copy(child = newChildren.head)
+  override protected def doExecute(): RDD[InternalRow] =
+    DataFlintRDDUtils.withDurationMetric(super.doExecute(), longMetric("duration"))
+
+  override protected def withNewChildInternal(newChild: SparkPlan): DataFlintMapInPandasExec_3_5 =
+    DataFlintMapInPandasExec_3_5(func, output, newChild, isBarrier)
+
+  override def canEqual(other: Any): Boolean = other.isInstanceOf[DataFlintMapInPandasExec_3_5]
+  override def equals(other: Any): Boolean = other.isInstanceOf[DataFlintMapInPandasExec_3_5] && super.equals(other)
+  override def hashCode: Int = super.hashCode
+}
+
+object DataFlintMapInPandasExec_3_5 {
+  def apply(
+      func: Expression,
+      output: Seq[Attribute],
+      child: SparkPlan,
+      isBarrier: Boolean): DataFlintMapInPandasExec_3_5 =
+    new DataFlintMapInPandasExec_3_5(func, output, child, isBarrier)
 }
 
 /**
  * DataFlint instrumented PythonMapInArrowExec for Spark 3.5.x.
  * Replaces the original PythonMapInArrowExec in the physical plan.
+ *
+ * Note: PythonMapInArrowExec was introduced in Spark 3.3 (SPARK-37227).
+ * This class is only loaded/instantiated when the Spark version is 3.5+,
+ * guarded by the try-catch(NoClassDefFoundError) in DataFlintInstrumentationExtension.
  */
-case class DataFlintPythonMapInArrowExec_3_5(
+class DataFlintPythonMapInArrowExec_3_5 private (
     func: Expression,
     output: Seq[Attribute],
     child: SparkPlan,
-    override val isBarrier: Boolean)
-  extends DataFlintMapInBatchExec_3_5 with Logging {
+    isBarrier: Boolean)
+  extends PythonMapInArrowExec(func, output, child, isBarrier) with Logging {
 
   override def nodeName: String = "DataFlintMapInArrow"
 
   logInfo("DataFlint MapInArrow (Spark 3.5) is connected")
 
-  override protected val pythonEvalType: Int = PythonEvalType.SQL_MAP_ARROW_ITER_UDF
+  override lazy val metrics: Map[String, SQLMetric] = pythonMetrics ++ Map(
+    "duration" -> SQLMetrics.createTimingMetric(sparkContext, "duration")
+  )
 
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[SparkPlan]): SparkPlan =
-    copy(child = newChildren.head)
+  override protected def doExecute(): RDD[InternalRow] =
+    DataFlintRDDUtils.withDurationMetric(super.doExecute(), longMetric("duration"))
+
+  override protected def withNewChildInternal(newChild: SparkPlan): DataFlintPythonMapInArrowExec_3_5 =
+    DataFlintPythonMapInArrowExec_3_5(func, output, newChild, isBarrier)
+
+  override def canEqual(other: Any): Boolean = other.isInstanceOf[DataFlintPythonMapInArrowExec_3_5]
+  override def equals(other: Any): Boolean = other.isInstanceOf[DataFlintPythonMapInArrowExec_3_5] && super.equals(other)
+  override def hashCode: Int = super.hashCode
+}
+
+object DataFlintPythonMapInArrowExec_3_5 {
+  def apply(
+      func: Expression,
+      output: Seq[Attribute],
+      child: SparkPlan,
+      isBarrier: Boolean): DataFlintPythonMapInArrowExec_3_5 =
+    new DataFlintPythonMapInArrowExec_3_5(func, output, child, isBarrier)
 }

@@ -10,7 +10,7 @@ import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Window => Logic
 import org.apache.spark.sql.execution.SparkStrategy
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.{ColumnarRule, SparkPlan}
-import org.apache.spark.sql.execution.python.{ArrowEvalPythonExec, BatchEvalPythonExec, DataFlintArrowEvalPythonExec, DataFlintArrowWindowPythonExec_4_1, DataFlintBatchEvalPythonExec, DataFlintFlatMapCoGroupsInPandasExec, DataFlintFlatMapGroupsInPandasExec, DataFlintMapInPandasExec_4_0, DataFlintMapInPandasExec_4_1, DataFlintPythonMapInArrowExec_4_0, DataFlintPythonMapInArrowExec_4_1, DataFlintWindowInPandasExec_4_0, FlatMapCoGroupsInPandasExec, FlatMapGroupsInPandasExec, MapInArrowExec, MapInPandasExec}
+import org.apache.spark.sql.execution.python.{ArrowEvalPythonExec, BatchEvalPythonExec, DataFlintArrowEvalPythonExec, DataFlintArrowWindowPythonExec_4_1, DataFlintBatchEvalPythonExec, DataFlintFlatMapCoGroupsInPandasExec, DataFlintFlatMapGroupsInPandasExec, DataFlintMapInArrowExec, DataFlintMapInPandasExec, DataFlintWindowInPandasExec_4_0, FlatMapCoGroupsInPandasExec, FlatMapGroupsInPandasExec, MapInArrowExec, MapInPandasExec}
 import org.apache.spark.sql.execution.window.DataFlintWindowExec
 
 /**
@@ -109,46 +109,24 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
 
       if (mapInPandasEnabled || mapInArrowEnabled) {
         result = result.transformUp {
-          case mapInPandas: MapInPandasExec if mapInPandasEnabled =>
+          case mapInPandas: MapInPandasExec if mapInPandasEnabled && !mapInPandas.isInstanceOf[DataFlintMapInPandasExec] =>
             logInfo(s"Replacing MapInPandasExec with DataFlint version for Spark $sparkMinorVersion")
-            sparkMinorVersion match {
-              case "4.0" =>
-                DataFlintMapInPandasExec_4_0(
-                  func = mapInPandas.func,
-                  output = mapInPandas.output,
-                  child = mapInPandas.child,
-                  isBarrier = mapInPandas.isBarrier,
-                  profile = mapInPandas.profile
-                )
-              case _ =>
-                DataFlintMapInPandasExec_4_1(
-                  func = mapInPandas.func,
-                  output = mapInPandas.output,
-                  child = mapInPandas.child,
-                  isBarrier = mapInPandas.isBarrier,
-                  profile = mapInPandas.profile
-                )
-            }
-          case mapInArrow: MapInArrowExec if mapInArrowEnabled =>
+            DataFlintMapInPandasExec(
+              func = mapInPandas.func,
+              output = mapInPandas.output,
+              child = mapInPandas.child,
+              isBarrier = mapInPandas.isBarrier,
+              profile = mapInPandas.profile
+            )
+          case mapInArrow: MapInArrowExec if mapInArrowEnabled && !mapInArrow.isInstanceOf[DataFlintMapInArrowExec] =>
             logInfo(s"Replacing MapInArrowExec with DataFlint version for Spark $sparkMinorVersion")
-            sparkMinorVersion match {
-              case "4.0" =>
-                DataFlintPythonMapInArrowExec_4_0(
-                  func = mapInArrow.func,
-                  output = mapInArrow.output,
-                  child = mapInArrow.child,
-                  isBarrier = mapInArrow.isBarrier,
-                  profile = mapInArrow.profile
-                )
-              case _ =>
-                DataFlintPythonMapInArrowExec_4_1(
-                  func = mapInArrow.func,
-                  output = mapInArrow.output,
-                  child = mapInArrow.child,
-                  isBarrier = mapInArrow.isBarrier,
-                  profile = mapInArrow.profile
-                )
-            }
+            DataFlintMapInArrowExec(
+              func = mapInArrow.func,
+              output = mapInArrow.output,
+              child = mapInArrow.child,
+              isBarrier = mapInArrow.isBarrier,
+              profile = mapInArrow.profile
+            )
         }
       }
 
