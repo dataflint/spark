@@ -67,7 +67,6 @@ trait DataFlintMapInBatchExec_3_0 extends SparkPlan with Logging {
     logInfo("DataFlint MapInBatchExec (Spark 3.0) doExecute is running")
 
     val durationMetric = longMetric("duration")
-
     child.execute().mapPartitionsInternal { inputIter =>
       val startTime = System.nanoTime()
 

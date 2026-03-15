@@ -10,7 +10,7 @@ import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Window => Logic
 import org.apache.spark.sql.execution.SparkStrategy
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.{ColumnarRule, SparkPlan}
-import org.apache.spark.sql.execution.python.{ArrowEvalPythonExec, DataFlintArrowEvalPythonExec, DataFlintArrowWindowPythonExec_4_1, DataFlintFlatMapCoGroupsInPandasExec, DataFlintFlatMapGroupsInPandasExec, DataFlintMapInPandasExec_4_0, DataFlintMapInPandasExec_4_1, DataFlintPythonMapInArrowExec_4_0, DataFlintPythonMapInArrowExec_4_1, DataFlintWindowInPandasExec_4_0, FlatMapCoGroupsInPandasExec, FlatMapGroupsInPandasExec, MapInArrowExec, MapInPandasExec}
+import org.apache.spark.sql.execution.python.{ArrowEvalPythonExec, BatchEvalPythonExec, DataFlintArrowEvalPythonExec, DataFlintArrowWindowPythonExec_4_1, DataFlintBatchEvalPythonExec, DataFlintFlatMapCoGroupsInPandasExec, DataFlintFlatMapGroupsInPandasExec, DataFlintMapInPandasExec_4_0, DataFlintMapInPandasExec_4_1, DataFlintPythonMapInArrowExec_4_0, DataFlintPythonMapInArrowExec_4_1, DataFlintWindowInPandasExec_4_0, FlatMapCoGroupsInPandasExec, FlatMapGroupsInPandasExec, MapInArrowExec, MapInPandasExec}
 import org.apache.spark.sql.execution.window.DataFlintWindowExec
 
 /**
@@ -95,8 +95,15 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
     globalEnabled || specificEnabled
   }
 
+  private val batchEvalPythonEnabled: Boolean = {
+    val conf = session.sparkContext.conf
+    val globalEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED, defaultValue = false)
+    val specificEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED, defaultValue = false)
+    globalEnabled || specificEnabled
+  }
+
   override def preColumnarTransitions: Rule[SparkPlan] = { plan =>
-    if (!mapInPandasEnabled && !mapInArrowEnabled && !arrowEvalPythonEnabled && !flatMapGroupsEnabled && !flatMapCoGroupsEnabled) plan
+    if (!mapInPandasEnabled && !mapInArrowEnabled && !arrowEvalPythonEnabled && !batchEvalPythonEnabled && !flatMapGroupsEnabled && !flatMapCoGroupsEnabled) plan
     else {
       var result = plan
 
@@ -147,7 +154,7 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
 
       if (arrowEvalPythonEnabled) {
         result = result.transformUp {
-          case arrowEval: ArrowEvalPythonExec =>
+          case arrowEval: ArrowEvalPythonExec if !arrowEval.isInstanceOf[DataFlintArrowEvalPythonExec] =>
             logInfo(s"Replacing ArrowEvalPythonExec with DataFlint version for Spark $sparkMinorVersion")
             DataFlintArrowEvalPythonExec(
               udfs = arrowEval.udfs,
@@ -158,9 +165,21 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
         }
       }
 
+      if (batchEvalPythonEnabled) {
+        result = result.transformUp {
+          case exec: BatchEvalPythonExec if !exec.isInstanceOf[DataFlintBatchEvalPythonExec] =>
+            logInfo(s"Replacing BatchEvalPythonExec with DataFlint version for Spark $sparkMinorVersion")
+            DataFlintBatchEvalPythonExec(
+              udfs = exec.udfs,
+              resultAttrs = exec.resultAttrs,
+              child = exec.child
+            )
+        }
+      }
+
       if (flatMapGroupsEnabled) {
         result = result.transformUp {
-          case exec: FlatMapGroupsInPandasExec =>
+          case exec: FlatMapGroupsInPandasExec if !exec.isInstanceOf[DataFlintFlatMapGroupsInPandasExec] =>
             logInfo(s"Replacing FlatMapGroupsInPandasExec with DataFlint version for Spark $sparkMinorVersion")
             DataFlintFlatMapGroupsInPandasExec(
               groupingAttributes = exec.groupingAttributes,
@@ -173,7 +192,7 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
 
       if (flatMapCoGroupsEnabled) {
         result = result.transformUp {
-          case exec: FlatMapCoGroupsInPandasExec =>
+          case exec: FlatMapCoGroupsInPandasExec if !exec.isInstanceOf[DataFlintFlatMapCoGroupsInPandasExec] =>
             logInfo(s"Replacing FlatMapCoGroupsInPandasExec with DataFlint version for Spark $sparkMinorVersion")
             DataFlintFlatMapCoGroupsInPandasExec(
               leftGroup = exec.leftGroup,

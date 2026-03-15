@@ -16,6 +16,8 @@
  */
 package org.apache.spark.sql.execution.python
 
+import org.apache.spark.TaskContext
+import org.apache.spark.api.python.ChainedPythonFunctions
 import org.apache.spark.dataflint.DataFlintRDDUtils
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
@@ -23,6 +25,9 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
+import org.apache.spark.sql.types.StructType
+
+import java.util.concurrent.TimeUnit.NANOSECONDS
 
 /**
  * DataFlint instrumented version of ArrowEvalPythonExec for Spark 3.2–3.5.
@@ -32,7 +37,7 @@ import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
  * (udfs, resultAttrs, child, evalType). Spark 3.0–3.1 lack the evalType param
  * and are not instrumented.
  */
-class DataFlintArrowEvalPythonExec_3_2 private (
+class DataFlintArrowEvalPythonExec private(
     udfs: Seq[PythonUDF],
     resultAttrs: Seq[Attribute],
     child: SparkPlan,
@@ -45,18 +50,33 @@ class DataFlintArrowEvalPythonExec_3_2 private (
     "duration" -> SQLMetrics.createTimingMetric(sparkContext, "duration")
   )
 
-  override protected def doExecute(): RDD[InternalRow] =
-    DataFlintRDDUtils.withDurationMetric(super.doExecute(), longMetric("duration"))
+  override protected def evaluate(funcs: Seq[ChainedPythonFunctions], argOffsets: Array[Array[Int]], iter: Iterator[InternalRow], schema: StructType, context: TaskContext): Iterator[InternalRow] = {
+    val durationMetric = longMetric("duration")
+    val startTime = System.nanoTime()
+    val out = super.evaluate(funcs, argOffsets, iter, schema, context)
+    durationMetric += NANOSECONDS.toMillis(System.nanoTime() - startTime)
+    out
+  }
 
-  override protected def withNewChildInternal(newChild: SparkPlan): DataFlintArrowEvalPythonExec_3_2 =
-    DataFlintArrowEvalPythonExec_3_2(udfs, resultAttrs, newChild, evalType)
+  //  override protected def doExecute(): RDD[InternalRow] =
+//    DataFlintRDDUtils.withDurationMetric(super.doExecute(), longMetric("duration"))
+
+  override protected def withNewChildInternal(newChild: SparkPlan): DataFlintArrowEvalPythonExec =
+    DataFlintArrowEvalPythonExec(udfs, resultAttrs, newChild, evalType)
+
+  override def canEqual(other: Any): Boolean = other.isInstanceOf[DataFlintArrowEvalPythonExec]
+
+  override def equals(other: Any): Boolean =
+    other.isInstanceOf[DataFlintArrowEvalPythonExec] && super.equals(other)
+
+  override def hashCode: Int = super.hashCode
 }
 
-object DataFlintArrowEvalPythonExec_3_2 {
+object DataFlintArrowEvalPythonExec {
   def apply(
       udfs: Seq[PythonUDF],
       resultAttrs: Seq[Attribute],
       child: SparkPlan,
-      evalType: Int): DataFlintArrowEvalPythonExec_3_2 =
-    new DataFlintArrowEvalPythonExec_3_2(udfs, resultAttrs, child, evalType)
+      evalType: Int): DataFlintArrowEvalPythonExec =
+    new DataFlintArrowEvalPythonExec(udfs, resultAttrs, child, evalType)
 }

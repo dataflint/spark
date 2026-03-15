@@ -16,6 +16,8 @@
  */
 package org.apache.spark.sql.execution.python
 
+import org.apache.spark.TaskContext
+import org.apache.spark.api.python.ChainedPythonFunctions
 import org.apache.spark.dataflint.DataFlintRDDUtils
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
@@ -23,6 +25,9 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
+import org.apache.spark.sql.types.StructType
+
+import java.util.concurrent.TimeUnit.NANOSECONDS
 
 /**
  * DataFlint instrumented version of FlatMapCoGroupsInPandasExec for Spark 3.x.
@@ -52,6 +57,13 @@ class DataFlintFlatMapCoGroupsInPandasExec private (
   override protected def withNewChildrenInternal(
       newLeft: SparkPlan, newRight: SparkPlan): DataFlintFlatMapCoGroupsInPandasExec =
     DataFlintFlatMapCoGroupsInPandasExec(leftGroup, rightGroup, func, output, newLeft, newRight)
+
+  override def canEqual(other: Any): Boolean = other.isInstanceOf[DataFlintFlatMapCoGroupsInPandasExec]
+
+  override def equals(other: Any): Boolean =
+    other.isInstanceOf[DataFlintFlatMapCoGroupsInPandasExec] && super.equals(other)
+
+  override def hashCode: Int = super.hashCode
 }
 
 object DataFlintFlatMapCoGroupsInPandasExec {

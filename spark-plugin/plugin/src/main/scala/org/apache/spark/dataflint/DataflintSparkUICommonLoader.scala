@@ -136,6 +136,7 @@ object DataflintSparkUICommonLoader extends Logging {
   val INSTRUMENT_MAP_IN_ARROW_ENABLED = "spark.dataflint.instrument.spark.mapInArrow.enabled"
   val INSTRUMENT_WINDOW_ENABLED = "spark.dataflint.instrument.spark.window.enabled"
   val INSTRUMENT_ARROW_EVAL_PYTHON_ENABLED = "spark.dataflint.instrument.spark.arrowEvalPython.enabled"
+  val INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED = "spark.dataflint.instrument.spark.batchEvalPython.enabled"
   val INSTRUMENT_FLAT_MAP_GROUPS_PANDAS_ENABLED = "spark.dataflint.instrument.spark.flatMapGroupsInPandas.enabled"
   val INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED = "spark.dataflint.instrument.spark.flatMapCoGroupsInPandas.enabled"
 
@@ -170,10 +171,12 @@ object DataflintSparkUICommonLoader extends Logging {
     val mapInArrowEnabled = sc.conf.getBoolean(INSTRUMENT_MAP_IN_ARROW_ENABLED, defaultValue = false)
     val windowEnabled = sc.conf.getBoolean(INSTRUMENT_WINDOW_ENABLED, defaultValue = false)
     val arrowEvalPythonEnabled = sc.conf.getBoolean(INSTRUMENT_ARROW_EVAL_PYTHON_ENABLED, defaultValue = false)
+    val batchEvalPythonEnabled = sc.conf.getBoolean(INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED, defaultValue = false)
     val flatMapGroupsPandasEnabled = sc.conf.getBoolean(INSTRUMENT_FLAT_MAP_GROUPS_PANDAS_ENABLED, defaultValue = false)
     val flatMapCogroupsPandasEnabled = sc.conf.getBoolean(INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED, defaultValue = false)
     val anyInstrumentationEnabled = instrumentEnabled || mapInPandasEnabled || mapInArrowEnabled ||
-      windowEnabled || arrowEvalPythonEnabled || flatMapGroupsPandasEnabled || flatMapCogroupsPandasEnabled
+      windowEnabled || arrowEvalPythonEnabled || batchEvalPythonEnabled ||
+      flatMapGroupsPandasEnabled || flatMapCogroupsPandasEnabled
     if (!anyInstrumentationEnabled) {
       logInfo("DataFlint instrumentation extension is disabled (no instrumentation flags enabled)")
       return

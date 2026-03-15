@@ -51,6 +51,13 @@ class DataFlintFlatMapCoGroupsInPandasExec private (
   override protected def withNewChildrenInternal(
       newLeft: SparkPlan, newRight: SparkPlan): DataFlintFlatMapCoGroupsInPandasExec =
     DataFlintFlatMapCoGroupsInPandasExec(leftGroup, rightGroup, func, output, newLeft, newRight)
+
+  override def canEqual(other: Any): Boolean = other.isInstanceOf[DataFlintFlatMapCoGroupsInPandasExec]
+
+  override def equals(other: Any): Boolean =
+    other.isInstanceOf[DataFlintFlatMapCoGroupsInPandasExec] && super.equals(other)
+
+  override def hashCode: Int = super.hashCode
 }
 
 object DataFlintFlatMapCoGroupsInPandasExec {

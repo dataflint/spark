@@ -4,7 +4,7 @@ import org.apache.spark.api.python.{PythonEvalType, SimplePythonFunction}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.expressions.PythonUDF
 import org.apache.spark.sql.execution.LocalTableScanExec
-import org.apache.spark.sql.execution.python._
+import org.apache.spark.sql.execution.python.{ArrowEvalPythonExec, BatchEvalPythonExec, DataFlintArrowEvalPythonExec, DataFlintBatchEvalPythonExec, DataFlintFlatMapCoGroupsInPandasExec, DataFlintFlatMapGroupsInPandasExec, DataFlintMapInPandasExec_3_5, DataFlintPythonMapInArrowExec_3_5, FlatMapCoGroupsInPandasExec, FlatMapGroupsInPandasExec, MapInPandasExec, PythonMapInArrowExec}
 import org.apache.spark.sql.types.LongType
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
@@ -92,14 +92,14 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val original = ArrowEvalPythonExec(Seq(udf), Seq.empty, emptyChild, PythonEvalType.SQL_SCALAR_PANDAS_UDF)
     val rule = DataFlintInstrumentationColumnarRule(spark)
     val result = rule.preColumnarTransitions(original)
-    result shouldBe a[DataFlintArrowEvalPythonExec_3_2]
+    result shouldBe a[DataFlintArrowEvalPythonExec]
   }
 
   test("ArrowEvalPythonExec nodeName and metrics") {
     val udf = fakePythonUDF(PythonEvalType.SQL_SCALAR_PANDAS_UDF)
     val original = ArrowEvalPythonExec(Seq(udf), Seq.empty, emptyChild, PythonEvalType.SQL_SCALAR_PANDAS_UDF)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[DataFlintArrowEvalPythonExec_3_2]
+    val result = rule.preColumnarTransitions(original).asInstanceOf[DataFlintArrowEvalPythonExec]
     result.nodeName shouldBe "DataFlintArrowEvalPython"
     result.metrics should contain key "duration"
   }
@@ -120,6 +120,25 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val rule = DataFlintInstrumentationColumnarRule(spark)
     val result = rule.preColumnarTransitions(original).asInstanceOf[DataFlintFlatMapGroupsInPandasExec]
     result.nodeName shouldBe "DataFlintFlatMapGroupsInPandas"
+    result.metrics should contain key "duration"
+  }
+
+  // ---- BatchEvalPythonExec (regular @udf / SQL_BATCHED_UDF) ----
+
+  test("replaces BatchEvalPythonExec in plan") {
+    val udf = fakePythonUDF(PythonEvalType.SQL_BATCHED_UDF)
+    val original = BatchEvalPythonExec(Seq(udf), Seq.empty, emptyChild)
+    val rule = DataFlintInstrumentationColumnarRule(spark)
+    val result = rule.preColumnarTransitions(original)
+    result shouldBe a[DataFlintBatchEvalPythonExec]
+  }
+
+  test("BatchEvalPythonExec nodeName and metrics") {
+    val udf = fakePythonUDF(PythonEvalType.SQL_BATCHED_UDF)
+    val original = BatchEvalPythonExec(Seq(udf), Seq.empty, emptyChild)
+    val rule = DataFlintInstrumentationColumnarRule(spark)
+    val result = rule.preColumnarTransitions(original).asInstanceOf[DataFlintBatchEvalPythonExec]
+    result.nodeName shouldBe "DataFlintBatchEvalPython"
     result.metrics should contain key "duration"
   }
 

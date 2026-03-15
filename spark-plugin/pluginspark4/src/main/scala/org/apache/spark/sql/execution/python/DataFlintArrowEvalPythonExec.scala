@@ -48,6 +48,13 @@ class DataFlintArrowEvalPythonExec private (
 
   override protected def withNewChildInternal(newChild: SparkPlan): DataFlintArrowEvalPythonExec =
     DataFlintArrowEvalPythonExec(udfs, resultAttrs, newChild, evalType)
+
+  override def canEqual(other: Any): Boolean = other.isInstanceOf[DataFlintArrowEvalPythonExec]
+
+  override def equals(other: Any): Boolean =
+    other.isInstanceOf[DataFlintArrowEvalPythonExec] && super.equals(other)
+
+  override def hashCode: Int = super.hashCode
 }
 
 object DataFlintArrowEvalPythonExec {
