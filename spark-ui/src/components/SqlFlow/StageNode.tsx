@@ -45,6 +45,8 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
   const exchangeVariant = data.exchangeVariant;
   const isDebugMode = localStorage.getItem("DATAFLINT_DEBUG_MODE_VIEW") === "true";
 
+
+
   // Memoized computations for better performance
   const { isHighlighted, allMetrics, hasDeltaOptimizeWrite, displayName, variantStage, variantDuration, variantDurationPercentage } = useMemo(() => {
     // Parse nodeIds from URL parameters

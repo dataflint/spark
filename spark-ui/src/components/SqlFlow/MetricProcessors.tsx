@@ -15,9 +15,15 @@ import {
 } from "../../utils/FormatUtils";
 import { MetricWithTooltip } from "./MetricDisplay";
 
+const INSTRUMENTED_NODE_NAMES = new Set([
+    "DataFlintWindow", "DataFlintWindowInPandas", "DataFlintArrowWindowPython",
+    "DataFlintMapInPandas", "DataFlintMapInArrow",
+]);
+
 export const processBaseMetrics = (node: EnrichedSqlNode): MetricWithTooltip[] => {
+    const hideDuration = INSTRUMENTED_NODE_NAMES.has(node.nodeName);
     return node.metrics
-        .filter((metric: SqlMetric) => !!metric.value)
+        .filter((metric: SqlMetric) => !!metric.value && !(hideDuration && metric.name === "duration"))
         .map(metric => ({ ...metric, name: capitalizeWords(metric.name) })) as MetricWithTooltip[];
 };
 
