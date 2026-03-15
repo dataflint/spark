@@ -22,7 +22,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
+import org.apache.spark.sql.execution.metric.SQLMetric
 
 class DataFlintWindowInPandasExec private (
     windowExpression: Seq[NamedExpression],
@@ -30,13 +30,23 @@ class DataFlintWindowInPandasExec private (
     orderSpec: Seq[SortOrder],
     child: SparkPlan)
   extends WindowInPandasExec(windowExpression, partitionSpec, orderSpec, child) with Logging {
+  val internal = WindowInPandasExec(windowExpression, partitionSpec, orderSpec, child)
 
   override def nodeName: String = "DataFlintWindowInPandas"
 
-  override lazy val metrics: Map[String, SQLMetric] = pythonMetrics ++ Map(
-    "spillSize" -> SQLMetrics.createSizeMetric(sparkContext, "spill size"),
-    "duration" -> SQLMetrics.createTimingMetric(sparkContext, "duration")
+  // Scala 2 forbids calling super directly in a lazy val override. Route through a private
+  // def so the super call resolves correctly, then use it from the lazy val.
+  // Cannot use SQLMetrics.createTimingMetric() — it gained a default parameter in 3.5
+  // which generates a $default$3() call that doesn't exist in 3.0–3.4 at runtime.
+  override lazy val metrics: Map[String, SQLMetric] = internal.metrics ++ Map(
+    "duration" -> {
+      val metric = new SQLMetric("timing", -1L)
+      metric.register(sparkContext, Some("duration"), countFailedValues = false)
+      metric
+    }
   )
+
+  override def resetMetrics(): Unit = super.resetMetrics()
 
   override protected def doExecute(): RDD[InternalRow] =
     DataFlintRDDUtils.withDurationMetric(super.doExecute(), longMetric("duration"))

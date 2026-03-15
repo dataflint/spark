@@ -40,8 +40,18 @@ class DataFlintFlatMapGroupsInPandasExec private (
 
   override def nodeName: String = "DataFlintFlatMapGroupsInPandas"
 
-  override lazy val metrics: Map[String, SQLMetric] = pythonMetrics ++ Map(
-    "duration" -> SQLMetrics.createTimingMetric(sparkContext, "duration")
+  // Cannot use super.metrics in a lazy val override — Scala 2 does not generate super
+  // accessors for trait lazy vals (PythonSQLMetrics). Use a sibling instance instead.
+  // Cannot use SQLMetrics.createTimingMetric() — it gained a default parameter in 3.5
+  // which generates a $default$3() call that doesn't exist in 3.0–3.4 at runtime.
+  private val internal = FlatMapGroupsInPandasExec(groupingAttributes, func, output, child)
+
+  override lazy val metrics: Map[String, SQLMetric] = internal.metrics ++ Map(
+    "duration" -> {
+      val metric = new SQLMetric("timing", -1L)
+      metric.register(sparkContext, Some("duration"), false)
+      metric
+    }
   )
 
   override protected def doExecute(): RDD[InternalRow] =

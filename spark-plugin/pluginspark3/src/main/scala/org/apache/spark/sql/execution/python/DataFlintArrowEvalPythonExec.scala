@@ -46,20 +46,22 @@ class DataFlintArrowEvalPythonExec private(
 
   override def nodeName: String = "DataFlintArrowEvalPython"
 
-  override lazy val metrics: Map[String, SQLMetric] = pythonMetrics ++ Map(
-    "duration" -> SQLMetrics.createTimingMetric(sparkContext, "duration")
+  // Cannot use super.metrics in a lazy val override — Scala 2 does not generate super
+  // accessors for trait lazy vals (PythonSQLMetrics). Use a sibling instance instead.
+  // Cannot use SQLMetrics.createTimingMetric() — it gained a default parameter in 3.5
+  // which generates a $default$3() call that doesn't exist in 3.0–3.4 at runtime.
+  private val internal = ArrowEvalPythonExec(udfs, resultAttrs, child, evalType)
+
+  override lazy val metrics: Map[String, SQLMetric] = internal.metrics ++ Map(
+    "duration" -> {
+      val metric = new SQLMetric("timing", -1L)
+      metric.register(sparkContext, Some("duration"), false)
+      metric
+    }
   )
 
-  override protected def evaluate(funcs: Seq[ChainedPythonFunctions], argOffsets: Array[Array[Int]], iter: Iterator[InternalRow], schema: StructType, context: TaskContext): Iterator[InternalRow] = {
-    val durationMetric = longMetric("duration")
-    val startTime = System.nanoTime()
-    val out = super.evaluate(funcs, argOffsets, iter, schema, context)
-    durationMetric += NANOSECONDS.toMillis(System.nanoTime() - startTime)
-    out
-  }
-
-  //  override protected def doExecute(): RDD[InternalRow] =
-//    DataFlintRDDUtils.withDurationMetric(super.doExecute(), longMetric("duration"))
+    override protected def doExecute(): RDD[InternalRow] =
+      DataFlintRDDUtils.withDurationMetric(super.doExecute(), longMetric("duration"))
 
   override protected def withNewChildInternal(newChild: SparkPlan): DataFlintArrowEvalPythonExec =
     DataFlintArrowEvalPythonExec(udfs, resultAttrs, newChild, evalType)
