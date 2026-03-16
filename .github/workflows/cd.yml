@@ -53,12 +53,15 @@ jobs:
             URL="https://repo1.maven.org/maven2/io/dataflint/spark_2.12/${VERSION}/spark_2.12-${VERSION}.pom"
             AUTH_ARGS=""
           else
-            URL="https://central.sonatype.com/repository/maven-snapshots/io/dataflint/spark_2.12/${VERSION}-SNAPSHOT/maven-metadata.xml"
+            # Check artifact-level maven-metadata.xml (no version in path) — updates immediately on publish
+            URL="https://central.sonatype.com/repository/maven-snapshots/io/dataflint/spark_2.12/maven-metadata.xml"
             AUTH_ARGS="-u ${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}"
           fi
-          echo "Verifying artifact at: $URL"
+          EXPECTED_VERSION=$(if [[ "$GITHUB_REF" == refs/tags/v* ]]; then echo "${VERSION}"; else echo "${VERSION}-SNAPSHOT"; fi)
+          echo "Verifying $EXPECTED_VERSION at: $URL"
+          sleep 15
           for i in $(seq 1 10); do
-            if curl -sf $AUTH_ARGS "$URL" > /dev/null; then
+            if curl -sf $AUTH_ARGS "$URL" | grep -q "${EXPECTED_VERSION}"; then
               echo "Artifact published successfully"
               exit 0
             fi
