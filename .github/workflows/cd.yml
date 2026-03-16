@@ -63,6 +63,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git tag v${VERSION}
           git push origin v${VERSION}
+          echo "GITHUB_REF=refs/tags/v${VERSION}" >> $GITHUB_ENV
         working-directory: ./spark-plugin
 
       - name: build frontend
