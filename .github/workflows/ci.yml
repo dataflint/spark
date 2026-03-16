@@ -8,10 +8,11 @@
 name: CI
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: ['**']
   push:
-    branches: ['**']
+    branches: ['main']
 
 jobs:
   build:

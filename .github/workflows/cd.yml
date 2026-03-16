@@ -1,10 +1,6 @@
 name: CD
 on:
-  workflow_run:
-    workflows: [CI]
-    branches: [main]
-    types:
-      - completed
+  workflow_dispatch:
 jobs:
   publish:
     runs-on: ubuntu-latest
