@@ -75,7 +75,12 @@ jobs:
         working-directory: ./spark-plugin
 
       - name: publish to maven staging
-        run: sbt ci-release
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            sbt +publishSigned sonatypeBundleRelease
+          else
+            sbt ci-release
+          fi
         working-directory: ./spark-plugin
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
