@@ -1,6 +1,6 @@
 name: CD
 on:
-  workflow_dispatch:
+  workflow_dispatch: # manual trigger — intentionally bypasses CI gate for emergency/ad-hoc publishes
   workflow_run:
     workflows: [CI]
     branches: [main]
@@ -8,7 +8,7 @@ on:
       - completed
 jobs:
   publish:
-    if: "github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'"
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
