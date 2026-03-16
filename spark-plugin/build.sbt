@@ -98,6 +98,15 @@ lazy val pluginspark3 = (project in file("pluginspark3"))
     // Include source and resources from plugin directory for tests
     Test / unmanagedSourceDirectories += (plugin / Compile / sourceDirectory).value / "scala",
 
+    // Fork JVM for tests so javaOptions are applied; required for Spark on Java 9+
+    Test / fork := true,
+    Test / javaOptions ++= Seq(
+      "--add-opens=java.base/java.lang=ALL-UNNAMED",
+      "--add-opens=java.base/java.nio=ALL-UNNAMED",
+      "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+      "--add-opens=java.base/java.util=ALL-UNNAMED",
+      "--add-opens=java.base/java.io=ALL-UNNAMED",
+    ),
   )
 
 lazy val pluginspark4 = (project in file("pluginspark4"))
