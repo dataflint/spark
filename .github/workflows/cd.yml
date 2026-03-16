@@ -141,9 +141,14 @@ jobs:
           VERSION=$(grep 'lazy val versionNum' build.sbt | grep -oE '"[0-9.]+"' | tr -d '"')
           NEW_VERSION=$(echo $VERSION | awk -F. '{$NF=$NF+1; print}' OFS='.')
           sed -i "s/lazy val versionNum: String = \"${VERSION}\"/lazy val versionNum: String = \"${NEW_VERSION}\"/" build.sbt
+          sed -i "s/\"version\": \"${VERSION}\"/\"version\": \"${NEW_VERSION}\"/" ../spark-ui/package.json
+          sed -i "s/${VERSION}/${NEW_VERSION}/g" clean-and-setup.sh
+          sed -i "s/${VERSION}/${NEW_VERSION}/g" pyspark-testing/dataflint_pyspark_example.py
+          sed -i "s/${VERSION}/${NEW_VERSION}/g" pyspark-testing/dataflint_pyspark_example_test.py
+          sed -i "s/${VERSION}/${NEW_VERSION}/g" pyspark-testing/README.md
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add build.sbt
+          git add build.sbt ../spark-ui/package.json clean-and-setup.sh pyspark-testing/
           git commit -m "version bump to ${NEW_VERSION}"
           git push origin HEAD:main
         working-directory: ./spark-plugin
