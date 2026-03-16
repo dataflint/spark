@@ -11,7 +11,7 @@ on:
   pull_request:
     branches: ['**']
   push:
-    branches: ['**']
+    branches: [main]
 
 jobs:
   build:
