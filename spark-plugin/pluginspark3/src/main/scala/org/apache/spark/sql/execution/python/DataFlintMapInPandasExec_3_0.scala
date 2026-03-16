@@ -14,7 +14,7 @@
  */
 package org.apache.spark.sql.execution.python
 
-import org.apache.spark.dataflint.DataFlintRDDUtils
+import org.apache.spark.dataflint.{DataFlintRDDUtils, MetricsUtils}
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
@@ -43,11 +43,7 @@ class DataFlintMapInPandasExec_3_0 private (
   // Cannot use SQLMetrics.createTimingMetric() — it gained a default parameter in 3.5
   // which generates a $default$3() call that doesn't exist in 3.0–3.4 at runtime.
   override lazy val metrics: Map[String, SQLMetric] = Map(
-    "duration" -> {
-      val metric = new SQLMetric("timing", -1L)
-      metric.register(sparkContext, Some("duration"), false)
-      metric
-    }
+    MetricsUtils.getTimingMetric("duration")(sparkContext)
   )
 
   override protected def doExecute(): RDD[InternalRow] = {

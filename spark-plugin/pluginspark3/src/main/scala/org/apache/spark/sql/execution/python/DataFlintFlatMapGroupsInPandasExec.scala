@@ -16,7 +16,7 @@
  */
 package org.apache.spark.sql.execution.python
 
-import org.apache.spark.dataflint.DataFlintRDDUtils
+import org.apache.spark.dataflint.{DataFlintRDDUtils, MetricsUtils}
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
@@ -47,11 +47,7 @@ class DataFlintFlatMapGroupsInPandasExec private (
   private val internal = FlatMapGroupsInPandasExec(groupingAttributes, func, output, child)
 
   override lazy val metrics: Map[String, SQLMetric] = internal.metrics ++ Map(
-    "duration" -> {
-      val metric = new SQLMetric("timing", -1L)
-      metric.register(sparkContext, Some("duration"), false)
-      metric
-    }
+    MetricsUtils.getTimingMetric("duration")(sparkContext)
   )
 
   override protected def doExecute(): RDD[InternalRow] =
