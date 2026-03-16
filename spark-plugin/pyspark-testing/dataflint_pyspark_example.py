@@ -1,8 +1,13 @@
 #!/usr/bin/python3
 """
-PySpark mapInPandas and mapInArrow example with DataFlint instrumentation.
-
-This script demonstrates both mapInPandas and mapInArrow operations with DataFlint plugin enabled.
+PySpark example with DataFlint instrumentation for all Python exec types:
+  - mapInPandas         → DataFlintMapInPandasExec
+  - mapInArrow          → DataFlintPythonMapInArrowExec
+  - Window (SQL)        → DataFlintWindowExec
+  - Window (pandas UDF) → DataFlintWindowInPandasExec
+  - pandas_udf SCALAR   → DataFlintArrowEvalPythonExec
+  - applyInPandas       → DataFlintFlatMapGroupsInPandasExec
+  - cogroup             → DataFlintFlatMapCoGroupsInPandasExec
 
 Usage:
     pip install pyspark pandas pyarrow
@@ -32,10 +37,10 @@ if spark_home:
 
 # Select the appropriate plugin JAR based on Spark version
 if spark_major_version == 4:
-    _plugin_jar = _project_root / "pluginspark4" / "target" / "scala-2.13" / "dataflint-spark4_2.13-0.8.6.jar"
+    _plugin_jar = _project_root / "pluginspark4" / "target" / "scala-2.13" / "dataflint-spark4_2.13-0.8.7.jar"
     _plugin_module = "pluginspark4"
 else:
-    _plugin_jar = _project_root / "pluginspark3" / "target" / "scala-2.12" / "spark_2.12-0.8.6.jar"
+    _plugin_jar = _project_root / "pluginspark3" / "target" / "scala-2.12" / "spark_2.12-0.8.7.jar"
     _plugin_module = "pluginspark3"
 
 if not _plugin_jar.exists():
@@ -53,10 +58,13 @@ spark = SparkSession \
     .config("spark.sql.maxMetadataStringLength", "10000") \
     .config("spark.sql.adaptive.enabled", "false") \
     .config("spark.dataflint.telemetry.enabled", "false") \
-    .config("spark.dataflint.instrument.spark.enable", "true") \
     .config("spark.dataflint.instrument.spark.mapInPandas.enabled", "true") \
     .config("spark.dataflint.instrument.spark.mapInArrow.enabled", "true") \
     .config("spark.dataflint.instrument.spark.window.enabled", "true") \
+    .config("spark.dataflint.instrument.spark.arrowEvalPython.enabled", "true") \
+    .config("spark.dataflint.instrument.spark.batchEvalPython.enabled", "true") \
+    .config("spark.dataflint.instrument.spark.flatMapGroupsInPandas.enabled", "true") \
+    .config("spark.dataflint.instrument.spark.flatMapCoGroupsInPandas.enabled", "true") \
     .master("local[*]") \
     .getOrCreate()
 # spark.sparkContext.setLogLevel("INFO")
@@ -151,13 +159,12 @@ print("="*80)
 
 df_pandas = df.mapInPandas(compute_discounted_totals_pandas, output_schema)
 
+spark.sparkContext.setJobDescription("mapInPandas: compute discounted totals → DataFlintMapInPandasExec")
 df_pandas.write \
     .mode("overwrite") \
     .parquet("/tmp/dataflint_map_in_pandas_example")
 
 print("\nResult written to /tmp/dataflint_map_in_pandas_example")
-print("\nSample output:")
-df_pandas.show(10, truncate=False)
 
 
 # Run mapInArrow (only if Spark version >= 3.3.0)
@@ -168,20 +175,18 @@ if supports_map_in_arrow:
 
     df_arrow = df.mapInArrow(compute_discounted_totals_arrow, output_schema)
 
+    spark.sparkContext.setJobDescription("mapInArrow: compute discounted totals → DataFlintPythonMapInArrowExec")
     df_arrow.write \
         .mode("overwrite") \
         .parquet("/tmp/dataflint_map_in_arrow_example")
 
     print("\nResult written to /tmp/dataflint_map_in_arrow_example")
-    print("\nSample output:")
-    df_arrow.show(10, truncate=False)
 else:
     print("\n" + "="*80)
     print("Skipping mapInArrow example")
     print("="*80)
     print(f"mapInArrow is only supported in Spark 3.3.0+")
     print(f"Current version: {spark_version}")
-
 
 
 print("\n" + "="*80)
@@ -199,13 +204,12 @@ df_window = df.withColumn("rank_in_category", rank().over(window_by_category)) \
               .withColumn("cumulative_revenue", spark_sum("price").over(window_by_category)) \
               .withColumn("avg_price_in_category", avg("price").over(window_category_total))
 
+spark.sparkContext.setJobDescription("Window SQL: rank + cumulative sum + avg → DataFlintWindowExec")
 df_window.write \
     .mode("overwrite") \
     .parquet("/tmp/dataflint_window_example")
 
 print("\nResult written to /tmp/dataflint_window_example")
-print("\nSample output:")
-df_window.show(10, truncate=False)
 
 
 print("\n" + "="*80)
@@ -227,13 +231,141 @@ df_window_udf = df.withColumn(
     discounted_sum("price").over(window_category_total)
 )
 
+spark.sparkContext.setJobDescription("Window pandas UDF: discounted sum → DataFlintWindowInPandasExec")
 df_window_udf.write \
     .mode("overwrite") \
     .parquet("/tmp/dataflint_window_udf_example")
 
 print("\nResult written to /tmp/dataflint_window_udf_example")
-print("\nSample output:")
-df_window_udf.show(10, truncate=False)
+
+
+print("\n" + "="*80)
+print("Running regular @udf example (BatchEvalPython)")
+print("="*80)
+
+# Regular Python @udf → DataFlintBatchEvalPythonExec
+# Spark serializes rows to/from Python via pickle (no Arrow); the UDF runs in a Python subprocess
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+
+@udf(StringType())
+def price_tier(price):
+    """Classify price into tiers without using pandas/Arrow."""
+    if price is None:
+        return "unknown"
+    if price < 20:
+        return "budget"
+    if price < 100:
+        return "mid-range"
+    return "premium"
+
+df_batch_udf = df.withColumn("price_tier", price_tier("price"))
+
+spark.sparkContext.setJobDescription("@udf: classify price tier → DataFlintBatchEvalPythonExec")
+df_batch_udf.write \
+    .mode("overwrite") \
+    .parquet("/tmp/dataflint_batch_eval_python_example")
+
+print("\nResult written to /tmp/dataflint_batch_eval_python_example")
+
+
+print("\n" + "="*80)
+print("Running pandas_udf SCALAR example (ArrowEvalPython)")
+print("="*80)
+
+# pandas_udf SCALAR → DataFlintArrowEvalPythonExec
+# The UDF is applied column-wise; Spark executes it via ArrowEvalPythonExec
+@pandas_udf(DoubleType())
+def apply_discount(price: pd.Series, quantity: pd.Series) -> pd.Series:
+    """Apply a 10% discount when quantity > 3, otherwise no discount."""
+    return price * quantity.apply(lambda q: 0.90 if q > 3 else 1.0)
+
+df_scalar_udf = df.withColumn(
+    "discounted_price",
+    apply_discount("price", "quantity")
+)
+
+spark.sparkContext.setJobDescription("pandas_udf SCALAR: apply discount → DataFlintArrowEvalPythonExec")
+df_scalar_udf.write \
+    .mode("overwrite") \
+    .parquet("/tmp/dataflint_arrow_eval_python_example")
+
+print("\nResult written to /tmp/dataflint_arrow_eval_python_example")
+
+
+print("\n" + "="*80)
+print("Running applyInPandas example (FlatMapGroupsInPandas)")
+print("="*80)
+
+# applyInPandas / GROUPED_MAP → DataFlintFlatMapGroupsInPandasExec
+# Groups data by category, then applies a pandas function to each group
+def enrich_group(pdf):
+    """Compute per-category stats and add them as new columns."""
+    pdf = pdf.copy()
+    pdf["quantity"] = pdf["quantity"].fillna(0)
+    pdf["cat_total_revenue"] = (pdf["quantity"] * pdf["price"]).sum()
+    pdf["cat_avg_price"] = pdf["price"].mean()
+    pdf["revenue"] = pdf["quantity"] * pdf["price"]
+    return pdf[["customer", "category", "quantity", "price", "revenue",
+                "cat_total_revenue", "cat_avg_price"]]
+
+group_output_schema = (
+    "customer string, category string, quantity int, price double, "
+    "revenue double, cat_total_revenue double, cat_avg_price double"
+)
+
+df_grouped = df.groupby("category").applyInPandas(enrich_group, schema=group_output_schema)
+
+spark.sparkContext.setJobDescription("applyInPandas: per-category stats → DataFlintFlatMapGroupsInPandasExec")
+df_grouped.write \
+    .mode("overwrite") \
+    .parquet("/tmp/dataflint_flat_map_groups_in_pandas_example")
+
+print("\nResult written to /tmp/dataflint_flat_map_groups_in_pandas_example")
+
+
+print("\n" + "="*80)
+print("Running cogroup applyInPandas example (FlatMapCoGroupsInPandas)")
+print("="*80)
+
+# cogroup / applyInPandas on two DataFrames → DataFlintFlatMapCoGroupsInPandasExec
+# Join two DataFrames co-located on the same key and process each co-group together
+discounts_data = [
+    ("Electronics", 0.15),
+    ("Books", 0.05),
+    ("Clothing", 0.10),
+]
+discounts_schema = "category string, discount_rate double"
+df_discounts = spark.createDataFrame(discounts_data, discounts_schema)
+
+def apply_category_discount(left_pdf, right_pdf):
+    """Apply per-category discount from the right DataFrame to the left."""
+    import pandas as pd
+    discount_rate = right_pdf["discount_rate"].iloc[0] if len(right_pdf) > 0 else 0.0
+    left_pdf = left_pdf.copy()
+    left_pdf["quantity"] = left_pdf["quantity"].fillna(0)
+    left_pdf["final_price"] = left_pdf["price"] * (1.0 - discount_rate)
+    left_pdf["discount_rate"] = discount_rate
+    return left_pdf[["customer", "category", "quantity", "price",
+                      "discount_rate", "final_price"]]
+
+cogroup_output_schema = (
+    "customer string, category string, quantity int, price double, "
+    "discount_rate double, final_price double"
+)
+
+df_cogrouped = (
+    df.groupby("category")
+    .cogroup(df_discounts.groupby("category"))
+    .applyInPandas(apply_category_discount, schema=cogroup_output_schema)
+)
+
+spark.sparkContext.setJobDescription("cogroup applyInPandas: apply category discounts → DataFlintFlatMapCoGroupsInPandasExec")
+df_cogrouped.write \
+    .mode("overwrite") \
+    .parquet("/tmp/dataflint_flat_map_cogroups_in_pandas_example")
+
+print("\nResult written to /tmp/dataflint_flat_map_cogroups_in_pandas_example")
 
 
 print("\n" + "="*80)

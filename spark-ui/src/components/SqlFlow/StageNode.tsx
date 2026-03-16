@@ -1,6 +1,7 @@
 import ErrorIcon from "@mui/icons-material/Error";
+import FlagIcon from "@mui/icons-material/Flag";
 import WarningIcon from "@mui/icons-material/Warning";
-import { Alert, AlertTitle, Box, Typography } from "@mui/material";
+import { Alert, AlertTitle, Box, Tooltip, Typography } from "@mui/material";
 import React, { FC, memo, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Handle, Position } from "reactflow";
@@ -10,6 +11,7 @@ import { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import MetricDisplay, { MetricWithTooltip } from "./MetricDisplay";
 import {
   addTruncatedCodeTooltip,
+  INSTRUMENTED_NODE_NAMES,
   processBaseMetrics,
   processCachedStorageMetrics,
   processDeltaLakeScanMetrics,
@@ -396,6 +398,24 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
               >
                 Δ Optimized
               </Box>
+            )}
+            {INSTRUMENTED_NODE_NAMES.has(data.node.nodeName) && (
+              <Tooltip title="DataFlint Instrumented: precise duration tracking enabled" placement="top">
+                <Box
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    ml: 0.75,
+                    p: 0.3,
+                    backgroundColor: "#43a047",
+                    borderRadius: "4px",
+                    flexShrink: 0,
+                    lineHeight: 0,
+                  }}
+                >
+                  <FlagIcon sx={{ fontSize: "0.8rem", color: "white" }} />
+                </Box>
+              </Tooltip>
             )}
           </Box>
           {/* Subtitle for exchange nodes */}

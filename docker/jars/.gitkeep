@@ -1,0 +1,3 @@
+# This directory holds locally built JARs for Docker builds
+# Run ./build-jars.sh to populate this directory
+# Then build with: docker build --build-arg USE_LOCAL_JAR=true .

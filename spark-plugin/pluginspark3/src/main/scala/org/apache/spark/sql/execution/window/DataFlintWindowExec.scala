@@ -43,7 +43,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
+import org.apache.spark.sql.execution.metric.SQLMetric
 
 class DataFlintWindowExec private (
     windowExpression: Seq[NamedExpression],
@@ -54,9 +54,19 @@ class DataFlintWindowExec private (
 
   override def nodeName: String = "DataFlintWindow"
 
+  // Cannot use SQLMetrics.createSizeMetric/createTimingMetric() — they gained a default
+  // parameter in 3.5 which generates $default$3() calls that don't exist in 3.0–3.4 at runtime.
   override lazy val metrics: Map[String, SQLMetric] = Map(
-    "spillSize" -> SQLMetrics.createSizeMetric(sparkContext, "spill size"),
-    "duration" -> SQLMetrics.createTimingMetric(sparkContext, "duration")
+    "spillSize" -> {
+      val metric = new SQLMetric("size", 0L)
+      metric.register(sparkContext, Some("spill size"), false)
+      metric
+    },
+    "duration" -> {
+      val metric = new SQLMetric("timing", -1L)
+      metric.register(sparkContext, Some("duration"), false)
+      metric
+    }
   )
 
   override protected def doExecute(): RDD[InternalRow] =
