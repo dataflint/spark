@@ -43,7 +43,9 @@ lazy val plugin = (project in file("plugin"))
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % Test,
     // Sonatype Central Portal repository configuration
     publishTo := {
-      val realm = "Sonatype Nexus Repository Manager"
+      if (isSnapshot.value)
+        Some("snapshots" at "https://central.sonatype.com/repository/maven-snapshots/")
+      else
         sonatypePublishToBundle.value
     }
   )
@@ -81,7 +83,9 @@ lazy val pluginspark3 = (project in file("pluginspark3"))
     Compile / packageBin := assembly.value,
     // Sonatype Central Portal repository configuration
     publishTo := {
-      val realm = "Sonatype Nexus Repository Manager"
+      if (isSnapshot.value)
+        Some("snapshots" at "https://central.sonatype.com/repository/maven-snapshots/")
+      else
         sonatypePublishToBundle.value
     },
     
@@ -150,7 +154,9 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
     Compile / packageBin := assembly.value,
     // Sonatype Central Portal repository configuration
     publishTo := {
-      val realm = "Sonatype Nexus Repository Manager"
+      if (isSnapshot.value)
+        Some("snapshots" at "https://central.sonatype.com/repository/maven-snapshots/")
+      else
         sonatypePublishToBundle.value
     },
     
