@@ -25,7 +25,7 @@ import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
  * DataFlint instrumented PythonMapInArrowExec for Spark 3.3.x – 3.4.x.
  * Replaces the original PythonMapInArrowExec in the physical plan.
  */
-class DataFlintPythonMapInArrowExec_3_3 private (
+class DataFlintMapInArrowExec_3_3 private(
     val func: Expression,
     override val output: Seq[Attribute],
     val child: SparkPlan)
@@ -70,7 +70,7 @@ class DataFlintPythonMapInArrowExec_3_3 private (
     DataFlintRDDUtils.withDurationMetric(innerRDD, longMetric("duration"))
   }
 
-  override def canEqual(that: Any): Boolean = that.isInstanceOf[DataFlintPythonMapInArrowExec_3_3]
+  override def canEqual(that: Any): Boolean = that.isInstanceOf[DataFlintMapInArrowExec_3_3]
   override def productArity: Int = 3
   override def productElement(n: Int): Any = n match {
     case 0 => func
@@ -79,14 +79,14 @@ class DataFlintPythonMapInArrowExec_3_3 private (
     case _ => throw new IndexOutOfBoundsException(s"$n")
   }
 
-  override protected def withNewChildInternal(newChild: SparkPlan): DataFlintPythonMapInArrowExec_3_3 =
-    new DataFlintPythonMapInArrowExec_3_3(func, output, newChild)
+  override protected def withNewChildInternal(newChild: SparkPlan): DataFlintMapInArrowExec_3_3 =
+    new DataFlintMapInArrowExec_3_3(func, output, newChild)
 }
 
-object DataFlintPythonMapInArrowExec_3_3 {
+object DataFlintMapInArrowExec_3_3 {
   def apply(
       func: Expression,
       output: Seq[Attribute],
-      child: SparkPlan): DataFlintPythonMapInArrowExec_3_3 =
-    new DataFlintPythonMapInArrowExec_3_3(func, output, child)
+      child: SparkPlan): DataFlintMapInArrowExec_3_3 =
+    new DataFlintMapInArrowExec_3_3(func, output, child)
 }

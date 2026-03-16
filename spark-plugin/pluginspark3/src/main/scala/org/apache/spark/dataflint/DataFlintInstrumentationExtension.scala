@@ -8,7 +8,7 @@ import org.apache.spark.sql.catalyst.planning.PhysicalWindow
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Window => LogicalWindow}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.{ColumnarRule, SparkPlan}
-import org.apache.spark.sql.execution.python.{ArrowEvalPythonExec, BatchEvalPythonExec, DataFlintArrowEvalPythonExec, DataFlintBatchEvalPythonExec, DataFlintFlatMapCoGroupsInPandasExec, DataFlintFlatMapGroupsInPandasExec, DataFlintMapInPandasExec_3_0, DataFlintMapInPandasExec_3_5, DataFlintPythonMapInArrowExec_3_3, DataFlintPythonMapInArrowExec_3_5, DataFlintWindowInPandasExec, FlatMapCoGroupsInPandasExec, FlatMapGroupsInPandasExec, MapInPandasExec, WindowInPandasExec}
+import org.apache.spark.sql.execution.python.{ArrowEvalPythonExec, BatchEvalPythonExec, DataFlintArrowEvalPythonExec, DataFlintBatchEvalPythonExec, DataFlintFlatMapCoGroupsInPandasExec, DataFlintFlatMapGroupsInPandasExec, DataFlintMapInArrowExec_3_3, DataFlintMapInPandasExec_3_0, DataFlintMapInPandasExec_3_5, DataFlintPythonMapInArrowExec_3_5, DataFlintWindowInPandasExec, FlatMapCoGroupsInPandasExec, FlatMapGroupsInPandasExec, MapInPandasExec, WindowInPandasExec}
 import org.apache.spark.sql.execution.window.DataFlintWindowExec
 
 /**
@@ -254,7 +254,7 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
               )
             case _ =>
               // 3.3–3.4: share the same 3-arg constructor, handled via reflection
-              DataFlintPythonMapInArrowExec_3_3(
+              DataFlintMapInArrowExec_3_3(
                 func = mapInArrow.func,
                 output = mapInArrow.output,
                 child = mapInArrow.child

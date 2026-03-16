@@ -37,10 +37,10 @@ if spark_home:
 
 # Select the appropriate plugin JAR based on Spark version
 if spark_major_version == 4:
-    _plugin_jar = _project_root / "pluginspark4" / "target" / "scala-2.13" / "dataflint-spark4_2.13-0.8.5.jar"
+    _plugin_jar = _project_root / "pluginspark4" / "target" / "scala-2.13" / "dataflint-spark4_2.13-0.8.7.jar"
     _plugin_module = "pluginspark4"
 else:
-    _plugin_jar = _project_root / "pluginspark3" / "target" / "scala-2.12" / "spark_2.12-0.8.5.jar"
+    _plugin_jar = _project_root / "pluginspark3" / "target" / "scala-2.12" / "spark_2.12-0.8.7.jar"
     _plugin_module = "pluginspark3"
 
 if not _plugin_jar.exists():
@@ -62,9 +62,9 @@ spark = SparkSession \
     .config("spark.dataflint.instrument.spark.mapInArrow.enabled", "true") \
     .config("spark.dataflint.instrument.spark.window.enabled", "true") \
     .config("spark.dataflint.instrument.spark.arrowEvalPython.enabled", "true") \
+    .config("spark.dataflint.instrument.spark.batchEvalPython.enabled", "true") \
     .config("spark.dataflint.instrument.spark.flatMapGroupsInPandas.enabled", "true") \
     .config("spark.dataflint.instrument.spark.flatMapCoGroupsInPandas.enabled", "true") \
-    .config("spark.dataflint.instrument.spark.batchEvalPython.enabled", "true") \
     .master("local[*]") \
     .getOrCreate()
 # spark.sparkContext.setLogLevel("INFO")
