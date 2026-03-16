@@ -19,6 +19,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
       .master("local[1]")
       .appName("DataFlintPythonExecSpec")
       .config(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED, "true")
+      .config("spark.ui.enabled", "false")
       .withExtensions(new DataFlintInstrumentationExtension)
       .getOrCreate()
   }

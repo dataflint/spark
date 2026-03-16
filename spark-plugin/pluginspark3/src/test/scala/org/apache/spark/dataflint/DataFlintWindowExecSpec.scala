@@ -39,7 +39,7 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
 //      .config("spark.sql.extensions", "org.apache.spark.dataflint.DataFlintInstrumentationExtension")
       .config(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED, "true")
       .config(DataflintSparkUICommonLoader.INSTRUMENT_WINDOW_ENABLED, "true")
-      .config("spark.ui.enabled", "true")
+      .config("spark.ui.enabled", "false")
       .config("spark.sql.adaptive.enabled", "true")
       .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
 //      .config("spark.sql.adaptive.advisoryPartitionSizeInBytes", "64MB")
