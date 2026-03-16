@@ -19,31 +19,25 @@ package org.apache.spark.sql.execution.python
 import org.apache.spark.dataflint.DataFlintRDDUtils
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
-import org.apache.spark.resource.ResourceProfile
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
 
 /**
- * DataFlint instrumented version of MapInPandasExec for Spark 4.x.
+ * DataFlint instrumented version of ArrowEvalPythonExec for Spark 4.x.
  *
- * Instruments map_in_pandas UDF operations with a duration metric by wrapping the
- * parent's doExecute() RDD. Works for both Spark 4.0 and 4.1 — super.doExecute()
- * dispatches to the runtime jar's implementation via JVM invokespecial semantics,
- * so no version-specific subclasses are needed.
+ * Instruments pandas_udf(PandasUDFType.SCALAR) operations with a duration metric
+ * by wrapping the parent's doExecute() RDD.
  */
-class DataFlintMapInPandasExec private (
-    func: Expression,
-    output: Seq[Attribute],
+class DataFlintArrowEvalPythonExec private (
+    udfs: Seq[PythonUDF],
+    resultAttrs: Seq[Attribute],
     child: SparkPlan,
-    isBarrier: Boolean,
-    profile: Option[ResourceProfile])
-  extends MapInPandasExec(func, output, child, isBarrier, profile) with Logging {
+    evalType: Int)
+  extends ArrowEvalPythonExec(udfs, resultAttrs, child, evalType) with Logging {
 
-  override def nodeName: String = "DataFlintMapInPandas"
-
-  logInfo("DataFlint MapInPandas is connected")
+  override def nodeName: String = "DataFlintArrowEvalPython"
 
   override lazy val metrics: Map[String, SQLMetric] = pythonMetrics ++ Map(
     "duration" -> SQLMetrics.createTimingMetric(sparkContext, "duration")
@@ -52,20 +46,22 @@ class DataFlintMapInPandasExec private (
   override protected def doExecute(): RDD[InternalRow] =
     DataFlintRDDUtils.withDurationMetric(super.doExecute(), longMetric("duration"))
 
-  override protected def withNewChildInternal(newChild: SparkPlan): DataFlintMapInPandasExec =
-    DataFlintMapInPandasExec(func, output, newChild, isBarrier, profile)
+  override protected def withNewChildInternal(newChild: SparkPlan): DataFlintArrowEvalPythonExec =
+    DataFlintArrowEvalPythonExec(udfs, resultAttrs, newChild, evalType)
 
-  override def canEqual(other: Any): Boolean = other.isInstanceOf[DataFlintMapInPandasExec]
-  override def equals(other: Any): Boolean = other.isInstanceOf[DataFlintMapInPandasExec] && super.equals(other)
+  override def canEqual(other: Any): Boolean = other.isInstanceOf[DataFlintArrowEvalPythonExec]
+
+  override def equals(other: Any): Boolean =
+    other.isInstanceOf[DataFlintArrowEvalPythonExec] && super.equals(other)
+
   override def hashCode: Int = super.hashCode
 }
 
-object DataFlintMapInPandasExec {
+object DataFlintArrowEvalPythonExec {
   def apply(
-      func: Expression,
-      output: Seq[Attribute],
+      udfs: Seq[PythonUDF],
+      resultAttrs: Seq[Attribute],
       child: SparkPlan,
-      isBarrier: Boolean,
-      profile: Option[ResourceProfile]): DataFlintMapInPandasExec =
-    new DataFlintMapInPandasExec(func, output, child, isBarrier, profile)
+      evalType: Int): DataFlintArrowEvalPythonExec =
+    new DataFlintArrowEvalPythonExec(udfs, resultAttrs, child, evalType)
 }

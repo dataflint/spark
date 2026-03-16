@@ -15,9 +15,11 @@ import {
 } from "../../utils/FormatUtils";
 import { MetricWithTooltip } from "./MetricDisplay";
 
-const INSTRUMENTED_NODE_NAMES = new Set([
+export const INSTRUMENTED_NODE_NAMES = new Set([
     "DataFlintWindow", "DataFlintWindowInPandas", "DataFlintArrowWindowPython",
     "DataFlintMapInPandas", "DataFlintMapInArrow",
+    "DataFlintBatchEvalPython", "DataFlintArrowEvalPython",
+    "DataFlintFlatMapGroupsInPandas", "DataFlintFlatMapCoGroupsInPandas",
 ]);
 
 export const processBaseMetrics = (node: EnrichedSqlNode): MetricWithTooltip[] => {
