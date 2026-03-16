@@ -79,10 +79,9 @@ jobs:
       - name: publish to maven staging
         run: |
           if [[ "$IS_RELEASE" == "true" ]]; then
-            sbt +publishSigned sonatypeBundleRelease
-          else
-            sbt ci-release
+            export GITHUB_REF="refs/tags/${{ steps.create-tag.outputs.tag }}"
           fi
+          sbt ci-release
         working-directory: ./spark-plugin
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
