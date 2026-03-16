@@ -1,14 +1,28 @@
 name: CD
 on:
-  workflow_dispatch: # manual trigger only — auto CD on main push is disabled
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: snapshot
+        type: choice
+        options:
+          - snapshot
+          - official
+
+permissions:
+  contents: write
+
 jobs:
   publish:
-    if: ${{ github.event_name == 'workflow_dispatch'}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -34,7 +48,23 @@ jobs:
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
         working-directory: ./spark-ui
-  
+
+      - name: Check branch for official release
+        if: github.event.inputs.release_type == 'official' && github.ref != 'refs/heads/main'
+        run: |
+          echo "Official releases must be triggered from main, not $GITHUB_REF"
+          exit 1
+
+      - name: Create release tag
+        if: github.event.inputs.release_type == 'official'
+        run: |
+          VERSION=$(grep 'lazy val versionNum' build.sbt | grep -oE '"[0-9.]+"' | tr -d '"')
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git tag v${VERSION}
+          git push origin v${VERSION}
+        working-directory: ./spark-plugin
+
       - name: build frontend
         run: npm run deploy
         working-directory: ./spark-ui
@@ -51,19 +81,19 @@ jobs:
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-  
+
       - name: Verify artifact published
         run: |
           VERSION=$(grep 'lazy val versionNum' build.sbt | grep -oE '"[0-9.]+"' | tr -d '"')
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             URL="https://repo1.maven.org/maven2/io/dataflint/spark_2.12/${VERSION}/spark_2.12-${VERSION}.pom"
             AUTH_ARGS=""
+            EXPECTED_VERSION="${VERSION}"
           else
-            # Check artifact-level maven-metadata.xml (no version in path) — updates immediately on publish
             URL="https://central.sonatype.com/repository/maven-snapshots/io/dataflint/spark_2.12/maven-metadata.xml"
             AUTH_ARGS="-u ${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}"
+            EXPECTED_VERSION="${VERSION}-SNAPSHOT"
           fi
-          EXPECTED_VERSION=$(if [[ "$GITHUB_REF" == refs/tags/v* ]]; then echo "${VERSION}"; else echo "${VERSION}-SNAPSHOT"; fi)
           echo "Verifying $EXPECTED_VERSION at: $URL"
           sleep 15
           for i in $(seq 1 10); do
@@ -83,7 +113,7 @@ jobs:
 
       - name: Changelog
         uses: scottbrenner/generate-changelog-action@master
-#        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v')
         id: Changelog
         env:
           REPO: ${{ github.repository }}
@@ -91,7 +121,7 @@ jobs:
       - name: Create Release
         id: create_release
         uses: actions/create-release@latest
-#        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -104,3 +134,16 @@ jobs:
             ${{ steps.Changelog.outputs.changelog }}
           draft: false
           prerelease: false
+
+      - name: Bump version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=$(grep 'lazy val versionNum' build.sbt | grep -oE '"[0-9.]+"' | tr -d '"')
+          NEW_VERSION=$(echo $VERSION | awk -F. '{$NF=$NF+1; print}' OFS='.')
+          sed -i "s/lazy val versionNum: String = \"${VERSION}\"/lazy val versionNum: String = \"${NEW_VERSION}\"/" build.sbt
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add build.sbt
+          git commit -m "version bump to ${NEW_VERSION}"
+          git push origin HEAD:main
+        working-directory: ./spark-plugin
