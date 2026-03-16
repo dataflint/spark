@@ -1,0 +1,25 @@
+services:
+  spark-history-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SPARK_VERSION: ${SPARK_VERSION:-3.5.1}
+        SCALA_VERSION: ${SCALA_VERSION:-2.12}
+        DATAFLINT_VERSION: ${DATAFLINT_VERSION:-0.8.3}
+        USE_LOCAL_JAR: ${USE_LOCAL_JAR:-true}
+    image: dataflint-history-server:${SPARK_VERSION:-3.5.1}
+    container_name: dataflint-history-server
+    ports:
+      - "${HISTORY_SERVER_PORT:-18080}:18080"
+    volumes:
+      - ${SPARK_HISTORY_DIR:-./spark-events}:/spark-history:ro
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
