@@ -8,11 +8,10 @@
 name: CI
 
 on:
-  workflow_dispatch:
   pull_request:
     branches: ['**']
   push:
-    branches: ['main']
+    branches: [main]
 
 jobs:
   build:
@@ -40,11 +39,19 @@ jobs:
         uses: sbt/setup-sbt@v1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: spark-ui/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('spark-ui/package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
         working-directory: ./spark-ui
 
