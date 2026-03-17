@@ -3,6 +3,8 @@ import xerial.sbt.Sonatype._
 
 ThisBuild / sonatypeCredentialHost := "central.sonatype.com"
 
+ThisBuild / sonatypeTimeoutMillis := 600000 // 10 minutes
+
 sonatypeProfileName := "io.dataflint"
 
 ThisBuild / sonatypeProfileName := "io.dataflint"
