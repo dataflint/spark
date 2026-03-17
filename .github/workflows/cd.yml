@@ -85,16 +85,24 @@ jobs:
       - name: publish to maven staging
         run: |
           if [[ "$IS_RELEASE" == "true" ]]; then
+            VERSION=$(grep 'lazy val versionNum' build.sbt | grep -oE '"[0-9.]+"' | tr -d '"')
             export GITHUB_REF="refs/tags/${{ steps.create-tag.outputs.tag }}"
+            sbt "+publishSigned"
+            cd target/sonatype-staging
+            zip -r bundle.zip "${VERSION}/"
+            curl --max-time 600 --retry 3 --retry-delay 60 --fail --show-error \
+              -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" \
+              -F "bundle=@bundle.zip" \
+              "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC&name=dataflint.dataflint-${VERSION}"
+          else
+            sbt ci-release
           fi
-          sbt ci-release
         working-directory: ./spark-plugin
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          JAVA_TOOL_OPTIONS: "-Dsun.net.client.defaultReadTimeout=600000"
 
       - name: Verify artifact published
         run: |
