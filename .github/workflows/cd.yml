@@ -68,6 +68,12 @@ jobs:
           echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
         working-directory: ./spark-plugin
 
+      - name: Import GPG key
+        if: github.event.inputs.release_type == 'official'
+        run: echo "$PGP_SECRET" | base64 --decode | gpg --import --no-tty --batch --yes
+        env:
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+
       - name: build frontend
         run: npm run deploy
         working-directory: ./spark-ui
