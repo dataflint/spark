@@ -22,7 +22,7 @@ class DataFlintPythonIntegrationSpec extends AnyFunSuite with Matchers with Befo
 
   // pluginspark3 tests run with CWD = spark-plugin/pluginspark3/, so go up one level
   // to reach the project root where .venv and pyspark-testing live.
-  private val projectRoot = Paths.get("").toAbsolutePath.getParent
+  private val projectRoot = Paths.get("").toAbsolutePath//.getParent
 
   private val venvPython: String = {
     val p = projectRoot.resolve(Paths.get(".venv", "bin", "python3"))
@@ -49,6 +49,7 @@ class DataFlintPythonIntegrationSpec extends AnyFunSuite with Matchers with Befo
       .config(DataflintSparkUICommonLoader.INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED,    "true")
       .config(DataflintSparkUICommonLoader.INSTRUMENT_FLAT_MAP_GROUPS_PANDAS_ENABLED,   "true")
       .config(DataflintSparkUICommonLoader.INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED, "true")
+//      .config("spark.sql.adaptive.enabled", "false")
       .config("spark.ui.enabled", "false")
       .withExtensions(new DataFlintInstrumentationExtension)
       .getOrCreate()
@@ -67,6 +68,21 @@ class DataFlintPythonIntegrationSpec extends AnyFunSuite with Matchers with Befo
       Paths.get("pyspark-testing", "dataflint_python_exec_integration_test.py")).toString
     // PythonRunner sets PYSPARK_GATEWAY_PORT + PYSPARK_GATEWAY_SECRET for the subprocess,
     // wires up PYTHONPATH (pyspark + py4j), and throws SparkException on non-zero exit.
+    // The script registers 4 temp views; we check their physical plans here on the Scala side.
     PythonRunner.main(Array(scriptPath, ""))
+
+    val checks = Seq(
+      "batch_eval_view"        -> "DataFlintBatchEvalPython",
+      "arrow_eval_view"        -> "DataFlintArrowEvalPython",
+      "flat_map_groups_view"   -> "DataFlintFlatMapGroupsInPandas",
+      "flat_map_cogroups_view" -> "DataFlintFlatMapCoGroupsInPandas",
+    )
+
+    checks.foreach { case (view, expectedNode) =>
+      val df = spark.table(view)
+      df.collect()
+      val plan = df.queryExecution.executedPlan.toString
+      plan should include(expectedNode)
+    }
   }
 }

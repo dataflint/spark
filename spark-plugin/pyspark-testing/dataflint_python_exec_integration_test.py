@@ -1,16 +1,15 @@
 """
-Integration test: verifies all 4 DataFlint Python exec nodes are instrumented.
+Integration test helper: registers 4 DataFlint Python exec node scenarios as temp views.
 
-Connects to the Scala test's SparkSession via the Py4J gateway that PythonRunner
-sets up automatically (PYSPARK_GATEWAY_PORT / PYSPARK_GATEWAY_SECRET env vars).
+The Scala test (DataFlintPythonIntegrationSpec) connects via PythonRunner / Py4J,
+calls this script, then checks each view's executedPlan for the DataFlint node.
 
-Tested nodes:
-  BatchEvalPython        -> DataFlintBatchEvalPython      (@udf)
-  ArrowEvalPython        -> DataFlintArrowEvalPython      (@pandas_udf scalar)
-  FlatMapGroupsInPandas  -> DataFlintFlatMapGroupsInPandas (applyInPandas)
-  FlatMapCoGroupsInPandas-> DataFlintFlatMapCoGroupsInPandas (cogroup applyInPandas)
+Registered views:
+  batch_eval_view        — @udf               → DataFlintBatchEvalPython
+  arrow_eval_view        — @pandas_udf scalar  → DataFlintArrowEvalPython
+  flat_map_groups_view   — applyInPandas       → DataFlintFlatMapGroupsInPandas
+  flat_map_cogroups_view — cogroup.applyIn…    → DataFlintFlatMapCoGroupsInPandas
 """
-import sys
 import pyspark
 import pyspark.java_gateway
 from pyspark.sql import SparkSession
@@ -30,89 +29,38 @@ spark_jvm = static.session()
 
 # Build SparkConf from the existing JavaSparkContext so spark.master (and all other
 # existing configs) are present — without this PySpark raises MASTER_URL_NOT_SET.
-conf = pyspark.conf.SparkConf(True, gateway.jvm, jsc.getConf())
-
+conf  = pyspark.conf.SparkConf(True, gateway.jvm, jsc.getConf())
 sc    = pyspark.SparkContext(gateway=gateway, jsc=jsc, conf=conf)
 spark = SparkSession(sc, jsparkSession=spark_jvm)
 
-print(f"Connected to Spark {spark.version}")
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-failures = []
-
-def executed_plan_str(df):
-    """Return the full executedPlan string after triggering execution."""
-    df.collect()
-    return df._jdf.queryExecution().executedPlan().toString()
-
-def assert_dataflint_node(df, expected_node, test_name):
-    plan = executed_plan_str(df)
-    if expected_node in plan:
-        print(f"  PASS  [{test_name}] — {expected_node} found in plan")
-    else:
-        msg = f"[{test_name}] '{expected_node}' not found in plan:\n{plan}"
-        failures.append(msg)
-        print(f"  FAIL  {msg}")
-
-# ---------------------------------------------------------------------------
-# Sample data
-# ---------------------------------------------------------------------------
 df = spark.createDataFrame(
     [(1, "a"), (2, "b"), (3, "a"), (4, "b")],
     ["id", "cat"]
 )
 
-# ---------------------------------------------------------------------------
-# Test 1 — @udf  →  BatchEvalPython  →  DataFlintBatchEvalPython
-# ---------------------------------------------------------------------------
-print("\n[1] BatchEvalPython (@udf)")
-
+# 1 — BatchEvalPython
 @udf(returnType=LongType())
 def double_udf(x):
     return x * 2
 
-assert_dataflint_node(
-    df.select(double_udf("id")),
-    "DataFlintBatchEvalPython",
-    "BatchEvalPython",
-)
+df.select(double_udf("id")).createOrReplaceTempView("batch_eval_view")
 
-# ---------------------------------------------------------------------------
-# Test 2 — @pandas_udf scalar  →  ArrowEvalPython  →  DataFlintArrowEvalPython
-# ---------------------------------------------------------------------------
-print("\n[2] ArrowEvalPython (@pandas_udf scalar)")
-
+# 2 — ArrowEvalPython
 @pandas_udf(LongType())
 def double_pandas_udf(s: pd.Series) -> pd.Series:
     return s * 2
 
-assert_dataflint_node(
-    df.select(double_pandas_udf("id")),
-    "DataFlintArrowEvalPython",
-    "ArrowEvalPython",
-)
+df.select(double_pandas_udf("id")).createOrReplaceTempView("arrow_eval_view")
 
-# ---------------------------------------------------------------------------
-# Test 3 — applyInPandas  →  FlatMapGroupsInPandas  →  DataFlintFlatMapGroupsInPandas
-# ---------------------------------------------------------------------------
-print("\n[3] FlatMapGroupsInPandas (applyInPandas)")
-
+# 3 — FlatMapGroupsInPandas
 def identity_group(key, pdf):
     return pdf
 
-assert_dataflint_node(
-    df.groupby("cat").applyInPandas(identity_group, schema="id long, cat string"),
-    "DataFlintFlatMapGroupsInPandas",
-    "FlatMapGroupsInPandas",
-)
+df.groupby("cat").applyInPandas(
+    identity_group, schema="id long, cat string"
+).createOrReplaceTempView("flat_map_groups_view")
 
-# ---------------------------------------------------------------------------
-# Test 4 — cogroup applyInPandas  →  FlatMapCoGroupsInPandas  →  DataFlintFlatMapCoGroupsInPandas
-# ---------------------------------------------------------------------------
-print("\n[4] FlatMapCoGroupsInPandas (cogroup applyInPandas)")
-
+# 4 — FlatMapCoGroupsInPandas
 df2 = spark.createDataFrame(
     [(1, "x"), (2, "y"), (3, "z"), (4, "w")],
     ["id", "label"]
@@ -123,23 +71,6 @@ def cogroup_fn(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
     left["label"] = right["label"].values[0] if len(right) > 0 else None
     return left[["id", "cat", "label"]]
 
-assert_dataflint_node(
-    df.groupby("id").cogroup(df2.groupby("id")).applyInPandas(
-        cogroup_fn, schema="id long, cat string, label string"
-    ),
-    "DataFlintFlatMapCoGroupsInPandas",
-    "FlatMapCoGroupsInPandas",
-)
-
-# ---------------------------------------------------------------------------
-# Summary
-# ---------------------------------------------------------------------------
-print("\n" + "=" * 60)
-if failures:
-    print(f"FAILED — {len(failures)} test(s) did not find the expected DataFlint node:")
-    for f in failures:
-        print(f"  • {f}")
-    sys.exit(1)
-else:
-    print("ALL PASSED — all 4 DataFlint Python exec nodes are instrumented")
-    sys.exit(0)
+df.groupby("id").cogroup(df2.groupby("id")).applyInPandas(
+    cogroup_fn, schema="id long, cat string, label string"
+).createOrReplaceTempView("flat_map_cogroups_view")
