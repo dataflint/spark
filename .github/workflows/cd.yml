@@ -128,8 +128,9 @@ jobs:
         if: github.event.inputs.release_type == 'official' || startsWith(github.ref, 'refs/tags/v')
         run: |
           TAG="${{ steps.create-tag.outputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
           gh release create "$TAG" \
-            --title "Release $TAG" \
+            --title "Version $VERSION" \
             --generate-notes \
             --verify-tag
         env:

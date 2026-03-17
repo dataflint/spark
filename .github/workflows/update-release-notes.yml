@@ -20,7 +20,9 @@ jobs:
 
       - name: Update release notes
         run: |
-          gh release edit "${{ github.event.inputs.tag }}" \
-            --generate-notes
+          TAG="${{ github.event.inputs.tag }}"
+          gh release delete "$TAG" --yes --cleanup-tag=false 2>/dev/null || true
+          VERSION="${TAG#v}"
+          gh release create "$TAG" --title "Version $VERSION" --generate-notes --verify-tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
