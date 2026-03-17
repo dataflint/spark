@@ -1,0 +1,50 @@
+name: Verify Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to verify (e.g. 0.8.7)'
+        required: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check deployment status on Sonatype Central
+        run: |
+          echo "Checking deployment status for ${{ github.event.inputs.version }}..."
+          for i in $(seq 1 20); do
+            STATUS=$(curl -sf -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" \
+              "https://central.sonatype.com/api/v1/publisher/deployments/search?name=dataflint.dataflint-${{ github.event.inputs.version }}" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin)['deploymentDtos']; print(d[0]['deploymentState'] if d else 'NOT_FOUND')" 2>/dev/null || echo "NOT_FOUND")
+            echo "Attempt $i/20 — deployment state: $STATUS"
+            if [[ "$STATUS" == "PUBLISHED" || "$STATUS" == "VALIDATED" ]]; then
+              echo "Artifact published successfully on Sonatype Central"
+              break
+            fi
+            if [[ "$STATUS" == "FAILED" ]]; then
+              echo "Deployment failed on Sonatype side"
+              exit 1
+            fi
+            sleep 30
+          done
+        env:
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+
+      - name: Check Maven Central availability
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          URL="https://repo1.maven.org/maven2/io/dataflint/spark_2.12/${VERSION}/spark_2.12-${VERSION}.pom"
+          echo "Checking Maven Central at: $URL"
+          for i in $(seq 1 20); do
+            if curl -sf "$URL" | grep -q "${VERSION}"; then
+              echo "Artifact available on Maven Central"
+              exit 0
+            fi
+            echo "Attempt $i/20 — not yet on Maven Central, waiting 60s..."
+            sleep 60
+          done
+          echo "Artifact not found on Maven Central after 20 minutes"
+          exit 1
