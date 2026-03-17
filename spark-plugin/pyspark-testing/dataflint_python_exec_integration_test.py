@@ -28,7 +28,11 @@ static    = gateway.jvm.org.apache.spark.dataflint.DataFlintStaticSession
 jsc       = static.javaSparkContext()
 spark_jvm = static.session()
 
-sc    = pyspark.SparkContext(gateway=gateway, jsc=jsc)
+# Build SparkConf from the existing JavaSparkContext so spark.master (and all other
+# existing configs) are present — without this PySpark raises MASTER_URL_NOT_SET.
+conf = pyspark.conf.SparkConf(True, gateway.jvm, jsc.getConf())
+
+sc    = pyspark.SparkContext(gateway=gateway, jsc=jsc, conf=conf)
 spark = SparkSession(sc, jsparkSession=spark_jvm)
 
 print(f"Connected to Spark {spark.version}")
