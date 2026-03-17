@@ -94,6 +94,7 @@ jobs:
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          JAVA_TOOL_OPTIONS: "-Dsun.net.client.defaultReadTimeout=600000"
 
       - name: Verify artifact published
         run: |
