@@ -19,6 +19,12 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "output columnar batches",
     "number of bytes pruned",
     "number of files pruned",
+    "time spent in spark",
+    "number of BQ rows read",
+    "scan time for BQ",
+    "number of read streams",
+    "parsing time for BQ",
+    "number of BQ bytes read",
   ],
   output: [
     "number of written files",
@@ -71,6 +77,9 @@ const metricsValueTransformer: Record<
   "data sent to Python workers": extractTotalFromStatisticsMetric,
   "data returned from Python workers": extractTotalFromStatisticsMetric,
   "duration": extractTotalFromStatisticsMetric,
+  "time spent in spark": extractTotalFromStatisticsMetric,
+  "scan time for BQ": extractTotalFromStatisticsMetric,
+  "parsing time for BQ": extractTotalFromStatisticsMetric,
   "total bytes in files merged by ZOrderBy": bytesToHumanReadableSize,
   // Shuffle read metric transformers
   "local bytes read": extractTotalFromStatisticsMetric,
@@ -119,6 +128,12 @@ const metricsRenamer: Record<string, string> = {
   "remote bytes read": "shuffle read (remote)",
   "fetch wait time": "fetch wait time",
   "data size": "shuffle data size",
+  "time spent in spark": "bq time in spark",
+  "number of BQ rows read": "bq rows",
+  "scan time for BQ": "bq scan time",
+  "number of read streams": "bq read streams",
+  "parsing time for BQ": "bq parsing time",
+  "number of BQ bytes read": "bq bytes read",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -355,6 +370,9 @@ export function nodeEnrichedNameBuilder(
 ): string {
   if (plan !== undefined) {
     switch (plan.type) {
+      case "FileScan":
+        if (plan.plan.isBigQueryRead) return "BigQuery Read";
+        break;
       case "JDBCScan":
         return "Read JDBC";
       case "HashAggregate":

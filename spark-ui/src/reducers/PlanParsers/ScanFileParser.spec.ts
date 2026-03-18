@@ -91,6 +91,31 @@ describe("parseFileScan", () => {
         tableName: "some.table.name",
       },
     },
+    {
+      input:
+        "BatchScan[col1#0,col2#1] Reading table [myproject.mydataset.mytable], ReadSchema: struct<col1:string,col2:int>",
+      nodeName: "BatchScan myproject.mydataset.mytable",
+      expected: {
+        tableName: "myproject.mydataset.mytable",
+        isBigQueryRead: true,
+        ReadSchema: {
+          col1: "string",
+          col2: "int",
+        },
+      },
+    },
+    {
+      input:
+        "BatchScan[col1#0] ReadSchema: struct<col1:string>",
+      nodeName: "BatchScan my_iceberg_table",
+      expected: {
+        tableName: "my_iceberg_table",
+        isIcebergRead: true,
+        ReadSchema: {
+          col1: "string",
+        },
+      },
+    },
   ];
 
   testCases.forEach((testCase, idx) => {

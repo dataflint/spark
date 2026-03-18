@@ -8,6 +8,8 @@ export function parseFileScan(
   input = hashNumbersRemover(input);
   const result: ParseFileScanPlan = {};
 
+  const readingTableMatch = /Reading table \[([^\]]+)\]/.exec(input);
+
   // Try different location patterns for different file index types
   // InMemoryFileIndex for regular tables
   // TahoeBatchFileIndex/TahoeLogFileIndex/PreparedDeltaFileIndex for Delta Lake
@@ -78,10 +80,15 @@ export function parseFileScan(
       result.isIcebergRead = true;
     }
   } else if (nodeName.startsWith("BatchScan ")) {
-    const parts = nodeName.split(" ");
-    if (parts.length === 2) {
-      result.tableName = parts[1];
-      result.isIcebergRead = true;
+    if (readingTableMatch) {
+      result.tableName = readingTableMatch[1];
+      result.isBigQueryRead = true;
+    } else {
+      const parts = nodeName.split(" ");
+      if (parts.length === 2) {
+        result.tableName = parts[1];
+        result.isIcebergRead = true;
+      }
     }
   } else if (nodeName.split(" ").length === 3) {
     result.tableName = nodeName.split(" ")[2];
