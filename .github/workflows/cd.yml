@@ -124,29 +124,17 @@ jobs:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
 
-      - name: Changelog
-        uses: scottbrenner/generate-changelog-action@master
-        if: github.event.inputs.release_type == 'official' || startsWith(github.ref, 'refs/tags/v')
-        id: Changelog
-        env:
-          REPO: ${{ github.repository }}
-
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@latest
         if: github.event.inputs.release_type == 'official' || startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG="${{ steps.create-tag.outputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          gh release create "$TAG" \
+            --title "Version $VERSION" \
+            --generate-notes \
+            --verify-tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.create-tag.outputs.tag || github.ref }}
-          release_name: Release ${{ steps.create-tag.outputs.tag || github.ref_name }}
-          body: |
-            See: https://dataflint.gitbook.io/dataflint-for-spark/overview/release-notes#version-${{ steps.create-tag.outputs.tag || github.ref_name }}
-
-            commits change log:
-            ${{ steps.Changelog.outputs.changelog }}
-          draft: false
-          prerelease: false
 
       - name: Bump version
         if: github.event.inputs.release_type == 'official' || startsWith(github.ref, 'refs/tags/v')
