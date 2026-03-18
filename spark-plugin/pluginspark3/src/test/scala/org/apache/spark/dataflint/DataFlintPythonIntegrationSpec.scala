@@ -2,6 +2,7 @@ package org.apache.spark.dataflint
 
 import org.apache.spark.deploy.PythonRunner
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.execution.SparkPlan
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -18,7 +19,7 @@ import java.nio.file.Paths
  * Requires: .venv with pyspark, pandas, pyarrow installed.
  *   python3 -m venv .venv && .venv/bin/pip install pyspark pandas pyarrow
  */
-class DataFlintPythonIntegrationSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll {
+class DataFlintPythonIntegrationSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll with DataFlintTestHelper {
 
   // pluginspark3 tests run with CWD = spark-plugin/pluginspark3/, so go up one level
   // to reach the project root where .venv and pyspark-testing live.
@@ -32,6 +33,10 @@ class DataFlintPythonIntegrationSpec extends AnyFunSuite with Matchers with Befo
     p.toString
   }
 
+  private val scriptPath: String =
+    projectRoot.resolve(
+      Paths.get("pyspark-testing", "dataflint_python_exec_integration_test.py")).toString
+
   private var spark: SparkSession = _
 
   override def beforeAll(): Unit = {
@@ -43,13 +48,12 @@ class DataFlintPythonIntegrationSpec extends AnyFunSuite with Matchers with Befo
     spark = SparkSession.builder()
       .master("local[2]")
       .appName("DataFlintPythonIntegrationSpec")
-      .config("spark.pyspark.python",                                               venvPython)
-      .config(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED,                "true")
-      .config(DataflintSparkUICommonLoader.INSTRUMENT_ARROW_EVAL_PYTHON_ENABLED,    "true")
-      .config(DataflintSparkUICommonLoader.INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED,    "true")
+      .config("spark.pyspark.python",                                                 venvPython)
+      .config(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED,                  "true")
+      .config(DataflintSparkUICommonLoader.INSTRUMENT_ARROW_EVAL_PYTHON_ENABLED,      "true")
+      .config(DataflintSparkUICommonLoader.INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED,      "true")
       .config(DataflintSparkUICommonLoader.INSTRUMENT_FLAT_MAP_GROUPS_PANDAS_ENABLED,   "true")
       .config(DataflintSparkUICommonLoader.INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED, "true")
-//      .config("spark.sql.adaptive.enabled", "false")
       .config("spark.ui.enabled", "false")
       .withExtensions(new DataFlintInstrumentationExtension)
       .getOrCreate()
@@ -63,26 +67,32 @@ class DataFlintPythonIntegrationSpec extends AnyFunSuite with Matchers with Befo
     if (spark != null) spark.stop()
   }
 
-  test("all 4 DataFlint Python exec nodes are instrumented and visible in the plan") {
-    val scriptPath = projectRoot.resolve(
-      Paths.get("pyspark-testing", "dataflint_python_exec_integration_test.py")).toString
-    // PythonRunner sets PYSPARK_GATEWAY_PORT + PYSPARK_GATEWAY_SECRET for the subprocess,
-    // wires up PYTHONPATH (pyspark + py4j), and throws SparkException on non-zero exit.
-    // The script registers 4 temp views; we check their physical plans here on the Scala side.
-    PythonRunner.main(Array(scriptPath, ""))
+  /** Run the Python script for the given test name, then check the registered view. */
+  private def assertPythonNode(testName: String, view: String, expectedNode: String): Unit = {
+    PythonRunner.main(Array(scriptPath, "", testName))
+    val df = spark.table(view)
+    df.collect()
+    val node = finalPlan(df).collect {
+      case n: SparkPlan if n.getClass.getSimpleName.contains(expectedNode) => n
+    }.headOption
+    node shouldBe defined
+    node.get.metrics should contain key "duration"
+    node.get.metrics("duration").value should be > 0L
+  }
 
-    val checks = Seq(
-      "batch_eval_view"        -> "DataFlintBatchEvalPython",
-      "arrow_eval_view"        -> "DataFlintArrowEvalPython",
-      "flat_map_groups_view"   -> "DataFlintFlatMapGroupsInPandas",
-      "flat_map_cogroups_view" -> "DataFlintFlatMapCoGroupsInPandas",
-    )
+  test("BatchEvalPython (@udf) is instrumented") {
+    assertPythonNode("batch_eval", "batch_eval_view", "DataFlintBatchEvalPython")
+  }
 
-    checks.foreach { case (view, expectedNode) =>
-      val df = spark.table(view)
-      df.collect()
-      val plan = df.queryExecution.executedPlan.toString
-      plan should include(expectedNode)
-    }
+  test("ArrowEvalPython (@pandas_udf scalar) is instrumented") {
+    assertPythonNode("arrow_eval", "arrow_eval_view", "DataFlintArrowEvalPython")
+  }
+
+  test("FlatMapGroupsInPandas (applyInPandas) is instrumented") {
+    assertPythonNode("flat_map_groups", "flat_map_groups_view", "DataFlintFlatMapGroupsInPandas")
+  }
+
+  test("FlatMapCoGroupsInPandas (cogroup applyInPandas) is instrumented") {
+    assertPythonNode("flat_map_cogroups", "flat_map_cogroups_view", "DataFlintFlatMapCoGroupsInPandas")
   }
 }

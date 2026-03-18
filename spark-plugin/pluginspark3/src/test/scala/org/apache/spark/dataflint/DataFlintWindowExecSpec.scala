@@ -2,7 +2,6 @@ package org.apache.spark.dataflint
 
 import org.apache.spark.sql.execution.{ExplicitRepartitionExtension, ExplicitRepartitionOps}
 import org.apache.spark.sql.{DataFrame, Encoder, Encoders, SparkSession}
-import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
 import org.apache.spark.sql.execution.window.DataFlintWindowExec
 import org.apache.spark.sql.expressions.{Aggregator, Window}
 import org.apache.spark.sql.functions.{col, rank, udaf}
@@ -28,7 +27,7 @@ private class SlowSumAggregator(fromSleep: Long, toSleep: Long) extends Aggregat
   def outputEncoder: Encoder[Long] = Encoders.scalaLong
 }
 
-class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll with SqlMetricTestHelper {
+class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll with DataFlintTestHelper {
 
   private var spark: SparkSession = _
 
@@ -52,13 +51,6 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     if (spark != null) spark.stop()
   }
 
-  // With AQE, executedPlan is AdaptiveSparkPlanExec. After collect(), finalPhysicalPlan holds
-  // the fully optimised plan. For plan-structure tests that don't execute the query, use
-  // queryExecution.sparkPlan instead (our strategy runs before AQE wraps the plan).
-  private def finalPlan(df: DataFrame) = df.queryExecution.executedPlan match {
-    case aqe: AdaptiveSparkPlanExec => aqe.finalPhysicalPlan
-    case p                          => p
-  }
 
   test("DataFlintWindowPlannerStrategy replaces WindowExec with DataFlintWindowExec for SQL window") {
     val session = spark
