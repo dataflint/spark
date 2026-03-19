@@ -41,7 +41,7 @@ class DataFlintPythonIntegrationSpec extends AnyFunSuite with Matchers with Befo
   }
 
   test("all 4 DataFlint Python exec nodes are instrumented and visible in the plan") {
-    val scriptPath = Paths.get("pyspark-testing", "dataflint_python_exec_integration_test.py")
+    val scriptPath = Paths.get("..", "pyspark-testing", "dataflint_python_exec_integration_test.py")
       .toAbsolutePath.toString
     // PythonRunner sets PYSPARK_GATEWAY_PORT + PYSPARK_GATEWAY_SECRET for the subprocess,
     // wires up PYTHONPATH (pyspark + py4j), and throws SparkException on non-zero exit.
