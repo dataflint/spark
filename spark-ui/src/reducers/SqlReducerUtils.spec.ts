@@ -98,13 +98,13 @@ describe("calcNodeMetrics - BigQuery metrics", () => {
     const result = calcNodeMetrics("input", metrics);
 
     const names = result.map((m) => m.name);
-    expect(names).toContain("bq rows");
-    expect(names).toContain("bq bytes read");
-    expect(names).toContain("bq read streams");
+    expect(names).toContain("rows");
+    expect(names).toContain("bytes read");
+    expect(names).toContain("number of read streams");
 
-    expect(result.find((m) => m.name === "bq rows")?.value).toBe("1000");
-    expect(result.find((m) => m.name === "bq bytes read")?.value).toBe("500000");
-    expect(result.find((m) => m.name === "bq read streams")?.value).toBe("4");
+    expect(result.find((m) => m.name === "rows")?.value).toBe("1000");
+    expect(result.find((m) => m.name === "bytes read")?.value).toBe("500000");
+    expect(result.find((m) => m.name === "number of read streams")?.value).toBe("4");
   });
 
   it("should extract total and rename BQ time metrics", () => {
@@ -117,9 +117,9 @@ describe("calcNodeMetrics - BigQuery metrics", () => {
     const result = calcNodeMetrics("input", metrics);
 
     const names = result.map((m) => m.name);
-    expect(names).toContain("bq scan time");
-    expect(names).toContain("bq parsing time");
-    expect(names).toContain("bq time in spark");
+    expect(names).toContain("scan time");
+    expect(names).toContain("parsing time");
+    expect(names).toContain("time in spark");
 
     // All three should have their total extracted ("120 ms")
     result.forEach((m) => {
@@ -134,7 +134,7 @@ describe("calcNodeMetrics - BigQuery metrics", () => {
     ];
     const result = calcNodeMetrics("input", metrics);
 
-    expect(result.some((m) => m.name === "bq rows")).toBe(true);
+    expect(result.some((m) => m.name === "rows")).toBe(true);
     expect(result.some((m) => m.name === "some unknown metric")).toBe(false);
   });
 });
