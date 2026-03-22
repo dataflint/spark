@@ -5,7 +5,7 @@ import scala.sys.process._
 lazy val versionNum: String = "0.8.8"
 lazy val spark3Version: String = "3.5.1"
 lazy val pythonVenvDir: String = System.getProperty("java.io.tmpdir") + "/dataflint-pyspark-venv"
-lazy val pythonExec: String = "python3.11"
+lazy val pythonExec: String = sys.env.getOrElse("DATAFLINT_PYTHON_EXEC", "python3.11")
 val createPythonVenv = taskKey[Unit]("Create Python venv and install pyspark test dependencies")
 lazy val scala212 = "2.12.20"
 lazy val scala213 = "2.13.16"
