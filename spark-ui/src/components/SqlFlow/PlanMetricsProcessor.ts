@@ -65,6 +65,9 @@ class PlanMetricsProcessor {
             case "Expand":
                 return this.processExpand(parsedPlan.plan, metrics);
 
+            case "WriteToIceberg":
+                return this.processWriteToIceberg(parsedPlan.plan, metrics);
+
             default:
                 return metrics;
         }
@@ -132,6 +135,16 @@ class PlanMetricsProcessor {
         }
         if (plan.fields !== undefined && plan.fields.length > 0) {
             addTruncatedCodeTooltipMultiline(metrics, "Output Fields", plan.fields);
+        }
+        return metrics;
+    }
+
+    private static processWriteToIceberg(plan: any, metrics: MetricWithTooltip[]): MetricWithTooltip[] {
+        if (plan.tableName !== undefined && plan.tableName !== "") {
+            addTruncatedSmallTooltip(metrics, "Table Name", plan.tableName);
+        }
+        if (plan.format !== undefined && plan.format !== "") {
+            metrics.push({ name: "Format", value: plan.format });
         }
         return metrics;
     }

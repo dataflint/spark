@@ -8,14 +8,22 @@ services:
         SCALA_VERSION: ${SCALA_VERSION:-2.12}
         DATAFLINT_VERSION: ${DATAFLINT_VERSION:-0.8.3}
         USE_LOCAL_JAR: ${USE_LOCAL_JAR:-true}
+        ICEBERG_VERSION: ${ICEBERG_VERSION:-1.7.1}
+        BIGQUERY_VERSION: ${BIGQUERY_VERSION:-0.42.0}
+        GCP_DATAPROC_VERSION: ${GCP_DATAPROC_VERSION:-4.75.0}
+        GCP_STORAGE_VERSION: ${GCP_STORAGE_VERSION:-2.47.0}
+        BIGQUERY_METRICS_VERSION: ${BIGQUERY_METRICS_VERSION:-0.44.0}
     image: dataflint-history-server:${SPARK_VERSION:-3.5.1}
     container_name: dataflint-history-server
     ports:
       - "${HISTORY_SERVER_PORT:-18080}:18080"
     volumes:
       - ${SPARK_HISTORY_DIR:-./spark-events}:/spark-history:ro
+#      - ./log4j2-debug.properties:/opt/spark/conf/log4j2-debug.properties:ro
     environment:
       - SPARK_NO_DAEMONIZE=true
+      - SPARK_LOG_LEVEL=INFO
+#      - SPARK_HISTORY_OPTS=-Dlog4j2.configurationFile=/opt/spark/conf/log4j2-debug.properties
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:18080"]

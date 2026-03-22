@@ -194,10 +194,17 @@ export type ParsedTakeOrderedAndProjectPlan = {
   limit: number;
 };
 
+export type ParsedIcebergWritePlan = {
+  tableName: string;
+  format: string;
+  tableType: string;
+};
+
 export type ParseFileScanPlan = {
   Location?: string;
   tableName?: string;
   isIcebergRead?: boolean;
+  isBigQueryRead?: boolean;
   orderBy?: string[];
   PartitionFilters?: string[];
   PushedFilters?: string[];
@@ -313,7 +320,8 @@ export type ParsedNodePlan =
   | { type: "Coalesce"; plan: ParsedCoalescePlan }
   | { type: "BatchEvalPython"; plan: ParsedBatchEvalPythonPlan }
   | { type: "Generate"; plan: ParsedGeneratePlan }
-  | { type: "Expand"; plan: ParsedExpandPlan };
+  | { type: "Expand"; plan: ParsedExpandPlan }
+  | { type: "WriteToIceberg"; plan: ParsedIcebergWritePlan };
 
 
 export interface ExchangeMetrics {
