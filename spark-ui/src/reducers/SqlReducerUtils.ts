@@ -19,6 +19,12 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "output columnar batches",
     "number of bytes pruned",
     "number of files pruned",
+    "time spent in spark",
+    "number of BQ rows read",
+    "scan time for BQ",
+    "number of read streams",
+    "parsing time for BQ",
+    "number of BQ bytes read",
   ],
   output: [
     "number of written files",
@@ -71,6 +77,9 @@ const metricsValueTransformer: Record<
   "data sent to Python workers": extractTotalFromStatisticsMetric,
   "data returned from Python workers": extractTotalFromStatisticsMetric,
   "duration": extractTotalFromStatisticsMetric,
+  "time spent in spark": extractTotalFromStatisticsMetric,
+  "scan time for BQ": extractTotalFromStatisticsMetric,
+  "parsing time for BQ": extractTotalFromStatisticsMetric,
   "total bytes in files merged by ZOrderBy": bytesToHumanReadableSize,
   // Shuffle read metric transformers
   "local bytes read": extractTotalFromStatisticsMetric,
@@ -119,6 +128,12 @@ const metricsRenamer: Record<string, string> = {
   "remote bytes read": "shuffle read (remote)",
   "fetch wait time": "fetch wait time",
   "data size": "shuffle data size",
+  "time spent in spark": "time in spark",
+  "number of BQ rows read": "rows",
+  "scan time for BQ": "scan time",
+  "number of read streams": "number of read streams",
+  "parsing time for BQ": "parsing time",
+  "number of BQ bytes read": "bytes read",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -150,6 +165,8 @@ const nodeTypeDict: Record<string, NodeType> = {
   AppendData: "output",
   ReplaceData: "output",
   WriteDelta: "output",
+  OverwriteByExpression: "output",
+  OverwritePartitionsDynamic: "output",
   DeleteFromTable: "output",
   PhotonProject: "transformation",
   PhotonGroupingAgg: "transformation",
@@ -236,10 +253,12 @@ const nodeRenamerDict: Record<string, string> = {
   ShuffledHashJoin: "Join (Shuffled Hash)",
   DropTable: "Drop table",
   CreateTable: "Create table",
-  AppendData: "Iceberg - Append data",
-  ReplaceData: "Iceberg - Replace data",
-  WriteDelta: "Iceberg - Write Delta",
-  DeleteFromTable: "Iceberg - Delete from table",
+  AppendData: "Append data",
+  ReplaceData: "Replace data",
+  WriteDelta: "Write Delta",
+  OverwriteByExpression: "Overwrite by Expression",
+  OverwritePartitionsDynamic: "Overwrite Partitions Dynamic",
+  DeleteFromTable: "Delete from table",
   PhotonProject: "Project (Photon)",
   PhotonGroupingAgg: "Aggregate (Photon)",
   PhotonShuffleExchangeSink: "Exchange Write (Photon)",
@@ -355,6 +374,16 @@ export function nodeEnrichedNameBuilder(
 ): string {
   if (plan !== undefined) {
     switch (plan.type) {
+      case "FileScan":
+        if (plan.plan.isBigQueryRead) return "BigQuery Read";
+        break;
+      case "WriteToIceberg":
+        if (name === "OverwriteByExpression") return "Iceberg - Overwrite by Expression";
+        if (name === "OverwritePartitionsDynamic") return "Iceberg - Overwrite Partitions Dynamic";
+        if (name === "ReplaceData") return "Iceberg - Replace data";
+        if (name === "WriteDelta") return "Iceberg - Write Delta";
+        if (name === "DeleteFromTable") return "Iceberg - Delete from table";
+        return "Iceberg - Append data";
       case "JDBCScan":
         return "Read JDBC";
       case "HashAggregate":

@@ -8,6 +8,7 @@ import org.apache.spark.status.{AppHistoryServerPlugin, ElementTrackingStore, Li
 import org.apache.spark.ui.SparkUI
 
 class DataFlintHistoryServerPlugin extends AppHistoryServerPlugin {
+
   override def createListeners(conf: SparkConf, store: ElementTrackingStore): Seq[SparkListener] = {
     Seq(new DataflintListener(store), new LiveRDDsListener(store))
   }

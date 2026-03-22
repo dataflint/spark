@@ -18,6 +18,7 @@ ARCHIVE_BASE="https://archive.apache.org/dist/spark"
 # version:hadoop_suffix pairs (portable — no associative arrays needed)
 ALL_VERSIONS="
 3.0.3:hadoop3.2
+3.1.2:hadoop3.2
 3.1.3:hadoop3.2
 3.2.4:hadoop3.2
 3.3.4:hadoop3
