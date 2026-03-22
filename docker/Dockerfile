@@ -30,6 +30,9 @@ ARG DATAFLINT_VERSION=0.8.3
 ARG USE_LOCAL_JAR=false
 ARG ICEBERG_VERSION=1.7.1
 ARG BIGQUERY_VERSION=0.42.0
+ARG GCP_DATAPROC_VERSION=4.75.0
+ARG GCP_STORAGE_VERSION=2.47.0
+ARG BIGQUERY_METRICS_VERSION=0.44.0
 
 # Labels
 LABEL maintainer="DataFlint"
@@ -98,6 +101,14 @@ RUN SPARK_MAJOR=$(echo ${SPARK_VERSION} | cut -d. -f1) && \
     else \
         echo "WARNING: BigQuery connector ${BIGQUERY_VERSION} not available for Spark ${SPARK_MAJOR}.${SPARK_MINOR} — skipping"; \
     fi
+
+# Install GCP and BigQuery metrics JARs
+RUN curl -fSL -o /opt/spark/jars/google-cloud-dataproc.jar \
+        "https://repo1.maven.org/maven2/com/google/cloud/google-cloud-dataproc/${GCP_DATAPROC_VERSION}/google-cloud-dataproc-${GCP_DATAPROC_VERSION}.jar" && \
+    curl -fSL -o /opt/spark/jars/google-cloud-storage.jar \
+        "https://repo1.maven.org/maven2/com/google/cloud/google-cloud-storage/${GCP_STORAGE_VERSION}/google-cloud-storage-${GCP_STORAGE_VERSION}.jar" && \
+    curl -fSL -o /opt/spark/jars/spark-bigquery-metrics.jar \
+        "https://repo1.maven.org/maven2/com/google/cloud/spark/spark-bigquery-metrics/${BIGQUERY_METRICS_VERSION}/spark-bigquery-metrics-${BIGQUERY_METRICS_VERSION}.jar"
 
 # Create directory for spark event logs
 RUN mkdir -p /spark-history && \

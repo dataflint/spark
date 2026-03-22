@@ -128,12 +128,12 @@ const metricsRenamer: Record<string, string> = {
   "remote bytes read": "shuffle read (remote)",
   "fetch wait time": "fetch wait time",
   "data size": "shuffle data size",
-  "time spent in spark": "bq time in spark",
-  "number of BQ rows read": "bq rows",
-  "scan time for BQ": "bq scan time",
-  "number of read streams": "bq read streams",
-  "parsing time for BQ": "bq parsing time",
-  "number of BQ bytes read": "bq bytes read",
+  "time spent in spark": "time in spark",
+  "number of BQ rows read": "rows",
+  "scan time for BQ": "scan time",
+  "number of read streams": "number of read streams",
+  "parsing time for BQ": "parsing time",
+  "number of BQ bytes read": "bytes read",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
