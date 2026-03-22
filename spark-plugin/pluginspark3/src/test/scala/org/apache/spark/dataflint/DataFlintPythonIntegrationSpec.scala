@@ -16,22 +16,13 @@ import java.nio.file.Paths
  * for the subprocess — no manual gateway setup needed. The Python script then connects
  * to this JVM via launch_gateway() and accesses the session through DataFlintStaticSession.
  *
- * Requires: .venv with pyspark, pandas, pyarrow installed.
- *   python3 -m venv .venv && .venv/bin/pip install pyspark pandas pyarrow
+ * Python dependencies (pyspark, pandas, pyarrow) are installed automatically into
+ * .venv at test startup if not already present.
  */
 class DataFlintPythonIntegrationSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll with DataFlintTestHelper {
 
-  // pluginspark3 tests run with CWD = spark-plugin/pluginspark3/, so go up one level
-  // to reach the project root where .venv and pyspark-testing live.
-  private val projectRoot = Paths.get("").toAbsolutePath//.getParent
-
-  private val venvPython: String = {
-    val p = projectRoot.resolve(Paths.get(".venv", "bin", "python3"))
-    require(p.toFile.exists(),
-      s"Python venv not found at $p\n" +
-      "Run: python3 -m venv .venv && .venv/bin/pip install pyspark pandas pyarrow")
-    p.toString
-  }
+  private val projectRoot = Paths.get(sys.props.getOrElse("dataflint.projectRoot", ""))
+  private val venvPython: String = System.getProperty("java.io.tmpdir") + "/dataflint-pyspark-venv/bin/python3"
 
   private val scriptPath: String =
     projectRoot.resolve(

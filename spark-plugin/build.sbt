@@ -1,7 +1,12 @@
 import xerial.sbt.Sonatype._
 import sbtassembly.AssemblyPlugin.autoImport._
+import scala.sys.process._
 
 lazy val versionNum: String = "0.8.8"
+lazy val spark3Version: String = "3.5.1"
+lazy val pythonVenvDir: String = System.getProperty("java.io.tmpdir") + "/dataflint-pyspark-venv"
+lazy val pythonExec: String = "python3.11"
+val createPythonVenv = taskKey[Unit]("Create Python venv and install pyspark test dependencies")
 lazy val scala212 = "2.12.20"
 lazy val scala213 = "2.13.16"
 lazy val supportedScalaVersions = List(scala212, scala213)
@@ -35,8 +40,8 @@ lazy val plugin = (project in file("plugin"))
     } else {
       versionNum + "-SNAPSHOT"
     }),
-    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.5.1" % "provided",
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.1"  % "provided",
+    libraryDependencies += "org.apache.spark" %% "spark-core" % spark3Version % "provided",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % spark3Version  % "provided",
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0" % "provided",
@@ -61,12 +66,12 @@ lazy val pluginspark3 = (project in file("pluginspark3"))
     } else {
       versionNum + "-SNAPSHOT"
     }),
-    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.5.1" % "provided",
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.1"  % "provided",
+    libraryDependencies += "org.apache.spark" %% "spark-core" % spark3Version % "provided",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % spark3Version  % "provided",
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0" % "provided",
-    
+
     // Assembly configuration to create fat JAR with common code
     assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}.jar",
     // Exclude Scala library from assembly - Spark provides its own Scala runtime
@@ -96,8 +101,8 @@ lazy val pluginspark3 = (project in file("pluginspark3"))
     Compile / unmanagedResourceDirectories += (plugin / Compile / resourceDirectory).value,
     libraryDependencies += "org.scalatest" %% "scalatest-funsuite"      % "3.2.17" % Test,
     libraryDependencies += "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.17" % Test,
-    libraryDependencies += "org.apache.spark" %% "spark-core" % "3.5.1" % Test,
-    libraryDependencies += "org.apache.spark" %% "spark-sql"  % "3.5.1" % Test,
+    libraryDependencies += "org.apache.spark" %% "spark-core" % spark3Version % Test,
+    libraryDependencies += "org.apache.spark" %% "spark-sql"  % spark3Version % Test,
 
     // Include source and resources from plugin directory for tests
     Test / unmanagedSourceDirectories += (plugin / Compile / sourceDirectory).value / "scala",
@@ -107,6 +112,24 @@ lazy val pluginspark3 = (project in file("pluginspark3"))
     // Run test suites sequentially — parallel suites share the SparkSession via getOrCreate()
     // and one suite stopping the session causes NPEs in concurrently-running suites
     Test / parallelExecution := false,
+    createPythonVenv := {
+      val venvDir = new java.io.File(pythonVenvDir)
+      val log = streams.value.log
+      if (!venvDir.exists()) {
+        log.info(s"Creating Python venv at $pythonVenvDir ...")
+        val rc = Process(Seq(pythonExec, "-m", "venv", pythonVenvDir)).!
+        if (rc != 0) sys.error(s"Failed to create Python venv at $pythonVenvDir")
+      }
+      val pip = s"$pythonVenvDir/bin/pip"
+      log.info(s"Installing pyspark==$spark3Version pandas pyarrow into venv...")
+      val rc = Process(Seq(pip, "install", "--quiet", s"pyspark==$spark3Version", "pandas", "pyarrow")).!
+      if (rc != 0) sys.error("pip install failed")
+    },
+    Test / compile := (Test / compile).dependsOn(createPythonVenv).value,
+    Test / testOnly := (Test / testOnly).dependsOn(createPythonVenv).evaluated,
+    Test / javaOptions ++= Seq(
+      s"-Ddataflint.projectRoot=${baseDirectory.value.getParentFile.toString}",
+    ),
     Test / javaOptions ++= {
       // --add-opens is not supported on Java 8 (spec version starts with "1.")
       if (sys.props("java.specification.version").startsWith("1.")) Seq.empty
