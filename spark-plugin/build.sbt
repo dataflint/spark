@@ -40,6 +40,7 @@ lazy val plugin = (project in file("plugin"))
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0" % "provided",
+    libraryDependencies += "org.javassist" % "javassist" % "3.30.2-GA" % "provided",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % Test,
     // Sonatype Central Portal repository configuration
     publishTo := {
@@ -137,6 +138,7 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
     libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0" % "provided",
+    libraryDependencies += "org.javassist" % "javassist" % "3.30.2-GA" % "provided",
     
     // Assembly configuration to create fat JAR with common code
     assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}.jar",

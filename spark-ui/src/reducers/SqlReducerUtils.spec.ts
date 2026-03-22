@@ -1,6 +1,68 @@
 import { calcNodeMetrics, nodeEnrichedNameBuilder } from "./SqlReducerUtils";
 import { EnrichedSqlMetric, ParsedNodePlan } from "../interfaces/AppStore";
 
+describe("nodeEnrichedNameBuilder - Iceberg write", () => {
+  it("should return 'Iceberg - Overwrite by Expression' for OverwriteByExpression with IcebergWrite plan", () => {
+    const plan: ParsedNodePlan = {
+      type: "WriteToIceberg",
+      plan: { tableName: "catalog.db.table", format: "PARQUET", tableType: "Iceberg" },
+    };
+    expect(nodeEnrichedNameBuilder("OverwriteByExpression", plan)).toBe("Iceberg - Overwrite by Expression");
+  });
+
+  it("should return 'Iceberg - Overwrite Partitions Dynamic' for OverwritePartitionsDynamic with IcebergWrite plan", () => {
+    const plan: ParsedNodePlan = {
+      type: "WriteToIceberg",
+      plan: { tableName: "catalog.db.table", format: "PARQUET", tableType: "Iceberg" },
+    };
+    expect(nodeEnrichedNameBuilder("OverwritePartitionsDynamic", plan)).toBe("Iceberg - Overwrite Partitions Dynamic");
+  });
+
+  it("should return 'Iceberg - Append data' for AppendData with IcebergWrite plan", () => {
+    const plan: ParsedNodePlan = {
+      type: "WriteToIceberg",
+      plan: { tableName: "catalog.db.events", format: "ORC", tableType: "Iceberg" },
+    };
+    expect(nodeEnrichedNameBuilder("AppendData", plan)).toBe("Iceberg - Append data");
+  });
+
+  it("should return generic name for OverwriteByExpression without IcebergWrite plan", () => {
+    expect(nodeEnrichedNameBuilder("OverwriteByExpression", undefined)).toBe("Overwrite by Expression");
+  });
+
+  it("should return generic name for OverwritePartitionsDynamic without IcebergWrite plan", () => {
+    expect(nodeEnrichedNameBuilder("OverwritePartitionsDynamic", undefined)).toBe("Overwrite Partitions Dynamic");
+  });
+
+  it("should return generic name for AppendData without IcebergWrite plan", () => {
+    expect(nodeEnrichedNameBuilder("AppendData", undefined)).toBe("Append data");
+  });
+
+  it("should return generic name for ReplaceData without IcebergWrite plan", () => {
+    expect(nodeEnrichedNameBuilder("ReplaceData", undefined)).toBe("Replace data");
+  });
+
+  it("should return generic name for WriteDelta without IcebergWrite plan", () => {
+    expect(nodeEnrichedNameBuilder("WriteDelta", undefined)).toBe("Write Delta");
+  });
+
+  it("should return 'Iceberg - Replace data' for ReplaceData with IcebergWrite plan", () => {
+    const plan: ParsedNodePlan = {
+      type: "WriteToIceberg",
+      plan: { tableName: "catalog.db.table", format: "PARQUET", tableType: "Iceberg" },
+    };
+    expect(nodeEnrichedNameBuilder("ReplaceData", plan)).toBe("Iceberg - Replace data");
+  });
+
+  it("should return 'Iceberg - Write Delta' for WriteDelta with IcebergWrite plan", () => {
+    const plan: ParsedNodePlan = {
+      type: "WriteToIceberg",
+      plan: { tableName: "catalog.db.table", format: "PARQUET", tableType: "Iceberg" },
+    };
+    expect(nodeEnrichedNameBuilder("WriteDelta", plan)).toBe("Iceberg - Write Delta");
+  });
+});
+
 describe("nodeEnrichedNameBuilder - BigQuery", () => {
   it("should return 'BigQuery Read' for a FileScan plan with isBigQueryRead", () => {
     const plan: ParsedNodePlan = {

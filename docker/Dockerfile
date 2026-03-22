@@ -28,6 +28,8 @@ ARG SPARK_VERSION=3.5.1
 ARG SCALA_VERSION=2.12
 ARG DATAFLINT_VERSION=0.8.3
 ARG USE_LOCAL_JAR=false
+ARG ICEBERG_VERSION=1.7.1
+ARG BIGQUERY_VERSION=0.42.0
 
 # Labels
 LABEL maintainer="DataFlint"
@@ -71,6 +73,23 @@ RUN SPARK_MAJOR=$(echo ${SPARK_VERSION} | cut -d. -f1) && \
             "https://repo1.maven.org/maven2/io/dataflint/${ARTIFACT_NAME}_${SCALA_VER}/${DATAFLINT_VERSION}/${ARTIFACT_NAME}_${SCALA_VER}-${DATAFLINT_VERSION}.jar"; \
     fi && \
     rm -rf /tmp/dataflint-jars
+
+# Install Iceberg and BigQuery connector JARs
+RUN SPARK_MAJOR=$(echo ${SPARK_VERSION} | cut -d. -f1) && \
+    SPARK_MINOR=$(echo ${SPARK_VERSION} | cut -d. -f2) && \
+    if [ "$SPARK_MAJOR" = "4" ]; then \
+        SCALA_VER="2.13"; \
+    else \
+        SCALA_VER="${SCALA_VERSION}"; \
+    fi && \
+    ICEBERG_ARTIFACT="iceberg-spark-runtime-${SPARK_MAJOR}.${SPARK_MINOR}_${SCALA_VER}" && \
+    echo "Downloading Iceberg: ${ICEBERG_ARTIFACT}-${ICEBERG_VERSION}" && \
+    curl -fSL -o /opt/spark/jars/iceberg-spark-runtime.jar \
+        "https://repo1.maven.org/maven2/org/apache/iceberg/${ICEBERG_ARTIFACT}/${ICEBERG_VERSION}/${ICEBERG_ARTIFACT}-${ICEBERG_VERSION}.jar" && \
+    BQ_ARTIFACT="spark-${SPARK_MAJOR}.${SPARK_MINOR}-bigquery" && \
+    echo "Downloading BigQuery connector: ${BQ_ARTIFACT}-${BIGQUERY_VERSION}" && \
+    curl -fSL -o /opt/spark/jars/spark-bigquery.jar \
+        "https://repo1.maven.org/maven2/com/google/cloud/spark/${BQ_ARTIFACT}/${BIGQUERY_VERSION}/${BQ_ARTIFACT}-${BIGQUERY_VERSION}.jar"
 
 # Create directory for spark event logs
 RUN mkdir -p /spark-history && \
