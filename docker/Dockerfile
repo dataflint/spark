@@ -74,7 +74,7 @@ RUN SPARK_MAJOR=$(echo ${SPARK_VERSION} | cut -d. -f1) && \
     fi && \
     rm -rf /tmp/dataflint-jars
 
-# Install Iceberg and BigQuery connector JARs
+# Install Iceberg and BigQuery connector JARs (skipped if not available for this Spark version)
 RUN SPARK_MAJOR=$(echo ${SPARK_VERSION} | cut -d. -f1) && \
     SPARK_MINOR=$(echo ${SPARK_VERSION} | cut -d. -f2) && \
     if [ "$SPARK_MAJOR" = "4" ]; then \
@@ -83,13 +83,21 @@ RUN SPARK_MAJOR=$(echo ${SPARK_VERSION} | cut -d. -f1) && \
         SCALA_VER="${SCALA_VERSION}"; \
     fi && \
     ICEBERG_ARTIFACT="iceberg-spark-runtime-${SPARK_MAJOR}.${SPARK_MINOR}_${SCALA_VER}" && \
-    echo "Downloading Iceberg: ${ICEBERG_ARTIFACT}-${ICEBERG_VERSION}" && \
-    curl -fSL -o /opt/spark/jars/iceberg-spark-runtime.jar \
-        "https://repo1.maven.org/maven2/org/apache/iceberg/${ICEBERG_ARTIFACT}/${ICEBERG_VERSION}/${ICEBERG_ARTIFACT}-${ICEBERG_VERSION}.jar" && \
+    ICEBERG_URL="https://repo1.maven.org/maven2/org/apache/iceberg/${ICEBERG_ARTIFACT}/${ICEBERG_VERSION}/${ICEBERG_ARTIFACT}-${ICEBERG_VERSION}.jar" && \
+    if curl -fsSL --head "$ICEBERG_URL" > /dev/null 2>&1; then \
+        echo "Downloading Iceberg: ${ICEBERG_ARTIFACT}-${ICEBERG_VERSION}" && \
+        curl -fSL -o /opt/spark/jars/iceberg-spark-runtime.jar "$ICEBERG_URL"; \
+    else \
+        echo "WARNING: Iceberg ${ICEBERG_VERSION} not available for Spark ${SPARK_MAJOR}.${SPARK_MINOR} — skipping"; \
+    fi && \
     BQ_ARTIFACT="spark-${SPARK_MAJOR}.${SPARK_MINOR}-bigquery" && \
-    echo "Downloading BigQuery connector: ${BQ_ARTIFACT}-${BIGQUERY_VERSION}" && \
-    curl -fSL -o /opt/spark/jars/spark-bigquery.jar \
-        "https://repo1.maven.org/maven2/com/google/cloud/spark/${BQ_ARTIFACT}/${BIGQUERY_VERSION}/${BQ_ARTIFACT}-${BIGQUERY_VERSION}.jar"
+    BQ_URL="https://repo1.maven.org/maven2/com/google/cloud/spark/${BQ_ARTIFACT}/${BIGQUERY_VERSION}/${BQ_ARTIFACT}-${BIGQUERY_VERSION}.jar" && \
+    if curl -fsSL --head "$BQ_URL" > /dev/null 2>&1; then \
+        echo "Downloading BigQuery connector: ${BQ_ARTIFACT}-${BIGQUERY_VERSION}" && \
+        curl -fSL -o /opt/spark/jars/spark-bigquery.jar "$BQ_URL"; \
+    else \
+        echo "WARNING: BigQuery connector ${BIGQUERY_VERSION} not available for Spark ${SPARK_MAJOR}.${SPARK_MINOR} — skipping"; \
+    fi
 
 # Create directory for spark event logs
 RUN mkdir -p /spark-history && \
