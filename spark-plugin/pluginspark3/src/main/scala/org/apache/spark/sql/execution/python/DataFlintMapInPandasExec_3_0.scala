@@ -11,6 +11,11 @@
  * creates the original MapInPandasExec at runtime via reflection, delegates
  * execution to it, and wraps the result RDD with a duration metric.
  * This avoids copying any Spark execution logic.
+ *
+ * Extends SparkPlan directly (not UnaryExecNode) to avoid a reference to
+ * UnaryLike in the compiled bytecode. UnaryLike was introduced in Spark 3.2,
+ * so loading a class compiled against 3.5 that mixes in UnaryLike (via
+ * UnaryExecNode) causes NoClassDefFoundError on Spark 3.0/3.1.
  */
 package org.apache.spark.sql.execution.python
 
@@ -20,8 +25,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans.physical.Partitioning
-import org.apache.spark.sql.execution.{SparkPlan, UnaryExecNode}
-import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
+import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.sql.execution.metric.SQLMetric
 
 /**
  * DataFlint instrumented MapInPandasExec for Spark 3.0.x / 3.1.x / 3.2.x.
@@ -31,14 +36,16 @@ class DataFlintMapInPandasExec_3_0 private (
     val func: Expression,
     override val output: Seq[Attribute],
     val child: SparkPlan)
-  extends UnaryExecNode with Logging {
+  extends SparkPlan with Logging {
 
   override def nodeName: String = "DataFlintMapInPandas"
 
   logInfo("DataFlint MapInPandas (Spark 3.0) is connected")
 
+  override def children: Seq[SparkPlan] = Seq(child)
   override def producedAttributes: AttributeSet = AttributeSet(output)
   override def outputPartitioning: Partitioning = child.outputPartitioning
+  override def outputOrdering: Seq[SortOrder] = child.outputOrdering
 
   // Cannot use SQLMetrics.createTimingMetric() — it gained a default parameter in 3.5
   // which generates a $default$3() call that doesn't exist in 3.0–3.4 at runtime.
@@ -77,8 +84,10 @@ class DataFlintMapInPandasExec_3_0 private (
     case _ => throw new IndexOutOfBoundsException(s"$n")
   }
 
-  override protected def withNewChildInternal(newChild: SparkPlan): DataFlintMapInPandasExec_3_0 =
-    new DataFlintMapInPandasExec_3_0(func, output, newChild)
+  // withNewChildrenInternal is from TreeNode/QueryPlan (not UnaryLike), safe on all Spark versions.
+  // On Spark 3.0/3.1, withNewChildren falls back to makeCopy which uses productElement above.
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[SparkPlan]): SparkPlan =
+    new DataFlintMapInPandasExec_3_0(func, output, newChildren.head)
 }
 
 object DataFlintMapInPandasExec_3_0 {
