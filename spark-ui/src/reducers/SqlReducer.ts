@@ -37,6 +37,7 @@ import { parseFileScan } from "./PlanParsers/ScanFileParser";
 import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWindow } from "./PlanParsers/WindowParser";
+import { parseWriteToIceberg } from "./PlanParsers/WriteToIcebergParser";
 import { parseWriteToDelta } from "./PlanParsers/WriteToDeltaParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
 import { parseBatchEvalPython } from "./PlanParsers/batchEvalPythonParser";
@@ -122,6 +123,19 @@ export function parseNodePlan(
           type: "Coalesce",
           plan: parseCoalesce(plan.planDescription),
         };
+      case "OverwritePartitionsDynamic":
+      case "OverwriteByExpression":
+      case "AppendData":
+      case "ReplaceData":
+      case "WriteDelta":
+      case "DeleteFromTable":
+        if (plan.planDescription.includes("IcebergWrite")) {
+          return {
+            type: "WriteToIceberg",
+            plan: parseWriteToIceberg(plan.planDescription),
+          };
+        }
+        break;
       case "Execute InsertIntoHadoopFsRelationCommand":
         return {
           type: "WriteToHDFS",
