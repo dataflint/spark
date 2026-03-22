@@ -10,7 +10,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll {
+class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll with DataFlintTestHelper {
 
   private var spark: SparkSession = _
 
