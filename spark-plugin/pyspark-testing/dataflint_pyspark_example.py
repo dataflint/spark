@@ -371,6 +371,3 @@ print("\nResult written to /tmp/dataflint_flat_map_cogroups_in_pandas_example")
 print("\n" + "="*80)
 print("Done!")
 print("="*80)
-
-input("\nPress Enter to exit...")
-spark.stop()
