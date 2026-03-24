@@ -4,7 +4,6 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{SparkSession, SparkSessionExtensions}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.{ColumnarRule, SparkPlan}
-import org.apache.spark.sql.execution.exchange.Exchange
 
 /**
  * A SparkSessionExtensions that injects DataFlint instrumentation into Spark's physical planning phase.
@@ -58,7 +57,6 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
   override def preColumnarTransitions: Rule[SparkPlan] = { plan =>
     if (enabledNodeNames.isEmpty) plan
     else plan.transformUp {
-      case node: Exchange => node  // never wrap exchange nodes
       case node if enabledNodeNames.contains(node.getClass.getSimpleName)
                 && !node.isInstanceOf[TimedExec] =>
         logWarning(s"DataFlint: wrapping ${node.getClass.getSimpleName} with TimedExec")
