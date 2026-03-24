@@ -66,7 +66,7 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
     else plan.transformUp {
       case node if enabledNodeNames.contains(node.getClass.getSimpleName)
                 && !node.isInstanceOf[TimedExec] =>
-        logWarning(s"DataFlint: wrapping ${node.getClass.getSimpleName} with TimedExec")
+        logInfo(s"DataFlint: wrapping ${node.getClass.getSimpleName} with TimedExec")
         TimedExec(node)
     }
   }

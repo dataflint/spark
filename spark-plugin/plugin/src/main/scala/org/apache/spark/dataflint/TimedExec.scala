@@ -47,6 +47,8 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with Logging {
   override lazy val metrics: Map[String, SQLMetric] =
     child.metrics ++ Map(MetricsUtils.getTimingMetric("duration")(sparkContext))
 
+  override protected def doPrepare(): Unit = child.doPrepare()
+
   override protected def doExecute(): RDD[InternalRow] =
     DataFlintRDDUtils.withDurationMetric(child.execute(), longMetric("duration"))
 
