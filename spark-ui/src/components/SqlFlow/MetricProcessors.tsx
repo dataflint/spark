@@ -17,7 +17,7 @@ import { MetricWithTooltip } from "./MetricDisplay";
 
 export const INSTRUMENTED_NODE_NAMES = new Set([
     "DataFlintWindow", "DataFlintWindowInPandas", "DataFlintArrowWindowPython",
-    "DataFlintMapInPandas", "DataFlintMapInArrow",
+    "DataFlintMapInPandas", "DataFlintPythonMapInArrow", "DataFlintMapInArrow",
     "DataFlintBatchEvalPython", "DataFlintArrowEvalPython",
     "DataFlintFlatMapGroupsInPandas", "DataFlintFlatMapCoGroupsInPandas",
 ]);

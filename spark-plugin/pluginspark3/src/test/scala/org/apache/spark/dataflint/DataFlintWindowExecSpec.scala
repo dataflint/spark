@@ -3,7 +3,7 @@ package org.apache.spark.dataflint
 import org.apache.spark.sql.execution.{ExplicitRepartitionExtension, ExplicitRepartitionOps}
 import org.apache.spark.sql.{DataFrame, Encoder, Encoders, SparkSession}
 import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
-import org.apache.spark.sql.execution.window.DataFlintWindowExec
+import org.apache.spark.sql.execution.window.WindowExec
 import org.apache.spark.sql.expressions.{Aggregator, Window}
 import org.apache.spark.sql.functions.{col, rank, udaf}
 import org.scalatest.BeforeAndAfterAll
@@ -36,13 +36,11 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     spark = SparkSession.builder()
       .master("local[1]")
       .appName("DataFlintWindowExecSpec")
-//      .config("spark.sql.extensions", "org.apache.spark.dataflint.DataFlintInstrumentationExtension")
       .config(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED, "true")
       .config(DataflintSparkUICommonLoader.INSTRUMENT_WINDOW_ENABLED, "true")
       .config("spark.ui.enabled", "false")
       .config("spark.sql.adaptive.enabled", "true")
       .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
-//      .config("spark.sql.adaptive.advisoryPartitionSizeInBytes", "64MB")
       .withExtensions(new ExplicitRepartitionExtension)
       .withExtensions(new DataFlintInstrumentationExtension)
       .getOrCreate()
@@ -53,14 +51,14 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
   }
 
   // With AQE, executedPlan is AdaptiveSparkPlanExec. After collect(), finalPhysicalPlan holds
-  // the fully optimised plan. For plan-structure tests that don't execute the query, use
-  // queryExecution.sparkPlan instead (our strategy runs before AQE wraps the plan).
+  // the fully optimised plan. TimedExec is injected by the ColumnarRule (preColumnarTransitions),
+  // so it only appears after execution (in finalPhysicalPlan), not in sparkPlan.
   private def finalPlan(df: DataFrame) = df.queryExecution.executedPlan match {
     case aqe: AdaptiveSparkPlanExec => aqe.finalPhysicalPlan
     case p                          => p
   }
 
-  test("DataFlintWindowPlannerStrategy replaces WindowExec with DataFlintWindowExec for SQL window") {
+  test("DataFlintInstrumentationColumnarRule wraps WindowExec with TimedExec") {
     val session = spark
     import session.implicits._
     val df = Seq((1, "a"), (2, "b"), (3, "a"), (4, "b"), (5, "a")).toDF("id", "cat")
@@ -69,18 +67,19 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val result = spark.sql(
       "SELECT id, cat, rank() OVER (PARTITION BY cat ORDER BY id) AS r FROM test_window_plan"
     )
-    // Use sparkPlan (pre-AQE) — our strategy injects DataFlintWindowExec at planning time
-    val windowNodes = result.queryExecution.sparkPlan.collect {
-      case w: DataFlintWindowExec => w
+    result.collect()
+
+    val windowNodes = finalPlan(result).collect {
+      case t: TimedExec if t.child.isInstanceOf[WindowExec] => t
     }
 
-    withClue("Expected DataFlintWindowExec in physical plan but found: " +
-      result.queryExecution.sparkPlan.treeString) {
+    withClue("Expected TimedExec(WindowExec) in physical plan but found: " +
+      finalPlan(result).treeString) {
       windowNodes should not be empty
     }
   }
 
-  test("DataFlintWindowExec duration metric is positive after execution") {
+  test("TimedExec(WindowExec) duration metric is positive after execution") {
     val session = spark
     import session.implicits._
     // 100 rows across 5 partitions — enough to ensure window work takes > 0ms
@@ -93,13 +92,13 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     result.collect()
 
     val windowNode = finalPlan(result).collect {
-      case w: DataFlintWindowExec => w
+      case t: TimedExec if t.child.isInstanceOf[WindowExec] => t
     }.head
     val duration = windowNode.metrics("duration").value
     duration should be > 0L
   }
 
-  test("DataFlintWindowExec duration metric is bounded by wall clock time") {
+  test("TimedExec(WindowExec) duration metric is bounded by wall clock time") {
     val session = spark
     import session.implicits._
     val df = (1 to 100000).map(i => (i, i % 5)).toDF("id", "cat")
@@ -114,7 +113,7 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val wallMs = NANOSECONDS.toMillis(System.nanoTime() - wallStart)
 
     val windowNode = finalPlan(result).collect {
-      case w: DataFlintWindowExec => w
+      case t: TimedExec if t.child.isInstanceOf[WindowExec] => t
     }.head
     val duration = windowNode.metrics("duration").value
 
@@ -122,7 +121,7 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     duration should be <= wallMs
   }
 
-  test("DataFlintWindowExec duration metric scales with data size") {
+  test("TimedExec(WindowExec) duration metric scales with data size") {
     val session = spark
     import session.implicits._
 
@@ -133,7 +132,7 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     )
     resultSmall.collect()
     val durationSmall = finalPlan(resultSmall).collect {
-      case w: DataFlintWindowExec => w
+      case t: TimedExec if t.child.isInstanceOf[WindowExec] => t
     }.head.metrics("duration").value
 
     val dfLarge = (1 to 1000000).map(i => (i, i % 5)).toDF("id", "cat")
@@ -143,13 +142,13 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     )
     resultLarge.collect()
     val durationLarge = finalPlan(resultLarge).collect {
-      case w: DataFlintWindowExec => w
+      case t: TimedExec if t.child.isInstanceOf[WindowExec] => t
     }.head.metrics("duration").value
 
     durationLarge should be > durationSmall
   }
 
-  test("DataFlintWindowExec duration metric captures window-internal UDAF computation") {
+  test("TimedExec(WindowExec) duration metric captures window-internal UDAF computation") {
     val session = spark
     import session.implicits._
 
@@ -173,12 +172,9 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
 
     // Fast baseline: rank() has negligible per-row computation
     val resultFast = df.withColumn("r", rank().over(Window.partitionBy("cat").orderBy("id")))
-//    val resultFast = spark.sql(
-//      "SELECT id, cat, rank() OVER (PARTITION BY cat ORDER BY id) AS r FROM test_window_udaf"
-//    )
     resultFast.collect()
     val durationFast = finalPlan(resultFast).collect {
-      case w: DataFlintWindowExec => w
+      case t: TimedExec if t.child.isInstanceOf[WindowExec] => t
     }.head.metrics("duration").value
 
     // Set shuffle partitions = partitions so each cat group runs as its own Spark task.
@@ -193,7 +189,7 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     resultSlow.collect()
     val wallSlowMs = NANOSECONDS.toMillis(System.nanoTime() - wallSlowStart)
     val windowNode = finalPlan(resultSlow).collect {
-      case w: DataFlintWindowExec => w
+      case t: TimedExec if t.child.isInstanceOf[WindowExec] => t
     }.head
     val durationSlow = windowNode.metrics("duration").value
     // The metric must capture the UDAF's sleep time (at least partitions * fromSleep ms)

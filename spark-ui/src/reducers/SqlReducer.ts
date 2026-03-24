@@ -194,6 +194,7 @@ export function parseNodePlan(
       case "DataFlintMapInPandas":
       case "MapInArrow":
       case "PythonMapInArrow":
+      case "DataFlintPythonMapInArrow":
       case "DataFlintMapInArrow":
       case "FlatMapGroupsInPandas":
       case "DataFlintFlatMapGroupsInPandas":
@@ -710,6 +711,7 @@ const PYTHON_EVAL_NODE_NAMES = new Set([
   "MapInArrow",
   "PythonMapInArrow",
   "DataFlintMapInArrow",
+  "DataFlintPythonMapInArrow",
   "FlatMapGroupsInPandas",
   "DataFlintFlatMapGroupsInPandas",
   "FlatMapCoGroupsInPandas",

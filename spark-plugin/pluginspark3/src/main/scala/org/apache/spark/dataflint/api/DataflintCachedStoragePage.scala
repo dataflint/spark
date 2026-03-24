@@ -15,7 +15,7 @@ class DataflintCachedStoragePage(ui: SparkUI, dataflintStore: DataflintStore)
     try {
       val liveRddStorage = ui.store.rddList()
       val rddStorage = dataflintStore.rddStorageInfo()
-      val graphs = ui.store.stageList(null)
+      val graphs = AppStatusStoreCompat.stageList(ui.store)
         .filter(_.submissionTime.isDefined) // filter skipped or pending stages
         .map(stage => Tuple2(stage.stageId,
           ui.store.operationGraphForStage(stage.stageId).rootCluster.childClusters.flatMap(_.childNodes)

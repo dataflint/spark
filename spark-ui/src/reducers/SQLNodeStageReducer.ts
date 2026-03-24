@@ -111,7 +111,8 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     if (node.nodeName === "AQEShuffleRead" || node.nodeName === "Coalesce" ||
       node.nodeName === "BatchEvalPython" || node.nodeName === "DataFlintBatchEvalPython" ||
       node.nodeName === "MapInPandas" || node.nodeName === "DataFlintMapInPandas" ||
-      node.nodeName === "MapInArrow" || node.nodeName === "PythonMapInArrow" || node.nodeName === "DataFlintMapInArrow" ||
+      node.nodeName === "MapInArrow"  || node.nodeName === "DataFlintMapInArrow" ||
+      node.nodeName === "PythonMapInArrow" || node.nodeName === "DataFlintPythonMapInArrow" ||
       node.nodeName === "ArrowEvalPython" || node.nodeName === "DataFlintArrowEvalPython" ||
       node.nodeName === "FlatMapGroupsInPandas" || node.nodeName === "DataFlintFlatMapGroupsInPandas" ||
       node.nodeName === "FlatMapCoGroupsInPandas" || node.nodeName === "DataFlintFlatMapCoGroupsInPandas" ||
@@ -498,7 +499,7 @@ export function calculateSqlStage(
 
   const instrumentedNodeNames = [
     "DataFlintWindow", "DataFlintWindowInPandas", "DataFlintArrowWindowPython",
-    "DataFlintMapInPandas", "DataFlintMapInArrow",
+    "DataFlintMapInPandas", "DataFlintMapInArrow", "DataFlintPythonMapInArrow",
     "DataFlintBatchEvalPython", "DataFlintArrowEvalPython",
     "DataFlintFlatMapGroupsInPandas", "DataFlintFlatMapCoGroupsInPandas",
   ];
