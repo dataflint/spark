@@ -90,7 +90,7 @@ data = [
     ("Bob", "Electronics", 4, 199.99),
     ("Charlie", "Books", None, 15.00),
     ("Alice", "Electronics", 7, 499.99),
-] * 1000
+] * 10000
 
 schema = StructType([
     StructField("customer", StringType(), False),
@@ -259,7 +259,19 @@ def price_tier(price):
         return "mid-range"
     return "premium"
 
-df_batch_udf = df.withColumn("price_tier", price_tier("price"))
+@udf(StringType())
+def price_tier2(price):
+    """Classify price into tiers without using pandas/Arrow."""
+    if price is None:
+        return "unknown"
+    if price < 50:
+        return "budget"
+    if price < 200:
+        return "mid-range"
+    return "premium"
+
+df_batch_udf = df.withColumn("price_tier", price_tier("price")) \
+    .withColumn("price_tier2", price_tier2("price"))
 
 spark.sparkContext.setJobDescription("@udf: classify price tier → DataFlintBatchEvalPythonExec")
 df_batch_udf.write \
@@ -279,10 +291,17 @@ print("="*80)
 def apply_discount(price: pd.Series, quantity: pd.Series) -> pd.Series:
     """Apply a 10% discount when quantity > 3, otherwise no discount."""
     return price * quantity.apply(lambda q: 0.90 if q > 3 else 1.0)
+@pandas_udf(DoubleType())
+def apply_discount2(price: pd.Series, quantity: pd.Series) -> pd.Series:
+    """Apply a 10% discount when quantity > 3, otherwise no discount."""
+    return price * quantity.apply(lambda q: 0.80 if q > 3 else 1.0)
 
 df_scalar_udf = df.withColumn(
     "discounted_price",
     apply_discount("price", "quantity")
+).withColumn(
+    "discounted_price2",
+    apply_discount2("price", "quantity")
 )
 
 spark.sparkContext.setJobDescription("pandas_udf SCALAR: apply discount → DataFlintArrowEvalPythonExec")

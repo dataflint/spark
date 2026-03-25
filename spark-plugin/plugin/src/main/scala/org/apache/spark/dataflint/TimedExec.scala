@@ -47,7 +47,11 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with Logging {
   override lazy val metrics: Map[String, SQLMetric] =
     child.metrics ++ Map(MetricsUtils.getTimingMetric("duration")(sparkContext))
 
-  override protected def doPrepare(): Unit = child.doPrepare()
+  // Delegate prepare() to child so that DataWritingCommandExec (and similar nodes that
+  // override doPrepare) run their pre-execution setup. child is not in the plan tree, so
+  // Spark won't call prepare() on it automatically. prepare() is idempotent so the
+  // recursive call on the grandchildren is safe.
+  override protected def doPrepare(): Unit = child.prepare()
 
   override protected def doExecute(): RDD[InternalRow] =
     DataFlintRDDUtils.withDurationMetric(child.execute(), longMetric("duration"))
