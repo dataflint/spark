@@ -17,6 +17,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.compute as pc
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 
 # Resolve the plugin JAR path relative to this script's location
@@ -157,7 +158,8 @@ print("="*80)
 print("Running mapInPandas example")
 print("="*80)
 
-df_pandas = df.mapInPandas(compute_discounted_totals_pandas, output_schema)
+df_pandas = df.mapInPandas(compute_discounted_totals_pandas, output_schema) \
+    .withColumn("final_cost", col("final_cost") * 2)
 
 spark.sparkContext.setJobDescription("mapInPandas: compute discounted totals → DataFlintMapInPandasExec")
 df_pandas.write \
@@ -333,7 +335,9 @@ group_output_schema = (
     "revenue double, cat_total_revenue double, cat_avg_price double"
 )
 
-df_grouped = df.groupby("category").applyInPandas(enrich_group, schema=group_output_schema)
+df_grouped = df.groupby("category").applyInPandas(enrich_group, schema=group_output_schema) \
+    .withColumn("price", col("price")*2)
+
 
 spark.sparkContext.setJobDescription("applyInPandas: per-category stats → DataFlintFlatMapGroupsInPandasExec")
 df_grouped.write \
@@ -377,6 +381,7 @@ df_cogrouped = (
     df.groupby("category")
     .cogroup(df_discounts.groupby("category"))
     .applyInPandas(apply_category_discount, schema=cogroup_output_schema)
+    .withColumn("price", col("price")*2)
 )
 
 spark.sparkContext.setJobDescription("cogroup applyInPandas: apply category discounts → DataFlintFlatMapCoGroupsInPandasExec")
