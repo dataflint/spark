@@ -68,6 +68,7 @@ spark = SparkSession \
     .config("spark.dataflint.instrument.spark.flatMapCoGroupsInPandas.enabled", "true") \
     .master("local[*]") \
     .getOrCreate()
+#     .config("spark.sql.codegen.wholeStage", "false") \
 # spark.sparkContext.setLogLevel("INFO")
 # Get Spark version and check if mapInArrow is supported
 spark_version = spark.version

@@ -4,8 +4,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.metric.SQLMetric
 
-import java.util.concurrent.TimeUnit.NANOSECONDS
-
 object DataFlintRDDUtils {
   def withDurationMetric(rdd: RDD[InternalRow], durationMetric: SQLMetric): RDD[InternalRow] =
     rdd.mapPartitions { iter =>
@@ -15,7 +13,7 @@ object DataFlintRDDUtils {
         override def hasNext: Boolean = {
           val r = iter.hasNext
           if (!r && !done) {
-            durationMetric += NANOSECONDS.toMillis(System.nanoTime() - startTime)
+            durationMetric += ((System.nanoTime() - startTime)/(1000 * 1000))
             done = true
           }
           r

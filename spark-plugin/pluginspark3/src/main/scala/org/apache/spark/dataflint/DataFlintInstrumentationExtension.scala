@@ -47,7 +47,7 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
       "FlatMapGroupsInPandasExec",
       "FlatMapCoGroupsInPandasExec",
       "WindowExec",
-      "WindowInPandasExec"
+      "WindowInPandasExec",
     )
     if (globalEnabled) all
     else {
