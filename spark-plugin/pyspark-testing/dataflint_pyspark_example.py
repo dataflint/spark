@@ -19,6 +19,13 @@ import pyarrow.compute as pc
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
+import time
+
+SLEEP_ENABLED = False
+
+def sleep(seconds):
+    if SLEEP_ENABLED:
+        sleep(seconds)
 
 # Resolve the plugin JAR path relative to this script's location
 # Detect Spark version from environment to load the correct JAR
@@ -107,6 +114,7 @@ df = spark.createDataFrame(data, schema).repartition(4)
 # mapInPandas function
 def compute_discounted_totals_pandas(iterator):
     for pdf in iterator:
+        sleep(5)
         pdf = pdf.copy()
         pdf["quantity"] = pdf["quantity"].fillna(0)
         pdf["total_cost"] = pdf["quantity"] * pdf["price"]
@@ -118,6 +126,7 @@ def compute_discounted_totals_pandas(iterator):
 # mapInArrow function
 def compute_discounted_totals_arrow(iterator):
     for batch in iterator:
+        sleep(5)
         quantity = batch.column("quantity")
         price = batch.column("price")
 
@@ -176,7 +185,8 @@ if supports_map_in_arrow:
     print("Running mapInArrow example")
     print("="*80)
 
-    df_arrow = df.mapInArrow(compute_discounted_totals_arrow, output_schema)
+    df_arrow = df.mapInArrow(compute_discounted_totals_arrow, output_schema) \
+        .withColumn("final_cost", col("final_cost") * 2)
 
     spark.sparkContext.setJobDescription("mapInArrow: compute discounted totals → DataFlintPythonMapInArrowExec")
     df_arrow.write \
@@ -225,14 +235,13 @@ from pyspark.sql.functions import pandas_udf
 @pandas_udf(DoubleType())
 def discounted_sum(prices: pd.Series) -> float:
     """Pandas UDF used as a window aggregate: sum of prices with a 10% discount."""
-    import time
-    time.sleep(2)
+    sleep(10)
     return prices.sum() * 0.9
 
 df_window_udf = df.withColumn(
     "discounted_category_revenue",
     discounted_sum("price").over(window_category_total)
-)
+).withColumn("price2", col("price")*2)
 
 spark.sparkContext.setJobDescription("Window pandas UDF: discounted sum → DataFlintWindowInPandasExec")
 df_window_udf.write \
@@ -253,6 +262,7 @@ from pyspark.sql.types import StringType
 
 @udf(StringType())
 def price_tier(price):
+    sleep(0.0001)
     """Classify price into tiers without using pandas/Arrow."""
     if price is None:
         return "unknown"
@@ -264,6 +274,7 @@ def price_tier(price):
 
 @udf(StringType())
 def price_tier2(price):
+    sleep(0.0001)
     """Classify price into tiers without using pandas/Arrow."""
     if price is None:
         return "unknown"
@@ -292,10 +303,12 @@ print("="*80)
 # The UDF is applied column-wise; Spark executes it via ArrowEvalPythonExec
 @pandas_udf(DoubleType())
 def apply_discount(price: pd.Series, quantity: pd.Series) -> pd.Series:
+    sleep(5)
     """Apply a 10% discount when quantity > 3, otherwise no discount."""
     return price * quantity.apply(lambda q: 0.90 if q > 3 else 1.0)
 @pandas_udf(DoubleType())
 def apply_discount2(price: pd.Series, quantity: pd.Series) -> pd.Series:
+    sleep(5)
     """Apply a 10% discount when quantity > 3, otherwise no discount."""
     return price * quantity.apply(lambda q: 0.80 if q > 3 else 1.0)
 
@@ -322,6 +335,7 @@ print("="*80)
 # applyInPandas / GROUPED_MAP → DataFlintFlatMapGroupsInPandasExec
 # Groups data by category, then applies a pandas function to each group
 def enrich_group(pdf):
+    sleep(5)
     """Compute per-category stats and add them as new columns."""
     pdf = pdf.copy()
     pdf["quantity"] = pdf["quantity"].fillna(0)
@@ -363,6 +377,7 @@ discounts_schema = "category string, discount_rate double"
 df_discounts = spark.createDataFrame(discounts_data, discounts_schema)
 
 def apply_category_discount(left_pdf, right_pdf):
+    sleep(5)
     """Apply per-category discount from the right DataFrame to the left."""
     import pandas as pd
     discount_rate = right_pdf["discount_rate"].iloc[0] if len(right_pdf) > 0 else 0.0
