@@ -25,7 +25,7 @@ SLEEP_ENABLED = False
 
 def sleep(seconds):
     if SLEEP_ENABLED:
-        sleep(seconds)
+        time.sleep(seconds)
 
 # Resolve the plugin JAR path relative to this script's location
 # Detect Spark version from environment to load the correct JAR
