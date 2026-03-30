@@ -1,12 +1,22 @@
 package org.apache.spark.dataflint
 
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.scalatest.Assertions
 
 case class MetricStats(total: Long, min: Long, med: Long, max: Long)
 
-trait SqlMetricTestHelper extends Assertions {
+trait DataFlintTestHelper extends Assertions {
+
+  // With AQE, executedPlan is AdaptiveSparkPlanExec. After collect(), finalPhysicalPlan holds
+  // the fully optimised plan. For plan-structure tests that don't execute the query, use
+  // queryExecution.sparkPlan instead (our strategy runs before AQE wraps the plan).
+  def finalPlan(df: DataFrame): SparkPlan = df.queryExecution.executedPlan match {
+    case aqe: AdaptiveSparkPlanExec => aqe.finalPhysicalPlan
+    case p                          => p
+  }
 
   // Reads per-task total/min/med/max from the SQL status store for the given SQLMetric.
   // createTimingMetric records each task's elapsed time individually; the store formats them as:
