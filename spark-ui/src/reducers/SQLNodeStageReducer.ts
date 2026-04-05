@@ -109,15 +109,15 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
   });
   nodes = nodes.map((node) => {
     if (node.nodeName === "AQEShuffleRead" || node.nodeName === "Coalesce" ||
-      node.nodeName === "BatchEvalPython" || node.nodeName === "DataFlintBatchEvalPython" ||
-      node.nodeName === "MapInPandas" || node.nodeName === "DataFlintMapInPandas" ||
-      node.nodeName === "MapInArrow"  || node.nodeName === "DataFlintMapInArrow" ||
-      node.nodeName === "PythonMapInArrow" || node.nodeName === "DataFlintPythonMapInArrow" ||
-      node.nodeName === "ArrowEvalPython" || node.nodeName === "DataFlintArrowEvalPython" ||
-      node.nodeName === "FlatMapGroupsInPandas" || node.nodeName === "DataFlintFlatMapGroupsInPandas" ||
-      node.nodeName === "FlatMapCoGroupsInPandas" || node.nodeName === "DataFlintFlatMapCoGroupsInPandas" ||
-      node.nodeName === "WindowInPandas" || node.nodeName === "DataFlintWindowInPandas" || node.nodeName === "DataFlintArrowWindowPython" ||
-      node.nodeName === "Window" || node.nodeName === "DataFlintWindow") {
+      node.nodeName === "BatchEvalPython" ||
+      node.nodeName === "MapInPandas" ||
+      node.nodeName === "MapInArrow" ||
+      node.nodeName === "PythonMapInArrow" ||
+      node.nodeName === "ArrowEvalPython" ||
+      node.nodeName === "FlatMapGroupsInPandas" ||
+      node.nodeName === "FlatMapCoGroupsInPandas" ||
+      node.nodeName === "WindowInPandas" || node.nodeName === "ArrowWindowPython" ||
+      node.nodeName === "Window") {
       const nextNode = findNextNode(node.nodeId);
       if (nextNode !== undefined && nextNode.stage !== undefined) {
         return { ...node, stage: nextNode.stage };
@@ -493,19 +493,12 @@ export function calculateSqlStage(
     }
   }
 
-  // Collect instrumented nodes (DataFlintWindow, MapInPandas, etc.) and extract their "duration" metric for stage subtraction
+  // Collect instrumented nodes and extract their "duration" metric for stage subtraction
   const instrumentedDurationByNodeId = new Map<number, number>();
   const instrumentedByStageId = new Map<number, typeof calculatedStageSql.nodes>();
 
-  const instrumentedNodeNames = [
-    "DataFlintWindow", "DataFlintWindowInPandas", "DataFlintArrowWindowPython",
-    "DataFlintMapInPandas", "DataFlintMapInArrow", "DataFlintPythonMapInArrow",
-    "DataFlintBatchEvalPython", "DataFlintArrowEvalPython",
-    "DataFlintFlatMapGroupsInPandas", "DataFlintFlatMapCoGroupsInPandas",
-  ];
-
   for (const node of calculatedStageSql.nodes) {
-    if (instrumentedNodeNames.includes(node.nodeName)) {
+    if (node.isInstrumented) {
       const duration = getMetricDuration("duration", node.metrics);
       if (duration !== undefined) {
         instrumentedDurationByNodeId.set(node.nodeId, duration);
@@ -588,10 +581,16 @@ export function calculateSqlStage(
       const stageCodegen = node.wholeStageCodegenId !== undefined
         ? codegenByWholeStageId.get(node.wholeStageCodegenId)
         : undefined;
+      // Native exclusive metrics measure only the node's own work (e.g. sort time
+      // excludes child pull time). For blocking codegen operators, the TimedExec
+      // duration only captures the output iteration (~0ms), so native metrics are
+      // more accurate.
+      const nativeExclusiveDuration = getNativeExclusiveDuration(node);
       const duration =
+        nativeExclusiveDuration ??
+        instrumentedDurationByNodeId.get(node.nodeId) ??
         stageCodegen?.codegenDuration ??
         node.exchangeMetrics?.duration ??
-        instrumentedDurationByNodeId.get(node.nodeId) ??
         (node.stage?.type === "onestage"
           ? node.stage?.restOfStageDuration ?? node.stage?.stageDuration
           : undefined);
@@ -622,4 +621,21 @@ export function calculateSqlStage(
     return { ...node, cachedStorage: storageInfoByNodeId.get(node.nodeId) };
   });
   return { ...calculatedStageSql, nodes: nodesWithStorageInfo };
+}
+
+/**
+ * Blocking codegen operators (Sort, HashAggregate, etc.) expose native metrics
+ * that already measure only the node's own work, excluding child pull time.
+ * These are more accurate than TimedExec's duration for blocking operators.
+ */
+const NATIVE_EXCLUSIVE_METRICS: Record<string, string> = {
+  "Sort": "sort time",
+  "HashAggregate": "agg time",
+  "ShuffledHashJoin": "build time",
+};
+
+function getNativeExclusiveDuration(node: EnrichedSqlNode): number | undefined {
+  const metricName = NATIVE_EXCLUSIVE_METRICS[node.nodeName];
+  if (metricName === undefined) return undefined;
+  return getMetricDuration(metricName, node.metrics);
 }

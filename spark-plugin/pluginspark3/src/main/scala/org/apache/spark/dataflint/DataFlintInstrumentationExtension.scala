@@ -39,6 +39,11 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
   private val enabledNodeNames: Set[String] = {
     val conf = session.sparkContext.conf
     val globalEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED, defaultValue = false)
+    val sqlNodes = Set(
+      "FilterExec", "ProjectExec", "ExpandExec", "GenerateExec",
+      "SortMergeJoinExec", "BroadcastHashJoinExec", "BroadcastNestedLoopJoinExec",
+      "CartesianProductExec", "WindowGroupLimitExec", "SortAggregateExec", "SortExec", "HashAggregateExec"
+    )
     val all = Set(
       "BatchEvalPythonExec",
       "ArrowEvalPythonExec",
@@ -47,10 +52,11 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
       "FlatMapGroupsInPandasExec",
       "FlatMapCoGroupsInPandasExec",
       "WindowExec",
-      "WindowInPandasExec",
-    )
+      "WindowInPandasExec"
+    ) ++ sqlNodes
     if (globalEnabled) all
     else {
+      (if (conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_SQL_NODES_ENABLED, false))         sqlNodes                                          else Set.empty[String]) ++
       (if (conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED, false))     Set("BatchEvalPythonExec")                    else Set.empty[String]) ++
       (if (conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_ARROW_EVAL_PYTHON_ENABLED, false))     Set("ArrowEvalPythonExec")                    else Set.empty[String]) ++
       (if (conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_MAP_IN_PANDAS_ENABLED, false))         Set("MapInPandasExec")                        else Set.empty[String]) ++

@@ -337,6 +337,7 @@ export interface EnrichedSqlNode {
   type: NodeType;
   wholeStageCodegenId?: number;
   isCodegenNode: boolean;
+  isInstrumented: boolean;
   codegenDuration: number | undefined;
   exchangeBroadcastDuration: number | undefined;
   duration: number | undefined;

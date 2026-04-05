@@ -73,8 +73,10 @@ spark = SparkSession \
     .config("spark.dataflint.instrument.spark.batchEvalPython.enabled", "true") \
     .config("spark.dataflint.instrument.spark.flatMapGroupsInPandas.enabled", "true") \
     .config("spark.dataflint.instrument.spark.flatMapCoGroupsInPandas.enabled", "true") \
+    .config("spark.dataflint.instrument.spark.sqlNodes.enabled", "true") \
     .master("local[*]") \
     .getOrCreate()
+# .config("spark.dataflint.test.codegenSleepMs", "1") \
 #     .config("spark.sql.codegen.wholeStage", "false") \
 # spark.sparkContext.setLogLevel("INFO")
 # Get Spark version and check if mapInArrow is supported
@@ -169,7 +171,8 @@ print("Running mapInPandas example")
 print("="*80)
 
 df_pandas = df.mapInPandas(compute_discounted_totals_pandas, output_schema) \
-    .withColumn("final_cost", col("final_cost") * 2)
+    .withColumn("final_cost", col("final_cost") * 2) \
+    .filter("final_cost>10")
 
 spark.sparkContext.setJobDescription("mapInPandas: compute discounted totals → DataFlintMapInPandasExec")
 df_pandas.write \
@@ -406,6 +409,115 @@ df_cogrouped.write \
     .parquet("/tmp/dataflint_flat_map_cogroups_in_pandas_example")
 
 print("\nResult written to /tmp/dataflint_flat_map_cogroups_in_pandas_example")
+
+
+from pyspark.sql.functions import explode, array, collect_list, row_number, lit
+
+# ── FilterExec + ProjectExec ──────────────────────────────────────────────────
+print("="*80)
+print("Running FilterExec + ProjectExec example")
+print("="*80)
+spark.sparkContext.setJobDescription("FilterExec + ProjectExec")
+df.filter(col("price") > 200) \
+  .select("customer", "category", "price") \
+  .write.mode("overwrite").parquet("/tmp/dataflint_filter_project_example")
+print("\nResult written to /tmp/dataflint_filter_project_example")
+
+# ── ExpandExec (ROLLUP) ───────────────────────────────────────────────────────
+print("="*80)
+print("Running ExpandExec example (ROLLUP)")
+print("="*80)
+spark.sparkContext.setJobDescription("ExpandExec: rollup aggregation")
+df.rollup("category", "customer") \
+  .agg(spark_sum("price").alias("total_price")) \
+  .filter(col("category").isNotNull()) \
+  .write.mode("overwrite").parquet("/tmp/dataflint_expand_example")
+print("\nResult written to /tmp/dataflint_expand_example")
+
+# ── GenerateExec (explode) ────────────────────────────────────────────────────
+print("="*80)
+print("Running GenerateExec example (explode)")
+print("="*80)
+spark.sparkContext.setJobDescription("GenerateExec: explode array")
+df.select("customer", "category",
+          explode(array(col("price"), col("price") * 1.1)).alias("price_variant")) \
+  .write.mode("overwrite").parquet("/tmp/dataflint_generate_example")
+print("\nResult written to /tmp/dataflint_generate_example")
+
+# ── BroadcastHashJoinExec ─────────────────────────────────────────────────────
+print("="*80)
+print("Running BroadcastHashJoinExec example")
+print("="*80)
+category_tiers = spark.createDataFrame([
+    ("Electronics", "premium"), ("Books", "standard"),
+    ("Clothing", "standard"), ("Sports", "premium"), ("Toys", "budget"),
+], "category string, tier string")
+spark.sparkContext.setJobDescription("BroadcastHashJoinExec: join with small broadcast table")
+df.join(category_tiers, "category") \
+  .write.mode("overwrite").parquet("/tmp/dataflint_broadcast_hash_join_example")
+print("\nResult written to /tmp/dataflint_broadcast_hash_join_example")
+
+# ── SortMergeJoinExec ─────────────────────────────────────────────────────────
+print("="*80)
+print("Running SortMergeJoinExec example")
+print("="*80)
+spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")
+spark.sparkContext.setJobDescription("SortMergeJoinExec: equi-join with broadcast disabled")
+df.alias("a").join(df.alias("b"), col("a.category") == col("b.category")) \
+  .select(col("a.customer").alias("c1"), col("a.price").alias("p1"),
+          col("b.customer").alias("c2"), col("b.price").alias("p2")) \
+  .write.mode("overwrite").parquet("/tmp/dataflint_sort_merge_join_example")
+spark.conf.unset("spark.sql.autoBroadcastJoinThreshold")
+print("\nResult written to /tmp/dataflint_sort_merge_join_example")
+
+# ── BroadcastNestedLoopJoinExec ───────────────────────────────────────────────
+print("="*80)
+print("Running BroadcastNestedLoopJoinExec example")
+print("="*80)
+price_ranges = spark.createDataFrame(
+    [(100.0, 400.0, "mid-range")], "min_p double, max_p double, range_name string")
+spark.sparkContext.setJobDescription("BroadcastNestedLoopJoinExec: non-equi join")
+df.join(price_ranges, (col("price") >= col("min_p")) & (col("price") <= col("max_p"))) \
+  .select("customer", "category", "price", "range_name") \
+  .write.mode("overwrite").parquet("/tmp/dataflint_bnlj_example")
+print("\nResult written to /tmp/dataflint_bnlj_example")
+
+# ── CartesianProductExec ──────────────────────────────────────────────────────
+print("="*80)
+print("Running CartesianProductExec example")
+print("="*80)
+spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")
+currencies = spark.createDataFrame([("USD",), ("EUR",)], "currency string")
+spark.sparkContext.setJobDescription("CartesianProductExec: cross join with broadcast disabled")
+df.crossJoin(currencies) \
+  .select("customer", "category", "price", "currency") \
+  .write.mode("overwrite").parquet("/tmp/dataflint_cartesian_example")
+spark.conf.unset("spark.sql.autoBroadcastJoinThreshold")
+print("\nResult written to /tmp/dataflint_cartesian_example")
+
+# ── WindowGroupLimitExec (Spark 3.4+ top-N per group optimization) ────────────
+print("="*80)
+print("Running WindowGroupLimitExec example (top-3 per category)")
+print("="*80)
+w_top = Window.partitionBy("category").orderBy(col("price").desc())
+spark.sparkContext.setJobDescription("WindowGroupLimitExec: top-N per group")
+df.withColumn("rn", row_number().over(w_top)) \
+  .filter(col("rn") <= 3) \
+  .drop("rn") \
+  .write.mode("overwrite").parquet("/tmp/dataflint_window_group_limit_example")
+print("\nResult written to /tmp/dataflint_window_group_limit_example")
+
+# ── SortAggregateExec ─────────────────────────────────────────────────────────
+print("="*80)
+print("Running SortAggregateExec example")
+print("="*80)
+spark.conf.set("spark.sql.execution.useObjectHashAggregateExec", "false")
+spark.sparkContext.setJobDescription("SortAggregateExec: collect_list forces sort-based agg")
+df.groupBy("category") \
+  .agg(collect_list("customer").alias("customers")) \
+  .write.mode("overwrite").parquet("/tmp/dataflint_sort_agg_example")
+spark.conf.set("spark.sql.execution.useObjectHashAggregateExec", "true")
+print("\nResult written to /tmp/dataflint_sort_agg_example")
 
 
 print("\n" + "="*80)

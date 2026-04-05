@@ -11,7 +11,6 @@ import { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import MetricDisplay, { MetricWithTooltip } from "./MetricDisplay";
 import {
   addTruncatedCodeTooltip,
-  INSTRUMENTED_NODE_NAMES,
   processBaseMetrics,
   processCachedStorageMetrics,
   processDeltaLakeScanMetrics,
@@ -399,7 +398,7 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
                 Δ Optimized
               </Box>
             )}
-            {INSTRUMENTED_NODE_NAMES.has(data.node.nodeName) && (
+            {data.node.isInstrumented && (
               <Tooltip title="DataFlint Instrumented: precise duration tracking enabled" placement="top">
                 <Box
                   sx={{
