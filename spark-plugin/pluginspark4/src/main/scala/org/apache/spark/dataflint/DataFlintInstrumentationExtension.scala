@@ -34,7 +34,8 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
     val sqlNodes = Set(
       "FilterExec", "ProjectExec", "ExpandExec", "GenerateExec",
       "SortMergeJoinExec", "BroadcastHashJoinExec", "BroadcastNestedLoopJoinExec",
-      "CartesianProductExec", "WindowGroupLimitExec", "SortAggregateExec"
+      "CartesianProductExec", "WindowGroupLimitExec", "SortAggregateExec",
+      "DataWritingCommandExec"
     )
     val all = Set(
       "BatchEvalPythonExec",

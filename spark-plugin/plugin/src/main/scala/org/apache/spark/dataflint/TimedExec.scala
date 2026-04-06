@@ -58,6 +58,27 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with CodegenSupport with
   override protected def doExecute(): RDD[InternalRow] =
     DataFlintRDDUtils.withDurationMetric(child.execute(), longMetric("duration"))
 
+  // Write path: DataWritingCommandExec does work eagerly in sideEffectResult (a lazy val),
+  // triggered by executeCollect(). doExecute()/withDurationMetric only wraps the trivial
+  // result RDD and misses the actual I/O. This override captures the full write duration.
+  // For non-write nodes this is harmless — executeCollect() on TimedExec is only called
+  // when TimedExec is the plan root (writes), not when it's inside WSCE (codegen path).
+  override def executeCollect(): Array[InternalRow] = {
+    val start = System.nanoTime()
+    val result = child.executeCollect()
+    val durationMs = (System.nanoTime() - start) / (1000 * 1000)
+    val metric = longMetric("duration")
+    metric += durationMs
+    // Driver-side accumulator updates are invisible to the SQL status listener.
+    // Post explicitly so the metric appears in the Spark UI alongside executor-side metrics.
+    val executionId = sparkContext.getLocalProperty(org.apache.spark.sql.execution.SQLExecution.EXECUTION_ID_KEY)
+    if (executionId != null) {
+      org.apache.spark.sql.execution.metric.SQLMetrics.postDriverMetricUpdates(
+        sparkContext, executionId, Seq(metric))
+    }
+    result
+  }
+
   override def canEqual(that: Any): Boolean = that.isInstanceOf[TimedExec]
   // productArity/productElement support makeCopy on Spark 3.0/3.1 (constructor arg = child)
   override def productArity: Int = 1
@@ -80,7 +101,7 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with CodegenSupport with
   // Example: SortAggregateExec implements CodegenSupport but returns supportCodegen=false
   // when grouping keys are present (doProduce throws UnsupportedOperationException in that case).
   override def supportCodegen: Boolean = child match {
-    case c: CodegenSupport => c.supportCodegen
+    case c: CodegenSupport => c.supportCodegen && child.children.length <= 1
     case _                 => false
   }
 
