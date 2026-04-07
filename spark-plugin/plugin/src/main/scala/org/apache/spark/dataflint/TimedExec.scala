@@ -45,9 +45,12 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with CodegenSupport with
   override def outputPartitioning: Partitioning = child.outputPartitioning
   override def outputOrdering: Seq[SortOrder] = child.outputOrdering
 
-  // Preserves ALL of child's existing metrics (spillSize, numOutputRows, etc.) + adds duration
+  // Preserves ALL of child's existing metrics (spillSize, numOutputRows, etc.) + adds duration and rddId
   override lazy val metrics: Map[String, SQLMetric] =
-    child.metrics ++ Map(MetricsUtils.getTimingMetric("duration")(sparkContext))
+    child.metrics ++ Map(
+      MetricsUtils.getTimingMetric("duration")(sparkContext),
+      MetricsUtils.getSizeMetric("rddId")(sparkContext)
+    )
 
   // Delegate prepare() to child so that DataWritingCommandExec (and similar nodes that
   // override doPrepare) run their pre-execution setup. child is not in the plan tree, so
@@ -55,8 +58,13 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with CodegenSupport with
   // recursive call on the grandchildren is safe.
   override protected def doPrepare(): Unit = child.prepare()
 
-  override protected def doExecute(): RDD[InternalRow] =
-    DataFlintRDDUtils.withDurationMetric(child.execute(), longMetric("duration"))
+  override protected def doExecute(): RDD[InternalRow] = {
+    val rdd = DataFlintRDDUtils.withDurationMetric(child.execute(), longMetric("duration"))
+    val rddIdMetric = longMetric("rddId")
+    rddIdMetric += rdd.id
+    MetricsUtils.postDriverMetrics(sparkContext, rddIdMetric)
+    rdd
+  }
 
   // Write path: DataWritingCommandExec does work eagerly in sideEffectResult (a lazy val),
   // triggered by executeCollect(). doExecute()/withDurationMetric only wraps the trivial
@@ -67,15 +75,9 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with CodegenSupport with
     val start = System.nanoTime()
     val result = child.executeCollect()
     val durationMs = (System.nanoTime() - start) / (1000 * 1000)
-    val metric = longMetric("duration")
-    metric += durationMs
-    // Driver-side accumulator updates are invisible to the SQL status listener.
-    // Post explicitly so the metric appears in the Spark UI alongside executor-side metrics.
-    val executionId = sparkContext.getLocalProperty(org.apache.spark.sql.execution.SQLExecution.EXECUTION_ID_KEY)
-    if (executionId != null) {
-      org.apache.spark.sql.execution.metric.SQLMetrics.postDriverMetricUpdates(
-        sparkContext, executionId, Seq(metric))
-    }
+    val durationMetric = longMetric("duration")
+    durationMetric += durationMs
+    MetricsUtils.postDriverMetrics(sparkContext, durationMetric)
     result
   }
 
@@ -94,8 +96,17 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with CodegenSupport with
   // Codegen execution path
   // -----------------------------------------------------------------------------------------
 
-  override def inputRDDs(): Seq[RDD[InternalRow]] =
-    child.asInstanceOf[CodegenSupport].inputRDDs()
+  override def inputRDDs(): Seq[RDD[InternalRow]] = {
+    val rdds = child.asInstanceOf[CodegenSupport].inputRDDs()
+    // Codegen path: doExecute() is not called, so post rddId here.
+    // inputRDDs() is called during WSCE code generation on the driver.
+    rdds.headOption.foreach { rdd =>
+      val rddIdMetric = longMetric("rddId")
+      rddIdMetric += rdd.id
+      MetricsUtils.postDriverMetrics(sparkContext, rddIdMetric)
+    }
+    rdds
+  }
 
   // Delegate supportCodegen to child — must use child.supportCodegen, not just isInstanceOf.
   // Example: SortAggregateExec implements CodegenSupport but returns supportCodegen=false
