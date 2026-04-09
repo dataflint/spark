@@ -61,19 +61,19 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with CodegenSupport with
   override protected def doPrepare(): Unit = child.prepare()
 
   override protected def doExecute(): RDD[InternalRow] = {
-    val rdd = DataFlintRDDUtils.withDurationMetric(child.execute(), longMetric("duration"))
+    val childRdd = child.execute()
     val rddIdMetric = longMetric("rddId")
-    rddIdMetric += rdd.id
+    rddIdMetric += childRdd.id
     MetricsUtils.postDriverMetrics(sparkContext, rddIdMetric)
-    rdd
+    DataFlintRDDUtils.withDurationMetric(childRdd, longMetric("duration"))
   }
 
   override protected def doExecuteColumnar(): RDD[ColumnarBatch] = {
-    val rdd = DataFlintRDDUtils.withDurationMetricColumnar(child.executeColumnar(), longMetric("duration"))
+    val childRdd = child.executeColumnar()
     val rddIdMetric = longMetric("rddId")
-    rddIdMetric += rdd.id
+    rddIdMetric += childRdd.id
     MetricsUtils.postDriverMetrics(sparkContext, rddIdMetric)
-    rdd
+    DataFlintRDDUtils.withDurationMetricColumnar(childRdd, longMetric("duration"))
   }
 
   // Write path: DataWritingCommandExec does work eagerly in sideEffectResult (a lazy val),
