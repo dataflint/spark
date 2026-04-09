@@ -35,7 +35,9 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
       "FilterExec", "ProjectExec", "ExpandExec", "GenerateExec",
       "SortMergeJoinExec", "BroadcastHashJoinExec", "BroadcastNestedLoopJoinExec",
       "CartesianProductExec", "WindowGroupLimitExec", "SortAggregateExec",
-      "DataWritingCommandExec"
+      "DataWritingCommandExec",
+      "FileSourceScanExec", "RowDataSourceScanExec", "BatchScanExec",
+      "InMemoryTableScanExec"
     )
     val all = Set(
       "BatchEvalPythonExec",

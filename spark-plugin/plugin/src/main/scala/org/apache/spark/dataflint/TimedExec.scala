@@ -9,6 +9,7 @@ import org.apache.spark.sql.catalyst.plans.physical.Partitioning
 import org.apache.spark.sql.catalyst.util.DateTimeConstants.NANOS_PER_MILLIS
 import org.apache.spark.sql.execution.{CodegenSupport, SparkPlan}
 import org.apache.spark.sql.execution.metric.SQLMetric
+import org.apache.spark.sql.vectorized.ColumnarBatch
 
 /**
  * A generic SparkPlan wrapper that adds a `duration` metric to any node while preserving
@@ -44,6 +45,7 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with CodegenSupport with
 
   override def outputPartitioning: Partitioning = child.outputPartitioning
   override def outputOrdering: Seq[SortOrder] = child.outputOrdering
+  override def supportsColumnar: Boolean = child.supportsColumnar
 
   // Preserves ALL of child's existing metrics (spillSize, numOutputRows, etc.) + adds duration and rddId
   override lazy val metrics: Map[String, SQLMetric] =
@@ -60,6 +62,14 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with CodegenSupport with
 
   override protected def doExecute(): RDD[InternalRow] = {
     val rdd = DataFlintRDDUtils.withDurationMetric(child.execute(), longMetric("duration"))
+    val rddIdMetric = longMetric("rddId")
+    rddIdMetric += rdd.id
+    MetricsUtils.postDriverMetrics(sparkContext, rddIdMetric)
+    rdd
+  }
+
+  override protected def doExecuteColumnar(): RDD[ColumnarBatch] = {
+    val rdd = DataFlintRDDUtils.withDurationMetricColumnar(child.executeColumnar(), longMetric("duration"))
     val rddIdMetric = longMetric("rddId")
     rddIdMetric += rdd.id
     MetricsUtils.postDriverMetrics(sparkContext, rddIdMetric)

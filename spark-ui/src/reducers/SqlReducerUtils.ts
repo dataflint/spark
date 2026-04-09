@@ -25,6 +25,7 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "number of read streams",
     "parsing time for BQ",
     "number of BQ bytes read",
+    "duration",
   ],
   output: [
     "number of written files",
@@ -33,8 +34,9 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "number of dynamic part",
     "total number of files merged by ZOrderBy",
     "total bytes in files merged by ZOrderBy",
+    "duration",
   ],
-  join: ["number of output rows", "output columnar batches", "build time"],
+  join: ["number of output rows", "output columnar batches", "build time", "duration"],
   transformation: [
     "number of output rows",
     "output columnar batches",
@@ -61,7 +63,7 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
   ],
 
   broadcast: ["number of output rows", "data size", "output columnar batches"],
-  sort: ["spill size", "output columnar batches", "sort time"],
+  sort: ["spill size", "output columnar batches", "sort time", "duration"],
   other: [],
 };
 

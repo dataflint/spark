@@ -4,7 +4,20 @@ import org.apache.spark.SparkContext
 import org.apache.spark.sql.execution.SQLExecution
 import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
 
+/**
+ * Utilities for creating and posting SQL metrics across different Spark versions.
+ *
+ * Spark's SQLMetrics API changed across versions (3.0 → 3.5 → 4.x) and Databricks
+ * runtime. Each factory method tries the standard API first, then falls back to
+ * reflection-based alternatives for compatibility.
+ */
 object MetricsUtils {
+
+  /**
+   * Post driver-side metric updates to the SQL listener.
+   * Used for metrics computed on the driver (e.g., rddId) rather than accumulated
+   * across tasks. Only posts if there's an active SQL execution context.
+   */
   def postDriverMetrics(sparkContext: SparkContext, metrics: SQLMetric*): Unit = {
     val executionId = sparkContext.getLocalProperty(SQLExecution.EXECUTION_ID_KEY)
     if (executionId != null) {
@@ -12,6 +25,13 @@ object MetricsUtils {
     }
   }
 
+  /**
+   * Create a "size" metric (displayed as bytes in Spark UI).
+   * Falls back across Spark versions:
+   *   1. SQLMetrics.createSizeMetric (standard API)
+   *   2. new SQLMetric("size", -1L) + register (older Spark)
+   *   3. SQLMetrics.createMetric (Databricks runtime)
+   */
   def getSizeMetric(name: String)(implicit sparkContext: SparkContext): (String, SQLMetric) = {
     name -> {
       try {
@@ -30,6 +50,10 @@ object MetricsUtils {
     }
   }
 
+  /**
+   * Create an "average" metric (displayed as average value in Spark UI).
+   * Same fallback chain as getSizeMetric for cross-version compatibility.
+   */
   def getAverageMetric(name: String)(implicit sparkContext: SparkContext): (String, SQLMetric) = {
     name -> {
       try {
@@ -48,6 +72,11 @@ object MetricsUtils {
     }
   }
 
+  /**
+   * Create a "timing" metric (displayed as milliseconds with total/min/med/max in Spark UI).
+   * Used by TimedExec for the "duration" metric.
+   * Same fallback chain as getSizeMetric for cross-version compatibility.
+   */
   def getTimingMetric(name: String)(implicit sparkContext: SparkContext): (String, SQLMetric) = {
     name -> {
       try {

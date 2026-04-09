@@ -1,5 +1,6 @@
 package org.apache.spark.dataflint.api
 
+import org.apache.spark.dataflint.GraphDurationAttribution
 import org.apache.spark.dataflint.listener.DataflintStore
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.ui.{SQLAppStatusListener, SQLAppStatusStore, SparkPlanGraph}
@@ -44,11 +45,36 @@ class DataflintSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListe
           val rddScopesToStages = if (isDatabricks) Some(rddScopesToStagesReader.get.invoke(exec).asInstanceOf[Map[String, Set[Object]]]) else None
 
           val nodeIdToRddScopeId = nodeIdToRddScopeIdList.find(_.executionId == exec.executionId).map(_.nodeIdToRddScopeId)
+
+          // Compute resolved stage groups and durations from the graph
+          val metrics = sqlStore.executionMetrics(exec.executionId)
+          val sqlStageIds = exec.stages.map(_.intValue()).toSet
+          val sparkStages = ui.store.stageList(null)
+            .filter(s => sqlStageIds.contains(s.stageId))
+          val stageInfos = sparkStages.map { s =>
+            GraphDurationAttribution.StageInfo(
+              s.stageId, s.status.toString,
+              s.numTasks, s.numCompleteTasks,
+              s.executorRunTime
+            )
+          }.toSeq
+          val resolvedGroups = GraphDurationAttribution.resolveStageGroups(graph, metrics, sqlStageIds, stageInfos)
+          val durations = GraphDurationAttribution.computeAutoNormalized(graph, metrics, resolvedGroups)
+
           SqlEnrichedData(exec.executionId, graph.allNodes.length, rddScopesToStages,
             graph.allNodes.map(node => {
               val rddScopeId = nodeIdToRddScopeId.flatMap(_.get(node.id))
               NodePlan(node.id, node.desc, rddScopeId)
-            }).toSeq
+            }).toSeq,
+            resolvedGroups.toSeq, {
+              val exchangeMap = GraphDurationAttribution.computeExchangeDurations(graph, metrics).map(e => e.nodeId -> e).toMap
+              durations.map { d =>
+                exchangeMap.get(d.nodeId) match {
+                  case Some(ex) => NodeDurationData(d.nodeId, d.nodeName, d.durationMs, ex.writeDurationMs, ex.readDurationMs)
+                  case None => NodeDurationData(d.nodeId, d.nodeName, d.durationMs)
+                }
+              }.toSeq
+            }
           )
         }
         val jsonValue = Extraction.decompose(sqlPlans)(org.json4s.DefaultFormats)

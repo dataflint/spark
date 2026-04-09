@@ -16,23 +16,10 @@
  */
 package org.apache.spark.dataflint.api
 
-import org.apache.spark.dataflint.listener.{IcebergCommitInfo, DataflintEnvironmentInfo, DataflintDeltaLakeScanInfo}
 import org.apache.spark.status.AppStatusStore
-import org.apache.spark.status.api.v1.{ApplicationInfo, StageData}
+import org.apache.spark.status.api.v1.StageData
 
-case class NodeMetric(name: String, value: Option[String])
-
-case class NodeMetrics(id: Long, name: String, metrics: Seq[NodeMetric])
-
-case class SqlEnrichedData(executionId: Long, rootExecutionId: Option[Long], numOfNodes:Int, rddScopesToStages: Option[Map[String, Set[Object]]], nodesPlan: Seq[NodePlan])
-
-case class NodePlan(id: Long, planDescription: String, rddScopeId: Option[String])
-
-case class DataFlintApplicationInfo(runId: Option[String], info: ApplicationInfo, environmentInfo: Option[DataflintEnvironmentInfo])
-
-case class IcebergInfo(commitsInfo: Seq[IcebergCommitInfo])
-
-case class DeltaLakeScanInfo(scans: Seq[DataflintDeltaLakeScanInfo])
+case class SqlEnrichedData(executionId: Long, rootExecutionId: Option[Long], numOfNodes:Int, rddScopesToStages: Option[Map[String, Set[Object]]], nodesPlan: Seq[NodePlan], stageGroups: Seq[ResolvedStageGroup], nodeDurations: Seq[NodeDurationData])
 
 /**
  * Compatibility helper for AppStatusStore methods whose signatures changed across Spark 3.x.

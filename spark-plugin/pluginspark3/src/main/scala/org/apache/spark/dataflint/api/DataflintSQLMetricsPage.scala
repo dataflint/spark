@@ -1,5 +1,6 @@
 package org.apache.spark.dataflint.api
 
+import org.apache.spark.dataflint.GraphDurationAttribution
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.ui.{SQLAppStatusListener, SQLAppStatusStore, SparkPlanGraph}
 import org.apache.spark.ui.{SparkUI, WebUIPage}
@@ -32,13 +33,41 @@ class DataflintSQLMetricsPage(ui: SparkUI, sqlListener: () => Option[SQLAppStatu
           sqlStore.getClass.getMethods.filter(_.getName == "planGraph").head.invoke(sqlStore, executionIdLong.asInstanceOf[Object], planVersion.asInstanceOf[Object]).asInstanceOf[SparkPlanGraph]
         } else
           sqlStore.planGraph(executionIdLong)
+
+        // Existing node metrics
         val nodesMetrics = graph.allNodes.map(node => NodeMetrics(node.id, node.name, node.metrics.map(metric => {
             NodeMetric(metric.name, metrics.get(metric.accumulatorId))
           }).toSeq))
-          // filter nodes without metrics
           .filter(nodeMetrics => !nodeMetrics.metrics.forall(_.value.isEmpty))
-        val jValue = Extraction.decompose(nodesMetrics)(org.json4s.DefaultFormats)
-        jValue
+
+        // Duration attribution: resolved stage groups + node durations
+        val exec = sqlStore.execution(executionIdLong).get
+        val sqlStageIds = exec.stages.map(_.intValue()).toSet
+        val sparkStages = AppStatusStoreCompat.stageList(ui.store)
+          .filter(s => sqlStageIds.contains(s.stageId))
+        val stageInfos = sparkStages.map { s =>
+          GraphDurationAttribution.StageInfo(
+            s.stageId, s.status.toString,
+            s.numTasks, s.numCompleteTasks,
+            s.executorRunTime
+          )
+        }
+        val resolvedGroups = GraphDurationAttribution.resolveStageGroups(graph, metrics, sqlStageIds, stageInfos)
+        val durations = GraphDurationAttribution.computeAutoNormalized(graph, metrics, resolvedGroups)
+
+        val exchangeMap = GraphDurationAttribution.computeExchangeDurations(graph, metrics).map(e => e.nodeId -> e).toMap
+        val response = SQLMetricsWithDuration(
+          nodeMetrics = nodesMetrics.toSeq,
+          stageGroups = resolvedGroups,
+          nodeDurations = durations.map { d =>
+            exchangeMap.get(d.nodeId) match {
+              case Some(ex) => NodeDurationData(d.nodeId, d.nodeName, d.durationMs, ex.writeDurationMs, ex.readDurationMs)
+              case None => NodeDurationData(d.nodeId, d.nodeName, d.durationMs)
+            }
+          }
+        )
+
+        Extraction.decompose(response)(org.json4s.DefaultFormats)
       }
     } catch {
       case e: Throwable => {

@@ -17,6 +17,7 @@ import { IcebergCommitsInfo, IcebergInfo } from "../interfaces/IcebergInfo";
 import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
+import { ResolvedStageGroup, NodeDurationData } from "../interfaces/AppStore";
 import {
   calculatePercentage,
   capitalizeWords,
@@ -428,6 +429,8 @@ function calculateSql(
     originalNumOfNodes: originalNumOfNodes,
     submissionTimeEpoc: timeStrToEpocTime(sql.submissionTime),
     rootExecutionId: plan?.rootExecutionId,
+    backendStageGroups: plan?.stageGroups,
+    backendNodeDurations: plan?.nodeDurations,
   };
 }
 
@@ -519,6 +522,8 @@ export function updateSqlNodeMetrics(
   sqlId: string,
   sqlMetrics: NodesMetrics,
   stages: SparkStagesStore,
+  stageGroups?: ResolvedStageGroup[],
+  nodeDurations?: NodeDurationData[],
 ): SparkSQLStore {
   const runningSqls = currentStore.sqls.filter((sql) => sql.id === sqlId);
   if (runningSqls.length === 0) {
@@ -537,7 +542,8 @@ export function updateSqlNodeMetrics(
 
     // TODO: cache the graph
     const graph = generateGraph(runningSql.edges, runningSql.nodes);
-    const originalMetrics = matchedMetricsNodes[0].metrics;
+    const originalMetrics = matchedMetricsNodes[0].metrics
+      .filter((m): m is { name: string; value: string } => m.value != null); // Backend sends Option[String] → null in JSON for uninitialized metrics
     const nodeIdFromMetrics = findStageIdFromMetrics(originalMetrics);
     const metrics = updateNodeMetrics(node, originalMetrics, graph, runningSql.nodes);
     // Use original metrics for exchange - shuffle write time is filtered out by allowlist
@@ -560,8 +566,10 @@ export function updateSqlNodeMetrics(
       return node;
     }
 
-    const nodeIdFromMetrics = findStageIdFromMetrics(matchedMetricsNodes[0].metrics);
-    const metrics = calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics);
+    const codegenMetrics = matchedMetricsNodes[0].metrics
+      .filter((m): m is { name: string; value: string } => m.value != null); // Backend sends Option[String] → null in JSON for uninitialized metrics
+    const nodeIdFromMetrics = findStageIdFromMetrics(codegenMetrics);
+    const metrics = calcNodeMetrics(node.type, codegenMetrics);
     const codegenDuration = calcCodegenDuration(metrics);
     return {
       ...node,
@@ -583,6 +591,8 @@ export function updateSqlNodeMetrics(
     nodes: nodesEnrichedWithStorageInfo,
     codegenNodes: codegenNodes,
     metricUpdateId: uuidv4(),
+    backendStageGroups: stageGroups,
+    backendNodeDurations: nodeDurations,
   };
   const notEffectedSqlsBefore = currentStore.sqls.filter(
     (sql) => sql.id < sqlId,

@@ -21,7 +21,7 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 import time
 
-SLEEP_ENABLED = False
+SLEEP_ENABLED = True
 
 def sleep(seconds):
     if SLEEP_ENABLED:
@@ -218,7 +218,8 @@ window_category_total = Window.partitionBy("category")
 
 df_window = df.withColumn("rank_in_category", rank().over(window_by_category)) \
               .withColumn("cumulative_revenue", spark_sum("price").over(window_by_category)) \
-              .withColumn("avg_price_in_category", avg("price").over(window_category_total))
+              .withColumn("avg_price_in_category", avg("price").over(window_category_total)) \
+              .withColumn("price2", col("price")*2)
 
 spark.sparkContext.setJobDescription("Window SQL: rank + cumulative sum + avg → DataFlintWindowExec")
 df_window.write \
@@ -238,13 +239,13 @@ from pyspark.sql.functions import pandas_udf
 @pandas_udf(DoubleType())
 def discounted_sum(prices: pd.Series) -> float:
     """Pandas UDF used as a window aggregate: sum of prices with a 10% discount."""
-    sleep(10)
+    sleep(0.001)
     return prices.sum() * 0.9
 
-df_window_udf = df.withColumn(
-    "discounted_category_revenue",
-    discounted_sum("price").over(window_category_total)
-).withColumn("price2", col("price")*2)
+df_window_udf = (df.withColumn("discounted_category_revenue", discounted_sum("price").over(window_by_category))
+                 .withColumn("cumulative_revenue", discounted_sum("price").over(window_category_total))
+                 .withColumn("price2", col("price")*2)
+                 )
 
 spark.sparkContext.setJobDescription("Window pandas UDF: discounted sum → DataFlintWindowInPandasExec")
 df_window_udf.write \

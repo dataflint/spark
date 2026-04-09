@@ -180,6 +180,9 @@ export interface EnrichedSparkSQL {
   filters: Record<GraphFilter, FilteredGraph>;
   failureReason: string | undefined;
   rootExecutionId: number | undefined;
+  // Backend-computed duration attribution (from GraphDurationAttribution)
+  backendStageGroups: ResolvedStageGroup[] | undefined;
+  backendNodeDurations: NodeDurationData[] | undefined;
 }
 
 export type ParsedHashAggregatePlan = {
@@ -376,6 +379,31 @@ export interface EnrichedSqlMetric {
 export interface EnrichedSqlEdge {
   fromId: number;
   toId: number;
+}
+
+// Duration attribution from backend (GraphDurationAttribution)
+export interface ResolvedStageGroup {
+  sparkStageId: number;
+  status: string;
+  numTasks: number;
+  numCompleteTasks: number;
+  executorRunTime: number;
+  nodeIds: number[];
+  exchangeWriteIds: number[];
+  exchangeReadIds: number[];
+}
+
+export interface NodeDurationData {
+  nodeId: number;
+  nodeName: string;
+  durationMs: number;
+  writeDurationMs?: number;  // exchange write side (shuffle write time)
+  readDurationMs?: number;   // exchange read side (fetch wait time)
+}
+
+export interface SQLDurationResponse {
+  stageGroups: ResolvedStageGroup[];
+  nodeDurations: NodeDurationData[];
 }
 
 export interface SparkExecutorsStatus {

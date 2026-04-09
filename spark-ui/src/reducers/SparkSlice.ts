@@ -10,7 +10,7 @@ import { SparkExecutors } from "../interfaces/SparkExecutors";
 import { SparkJobs } from "../interfaces/SparkJobs";
 import { SparkSQLs } from "../interfaces/SparkSQLs";
 import { SparkStages } from "../interfaces/SparkStages";
-import { NodesMetrics } from "../interfaces/SqlMetrics";
+import { SQLMetricsWithDuration } from "../interfaces/SqlMetrics";
 import { SQLPlans } from "../interfaces/SQLPlan";
 import { StagesRdd } from "../interfaces/StagesRdd";
 import { reduceAlerts } from "./AlertsReducer";
@@ -152,7 +152,7 @@ const sparkSlice = createSlice({
     },
     setSQLMetrics: (
       state,
-      action: PayloadAction<{ sqlId: string; value: NodesMetrics }>,
+      action: PayloadAction<{ sqlId: string; value: SQLMetricsWithDuration }>,
     ) => {
       if (state.status === undefined) {
         return;
@@ -167,8 +167,10 @@ const sparkSlice = createSlice({
         const sqlWithNodeMetrics = updateSqlNodeMetrics(
           state.sql,
           action.payload.sqlId,
-          action.payload.value,
+          action.payload.value.nodeMetrics,
           state.stages,
+          action.payload.value.stageGroups,
+          action.payload.value.nodeDurations,
         );
         state.sql = calculateSqlQueryLevelMetricsReducer(
           state.config,
