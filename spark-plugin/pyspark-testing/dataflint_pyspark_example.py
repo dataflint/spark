@@ -116,7 +116,7 @@ df = spark.createDataFrame(data, schema).repartition(4)
 # mapInPandas function
 def compute_discounted_totals_pandas(iterator):
     for pdf in iterator:
-        sleep(5)
+        sleep(1)
         pdf = pdf.copy()
         pdf["quantity"] = pdf["quantity"].fillna(0)
         pdf["total_cost"] = pdf["quantity"] * pdf["price"]
@@ -128,7 +128,7 @@ def compute_discounted_totals_pandas(iterator):
 # mapInArrow function
 def compute_discounted_totals_arrow(iterator):
     for batch in iterator:
-        sleep(5)
+        sleep(1)
         quantity = batch.column("quantity")
         price = batch.column("price")
 
@@ -239,7 +239,7 @@ from pyspark.sql.functions import pandas_udf
 @pandas_udf(DoubleType())
 def discounted_sum(prices: pd.Series) -> float:
     """Pandas UDF used as a window aggregate: sum of prices with a 10% discount."""
-    sleep(0.001)
+    sleep(0.0001)
     return prices.sum() * 0.9
 
 df_window_udf = (df.withColumn("discounted_category_revenue", discounted_sum("price").over(window_by_category))
@@ -307,12 +307,12 @@ print("="*80)
 # The UDF is applied column-wise; Spark executes it via ArrowEvalPythonExec
 @pandas_udf(DoubleType())
 def apply_discount(price: pd.Series, quantity: pd.Series) -> pd.Series:
-    sleep(5)
+    sleep(0.1)
     """Apply a 10% discount when quantity > 3, otherwise no discount."""
     return price * quantity.apply(lambda q: 0.90 if q > 3 else 1.0)
 @pandas_udf(DoubleType())
 def apply_discount2(price: pd.Series, quantity: pd.Series) -> pd.Series:
-    sleep(5)
+    sleep(0.1)
     """Apply a 10% discount when quantity > 3, otherwise no discount."""
     return price * quantity.apply(lambda q: 0.80 if q > 3 else 1.0)
 
@@ -458,18 +458,18 @@ df.join(category_tiers, "category") \
   .write.mode("overwrite").parquet("/tmp/dataflint_broadcast_hash_join_example")
 print("\nResult written to /tmp/dataflint_broadcast_hash_join_example")
 
-# ── SortMergeJoinExec ─────────────────────────────────────────────────────────
-print("="*80)
-print("Running SortMergeJoinExec example")
-print("="*80)
-spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")
-spark.sparkContext.setJobDescription("SortMergeJoinExec: equi-join with broadcast disabled")
-df.alias("a").join(df.alias("b"), col("a.category") == col("b.category")) \
-  .select(col("a.customer").alias("c1"), col("a.price").alias("p1"),
-          col("b.customer").alias("c2"), col("b.price").alias("p2")) \
-  .write.mode("overwrite").parquet("/tmp/dataflint_sort_merge_join_example")
-spark.conf.unset("spark.sql.autoBroadcastJoinThreshold")
-print("\nResult written to /tmp/dataflint_sort_merge_join_example")
+# # ── SortMergeJoinExec ─────────────────────────────────────────────────────────
+# print("="*80)
+# print("Running SortMergeJoinExec example")
+# print("="*80)
+# spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")
+# spark.sparkContext.setJobDescription("SortMergeJoinExec: equi-join with broadcast disabled")
+# df.alias("a").join(df.alias("b"), col("a.category") == col("b.category")) \
+#   .select(col("a.customer").alias("c1"), col("a.price").alias("p1"),
+#           col("b.customer").alias("c2"), col("b.price").alias("p2")) \
+#   .write.mode("overwrite").parquet("/tmp/dataflint_sort_merge_join_example")
+# spark.conf.unset("spark.sql.autoBroadcastJoinThreshold")
+# print("\nResult written to /tmp/dataflint_sort_merge_join_example")
 
 # ── BroadcastNestedLoopJoinExec ───────────────────────────────────────────────
 print("="*80)

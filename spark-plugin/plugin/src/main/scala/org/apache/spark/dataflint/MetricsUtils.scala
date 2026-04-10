@@ -19,9 +19,13 @@ object MetricsUtils {
    * across tasks. Only posts if there's an active SQL execution context.
    */
   def postDriverMetrics(sparkContext: SparkContext, metrics: SQLMetric*): Unit = {
-    val executionId = sparkContext.getLocalProperty(SQLExecution.EXECUTION_ID_KEY)
-    if (executionId != null) {
-      SQLMetrics.postDriverMetricUpdates(sparkContext, executionId, metrics)
+    try {
+      val executionId = sparkContext.getLocalProperty(SQLExecution.EXECUTION_ID_KEY)
+      if (executionId != null) {
+        SQLMetrics.postDriverMetricUpdates(sparkContext, executionId, metrics)
+      }
+    } catch {
+      case _: Exception => // Spark 3.1 SqlResource may NPE on unposted metrics; swallow to avoid breaking the query
     }
   }
 
@@ -29,7 +33,7 @@ object MetricsUtils {
    * Create a "size" metric (displayed as bytes in Spark UI).
    * Falls back across Spark versions:
    *   1. SQLMetrics.createSizeMetric (standard API)
-   *   2. new SQLMetric("size", -1L) + register (older Spark)
+   *   2. new SQLMetric("size", 0L) + register (older Spark)
    *   3. SQLMetrics.createMetric (Databricks runtime)
    */
   def getSizeMetric(name: String)(implicit sparkContext: SparkContext): (String, SQLMetric) = {
@@ -39,7 +43,7 @@ object MetricsUtils {
       } catch {
         case _: NoSuchMethodError =>
           try {
-            val metric = new SQLMetric("size", -1L)
+            val metric = new SQLMetric("size", 0L)
             metric.register(sparkContext, Some(name), countFailedValues = false)
             metric
           } catch {
@@ -61,7 +65,7 @@ object MetricsUtils {
       } catch {
         case _: NoSuchMethodError =>
           try {
-            val metric = new SQLMetric("average", -1L)
+            val metric = new SQLMetric("average", 0L)
             metric.register(sparkContext, Some(name), countFailedValues = false)
             metric
           } catch {
@@ -84,7 +88,7 @@ object MetricsUtils {
       } catch {
         case _: NoSuchMethodError =>
           try {
-            val metric = new SQLMetric("timing", -1L)
+            val metric = new SQLMetric("timing", 0L)
             metric.register(sparkContext, Some(name), countFailedValues = false)
             metric
           } catch {

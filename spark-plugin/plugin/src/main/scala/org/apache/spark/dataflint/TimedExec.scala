@@ -60,19 +60,21 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with CodegenSupport with
   // recursive call on the grandchildren is safe.
   override protected def doPrepare(): Unit = child.prepare()
 
+  private def postRddId(rddId: Int): Unit = {
+      val rddIdMetric = longMetric("rddId")
+      rddIdMetric += rddId
+      MetricsUtils.postDriverMetrics(sparkContext, rddIdMetric)
+  }
+
   override protected def doExecute(): RDD[InternalRow] = {
     val childRdd = child.execute()
-    val rddIdMetric = longMetric("rddId")
-    rddIdMetric += childRdd.id
-    MetricsUtils.postDriverMetrics(sparkContext, rddIdMetric)
+    postRddId(childRdd.id)
     DataFlintRDDUtils.withDurationMetric(childRdd, longMetric("duration"))
   }
 
   override protected def doExecuteColumnar(): RDD[ColumnarBatch] = {
     val childRdd = child.executeColumnar()
-    val rddIdMetric = longMetric("rddId")
-    rddIdMetric += childRdd.id
-    MetricsUtils.postDriverMetrics(sparkContext, rddIdMetric)
+    postRddId(childRdd.id)
     DataFlintRDDUtils.withDurationMetricColumnar(childRdd, longMetric("duration"))
   }
 
@@ -110,11 +112,7 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with CodegenSupport with
     val rdds = child.asInstanceOf[CodegenSupport].inputRDDs()
     // Codegen path: doExecute() is not called, so post rddId here.
     // inputRDDs() is called during WSCE code generation on the driver.
-    rdds.headOption.foreach { rdd =>
-      val rddIdMetric = longMetric("rddId")
-      rddIdMetric += rdd.id
-      MetricsUtils.postDriverMetrics(sparkContext, rddIdMetric)
-    }
+    rdds.headOption.foreach(rdd => postRddId(rdd.id))
     rdds
   }
 
