@@ -34,7 +34,14 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "total number of files merged by ZOrderBy",
     "total bytes in files merged by ZOrderBy",
   ],
-  join: ["number of output rows", "output columnar batches"],
+  join: [
+    "number of output rows",
+    "output columnar batches",
+    "number of hash build input rows",
+    "number of hash probe input rows",
+    "time of hash build",
+    "time of hash probe",
+  ],
   transformation: [
     "number of output rows",
     "output columnar batches",
@@ -42,6 +49,13 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "data sent to Python workers",
     "data returned from Python workers",
     "duration",
+    "number of input rows",
+    "time of aggregation",
+    "time of filter",
+    "time of window",
+    "time of generate",
+    "number of spilled bytes",
+    "peak memory bytes",
   ],
   shuffle: [
     "number of partitions",
@@ -57,10 +71,19 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "remote bytes read",
     "fetch wait time",
     "data size",
+    "number of input rows",
+    "number of input batches",
+    "number of output batches",
   ],
 
   broadcast: ["number of output rows", "data size", "output columnar batches"],
-  sort: ["spill size", "output columnar batches"],
+  sort: [
+    "spill size",
+    "output columnar batches",
+    "time of sort",
+    "number of spilled bytes",
+    "peak memory bytes",
+  ],
   other: [],
 };
 
@@ -86,6 +109,19 @@ const metricsValueTransformer: Record<
   "remote bytes read": extractTotalFromStatisticsMetric,
   "fetch wait time": extractTotalFromStatisticsMetric,
   "data size": extractTotalFromStatisticsMetric,
+  "time of aggregation": extractTotalFromStatisticsMetric,
+  "time of filter": extractTotalFromStatisticsMetric,
+  "time of sort": extractTotalFromStatisticsMetric,
+  "time of window": extractTotalFromStatisticsMetric,
+  "time of generate": extractTotalFromStatisticsMetric,
+  "time of hash build": extractTotalFromStatisticsMetric,
+  "time of hash probe": extractTotalFromStatisticsMetric,
+  "number of spilled bytes": (value: string) => {
+    const total = extractTotalFromStatisticsMetric(value);
+    if (total === undefined || total === "0.0 B" || total === "0 B") return undefined;
+    return total;
+  },
+  "peak memory bytes": extractTotalFromStatisticsMetric,
   "number of dynamic part": (value: string) => {
     // if dynamic part is 0 we want to remove it from metrics
     if (value === "0") {
@@ -134,6 +170,20 @@ const metricsRenamer: Record<string, string> = {
   "number of read streams": "number of read streams",
   "parsing time for BQ": "parsing time",
   "number of BQ bytes read": "bytes read",
+  "number of input rows": "input rows",
+  "number of input batches": "input batches",
+  "number of output batches": "output batches",
+  "number of hash build input rows": "build input rows",
+  "number of hash probe input rows": "probe input rows",
+  "time of aggregation": "aggregation time",
+  "time of filter": "filter time",
+  "time of sort": "sort time",
+  "time of window": "window time",
+  "time of generate": "generate time",
+  "time of hash build": "hash build time",
+  "time of hash probe": "hash probe time",
+  "number of spilled bytes": "spill",
+  "peak memory bytes": "peak memory",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -220,6 +270,31 @@ const nodeTypeDict: Record<string, NodeType> = {
   DataFlintWindow: "transformation",
   Generate: "transformation",
   Expand: "transformation",
+  FilterExecTransformer: "transformation",
+  ProjectExecTransformer: "transformation",
+  FlushableHashAggregateExecTransformer: "transformation",
+  RegularHashAggregateExecTransformer: "transformation",
+  SortExecTransformer: "sort",
+  BroadcastHashJoinExecTransformer: "join",
+  ShuffledHashJoinExecTransformer: "join",
+  SortMergeJoinExecTransformer: "join",
+  ColumnarExchange: "shuffle",
+  ColumnarBroadcastExchange: "broadcast",
+  WindowExecTransformer: "transformation",
+  GenerateExecTransformer: "transformation",
+  TakeOrderedAndProjectExecTransformer: "output",
+  ColumnarCollectLimit: "output",
+  ColumnarUnion: "join",
+  VeloxColumnarToRow: "other",
+  RowToVeloxColumnar: "other",
+  VeloxResizeBatches: "other",
+  InputIteratorTransformer: "other",
+  BatchScanExecTransformer: "input",
+  FileSourceScanExecTransformer: "input",
+  ExpandExecTransformer: "transformation",
+  CoalesceExecTransformer: "shuffle",
+  LimitTransformer: "output",
+  CartesianProductExecTransformer: "join",
 };
 
 const nodeRenamerDict: Record<string, string> = {
@@ -311,6 +386,31 @@ const nodeRenamerDict: Record<string, string> = {
   DataFlintWindowInPandas: "Window (with Pandas UDF)",
   DataFlintArrowWindowPython: "Window (with Arrow UDF)",
   Expand: "Expand",
+  FilterExecTransformer: "Filter (Velox)",
+  ProjectExecTransformer: "Select (Velox)",
+  FlushableHashAggregateExecTransformer: "Aggregate Within Partition (Velox)",
+  RegularHashAggregateExecTransformer: "Aggregate By Merge (Velox)",
+  SortExecTransformer: "Sort (Velox)",
+  BroadcastHashJoinExecTransformer: "Join (Broadcast Hash) (Velox)",
+  ShuffledHashJoinExecTransformer: "Join (Shuffled Hash) (Velox)",
+  SortMergeJoinExecTransformer: "Join (Sort Merge) (Velox)",
+  ColumnarExchange: "Repartition (Velox)",
+  ColumnarBroadcastExchange: "Broadcast (Velox)",
+  WindowExecTransformer: "Window (Velox)",
+  GenerateExecTransformer: "Generate (Velox)",
+  TakeOrderedAndProjectExecTransformer: "Take Ordered (Velox)",
+  ColumnarCollectLimit: "Collect (Velox)",
+  ColumnarUnion: "Union (Velox)",
+  VeloxColumnarToRow: "Columnar To Row",
+  RowToVeloxColumnar: "Row To Columnar",
+  VeloxResizeBatches: "Resize Batches",
+  InputIteratorTransformer: "Input Iterator",
+  BatchScanExecTransformer: "Read (Velox)",
+  FileSourceScanExecTransformer: "Read (Velox)",
+  ExpandExecTransformer: "Expand (Velox)",
+  CoalesceExecTransformer: "Coalesce (Velox)",
+  LimitTransformer: "Limit (Velox)",
+  CartesianProductExecTransformer: "Join (Cartesian Product) (Velox)",
 };
 
 export function extractTotalFromStatisticsMetric(
@@ -579,7 +679,9 @@ export const EXCHANGE_NODE_TYPES = [
   "CometColumnarExchange",
   "PhotonBroadcastExchange",
   "PhotonShuffleExchangeSink",
-  "PhotonShuffleExchangeSource"
+  "PhotonShuffleExchangeSource",
+  "ColumnarExchange",
+  "ColumnarBroadcastExchange",
 ];
 
 /**
@@ -663,6 +765,8 @@ export const AGGREGATE_NODE_NAMES = [
   "HashAggregate",
   "SortAggregate",
   "ObjectHashAggregate",
+  "FlushableHashAggregateExecTransformer",
+  "RegularHashAggregateExecTransformer",
 ];
 
 /**
@@ -673,3 +777,57 @@ export const AGGREGATE_NODE_NAMES = [
 export function isAggregateNode(nodeName: string): boolean {
   return AGGREGATE_NODE_NAMES.includes(nodeName);
 }
+
+export type AcceleratorType = "velox" | "photon" | "rapids" | "comet" | undefined;
+
+export interface AcceleratorInfo {
+  type: AcceleratorType;
+  label: string;
+  tooltip: string;
+  gradientFrom: string;
+  gradientTo: string;
+}
+
+const ACCELERATOR_MAP: Record<string, AcceleratorInfo> = {};
+
+const VELOX_INFO: AcceleratorInfo = { type: "velox", label: "Velox", tooltip: "Accelerated by Apache Gluten (Velox native engine)", gradientFrom: "#e65100", gradientTo: "#ff6d00" };
+const PHOTON_INFO: AcceleratorInfo = { type: "photon", label: "Photon", tooltip: "Accelerated by Databricks Photon engine", gradientFrom: "#6a1b9a", gradientTo: "#ab47bc" };
+const RAPIDS_INFO: AcceleratorInfo = { type: "rapids", label: "RAPIDS", tooltip: "Accelerated by NVIDIA RAPIDS GPU engine", gradientFrom: "#1b5e20", gradientTo: "#43a047" };
+const COMET_INFO: AcceleratorInfo = { type: "comet", label: "DataFusion", tooltip: "Accelerated by Apache DataFusion Comet engine", gradientFrom: "#01579b", gradientTo: "#0288d1" };
+
+[
+  "FilterExecTransformer", "ProjectExecTransformer",
+  "FlushableHashAggregateExecTransformer", "RegularHashAggregateExecTransformer",
+  "SortExecTransformer", "BroadcastHashJoinExecTransformer",
+  "ShuffledHashJoinExecTransformer", "SortMergeJoinExecTransformer",
+  "WindowExecTransformer", "GenerateExecTransformer",
+  "TakeOrderedAndProjectExecTransformer", "ColumnarCollectLimit",
+  "ColumnarExchange", "ColumnarBroadcastExchange", "ColumnarUnion",
+  "ExpandExecTransformer", "CoalesceExecTransformer", "LimitTransformer",
+  "CartesianProductExecTransformer", "BatchScanExecTransformer", "FileSourceScanExecTransformer",
+].forEach(n => ACCELERATOR_MAP[n] = VELOX_INFO);
+
+[
+  "PhotonProject", "PhotonGroupingAgg", "PhotonShuffleExchangeSink",
+  "PhotonShuffleExchangeSource", "PhotonTopK", "PhotonFilter",
+  "PhotonBroadcastExchange", "PhotonBroadcastHashJoin",
+].forEach(n => ACCELERATOR_MAP[n] = PHOTON_INFO);
+
+[
+  "GpuFilter", "GpuBroadcastHashJoin", "GpuCoalesceBatches",
+  "GpuBroadcastExchange", "GpuProject", "GpuHashAggregate",
+  "GpuColumnarExchange", "GpuCustomShuffleReader", "GpuTopN",
+  "GpuShuffleCoalesce", "GpuSort", "GpuShuffledSymmetricHashJoin",
+  "GpuBroadcastNestedLoopJoin",
+].forEach(n => ACCELERATOR_MAP[n] = RAPIDS_INFO);
+
+[
+  "CometColumnarExchange", "CometHashAggregate", "CometExchange",
+  "CometProject", "CometFilter", "CometSort",
+  "CometHashJoin", "CometBroadcastHashJoin", "CometSortMergeJoin",
+].forEach(n => ACCELERATOR_MAP[n] = COMET_INFO);
+
+export function getNodeAccelerator(nodeName: string): AcceleratorInfo | undefined {
+  return ACCELERATOR_MAP[nodeName];
+}
+

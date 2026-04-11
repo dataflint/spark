@@ -6,7 +6,7 @@ import {
 
 export function parseWindow(input: string): ParsedWindowPlan {
   // Improved regex to correctly capture each part of the window specification
-  const regex = /Window \[(.*?)\](?:,\s*\[(.*?)\])?(?:,\s*\[(.*?)\])?/;
+  const regex = /(?:Window|WindowExecTransformer) \[(.*?)\](?:,\s*\[(.*?)\])?(?:,\s*\[(.*?)\])?/;
 
   // Remove any unwanted hash numbers
   const sanitizedInput = hashNumbersRemover(input);

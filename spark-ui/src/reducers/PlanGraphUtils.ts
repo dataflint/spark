@@ -32,7 +32,7 @@ export function findLastNodeWithInputRows(
         return null;
     }
     // if node is of type without row count but it does not effect the row count, we need to go more nodes back
-    if (inputNode.nodeName === "Project" || inputNode.nodeName === "AQEShuffleRead" || inputNode.nodeName === "Coalesce" || inputNode.nodeName === "Sort" || inputNode.nodeName === "Exchange") {
+    if (inputNode.nodeName === "Project" || inputNode.nodeName === "AQEShuffleRead" || inputNode.nodeName === "Coalesce" || inputNode.nodeName === "Sort" || inputNode.nodeName === "Exchange" || inputNode.nodeName === "ProjectExecTransformer" || inputNode.nodeName === "InputIteratorTransformer" || inputNode.nodeName === "RowToVeloxColumnar" || inputNode.nodeName === "VeloxColumnarToRow" || inputNode.nodeName === "VeloxResizeBatches") {
         return findLastNodeWithInputRows(inputNode, graph, allNodes);
     } else {
         return inputNode;

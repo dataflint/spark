@@ -103,22 +103,27 @@ export function parseNodePlan(
       case "HashAggregate":
       case "SortAggregate":
       case "ObjectHashAggregate":
+      case "FlushableHashAggregateExecTransformer":
+      case "RegularHashAggregateExecTransformer":
         return {
           type: "HashAggregate",
           plan: parseHashAggregate(plan.planDescription),
         };
 
       case "TakeOrderedAndProject":
+      case "TakeOrderedAndProjectExecTransformer":
         return {
           type: "TakeOrderedAndProject",
           plan: parseTakeOrderedAndProject(plan.planDescription),
         };
       case "CollectLimit":
+      case "ColumnarCollectLimit":
         return {
           type: "CollectLimit",
           plan: parseCollectLimit(plan.planDescription),
         };
       case "Coalesce":
+      case "CoalesceExecTransformer":
         return {
           type: "Coalesce",
           plan: parseCoalesce(plan.planDescription),
@@ -150,6 +155,7 @@ export function parseNodePlan(
       case "GpuFilter":
       case "CometFilter":
       case "Filter":
+      case "FilterExecTransformer":
         return {
           type: "Filter",
           plan: parseFilter(plan.planDescription),
@@ -158,6 +164,8 @@ export function parseNodePlan(
       case "CometExchange":
       case "CometColumnarExchange":
       case "GpuColumnarExchange":
+      case "ColumnarExchange":
+      case "ColumnarBroadcastExchange":
         return {
           type: "Exchange",
           plan: parseExchange(plan.planDescription),
@@ -166,6 +174,7 @@ export function parseNodePlan(
       case "GpuProject":
       case "CometFilter":
       case "Project":
+      case "ProjectExecTransformer":
         return {
           type: "Project",
           plan: parseProject(plan.planDescription),
@@ -173,6 +182,7 @@ export function parseNodePlan(
       case "GpuSort":
       case "CometSort":
       case "Sort":
+      case "SortExecTransformer":
         return {
           type: "Sort",
           plan: parseSort(plan.planDescription),
@@ -182,6 +192,7 @@ export function parseNodePlan(
       case "WindowInPandas":
       case "DataFlintWindowInPandas":
       case "DataFlintArrowWindowPython":
+      case "WindowExecTransformer":
         return {
           type: "Window",
           plan: parseWindow(plan.planDescription),
@@ -204,11 +215,13 @@ export function parseNodePlan(
           plan: parseBatchEvalPython(plan.planDescription),
         };
       case "Generate":
+      case "GenerateExecTransformer":
         return {
           type: "Generate",
           plan: parseGenerate(plan.planDescription),
         };
       case "Expand":
+      case "ExpandExecTransformer":
         return {
           type: "Expand",
           plan: parseExpand(plan.planDescription),
@@ -318,10 +331,42 @@ function calculateSql(
 
     function extractCodegenId(): number | undefined {
       return parseInt(
-        node.nodeName.replace("WholeStageCodegen (", "").replace(")", ""),
+        node.nodeName
+          .replace("WholeStageCodegenTransformer (", "")
+          .replace("WholeStageCodegen (", "")
+          .replace(")", ""),
       );
     }
   });
+
+  // For Gluten/Velox: WholeStageCodegenTransformer nodes are disconnected orphans in the graph
+  // and Spark doesn't set wholeStageCodegenId on their child nodes. Infer it from node ID ordering:
+  // a codegen node at ID X contains the pipeline nodes at IDs X+1, X+2, ... until hitting
+  // a stage boundary (exchange, AQE, scan) or another codegen node.
+  const hasGlutenCodegen = typeEnrichedNodes.some(
+    (n) => n.isCodegenNode && n.nodeName.includes("Transformer"),
+  );
+  if (hasGlutenCodegen) {
+    const stageBoundaryNames = new Set([
+      "ColumnarExchange", "ColumnarBroadcastExchange", "Exchange", "BroadcastExchange",
+      "AQEShuffleRead", "VeloxResizeBatches", "RowToVeloxColumnar", "VeloxColumnarToRow",
+      "ColumnarCollectLimit", "AdaptiveSparkPlan", "ColumnarUnion",
+    ]);
+    const sorted = [...typeEnrichedNodes].sort((a, b) => a.nodeId - b.nodeId);
+    let currentCodegenId: number | undefined = undefined;
+    for (const node of sorted) {
+      if (node.isCodegenNode) {
+        currentCodegenId = node.wholeStageCodegenId;
+      } else if (stageBoundaryNames.has(node.nodeName) || node.nodeName.includes("Scan")) {
+        currentCodegenId = undefined;
+      } else if (
+        currentCodegenId !== undefined &&
+        node.wholeStageCodegenId === undefined
+      ) {
+        node.wholeStageCodegenId = currentCodegenId;
+      }
+    }
+  }
 
   const onlyCodeGenNodes = typeEnrichedNodes
     .filter((node) => node.isCodegenNode)
@@ -626,8 +671,10 @@ function calcCodegenDuration(metrics: EnrichedSqlMetric[]): number | undefined {
 
 function calcExchangeMetrics(nodeName: string, metrics: EnrichedSqlMetric[]) {
   var exchangeMetrics: ExchangeMetrics | undefined = undefined;
-  if (nodeName == "Exchange") {
-    const writeDuration = getMetricDuration("shuffle write time", metrics) ?? 0;
+  if (nodeName === "Exchange" || nodeName === "ColumnarExchange") {
+    const writeDuration =
+      (getMetricDuration("shuffle write time", metrics) ?? 0) +
+      (getMetricDuration("shuffle wall time", metrics) ?? 0);
     const readDuration =
       (getMetricDuration("fetch wait time", metrics) ?? 0) +
       (getMetricDuration("remote reqs duration", metrics) ?? 0) +
@@ -645,7 +692,7 @@ function calcBroadcastExchangeDuration(
   nodeName: string,
   metrics: EnrichedSqlMetric[],
 ): number | undefined {
-  if (nodeName == "BroadcastExchange") {
+  if (nodeName === "BroadcastExchange" || nodeName === "ColumnarBroadcastExchange") {
     const duration = getMetricDuration("time to broadcast", metrics) ?? 0;
     +(getMetricDuration("time to build", metrics) ?? 0) +
       (getMetricDuration("time to collect", metrics) ?? 0);

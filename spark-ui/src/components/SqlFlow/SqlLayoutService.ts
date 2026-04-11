@@ -593,7 +593,7 @@ class SqlLayoutService {
     const splitExchangeNodeIds = new Set<string>();
     for (const nodeId of nodesIds) {
       const node = nodeMap.get(nodeId);
-      if (node?.nodeName === "Exchange") {
+      if (node?.nodeName === "Exchange" || node?.nodeName === "ColumnarExchange") {
         splitExchangeNodeIds.add(nodeId.toString());
       }
     }
