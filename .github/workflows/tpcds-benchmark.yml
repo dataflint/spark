@@ -3,6 +3,9 @@ name: TPC-DS Benchmark & History Server
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: tpcds-${{ github.ref }}
   cancel-in-progress: true
