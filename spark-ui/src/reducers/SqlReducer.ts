@@ -17,7 +17,6 @@ import { IcebergCommitsInfo, IcebergInfo } from "../interfaces/IcebergInfo";
 import { SQLNodePlan, SQLPlan, SQLPlans } from "../interfaces/SQLPlan";
 import { SparkSQL, SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { NodesMetrics } from "../interfaces/SqlMetrics";
-import { ResolvedStageGroup, NodeDurationData } from "../interfaces/AppStore";
 import {
   calculatePercentage,
   capitalizeWords,
@@ -429,8 +428,6 @@ function calculateSql(
     originalNumOfNodes: originalNumOfNodes,
     submissionTimeEpoc: timeStrToEpocTime(sql.submissionTime),
     rootExecutionId: plan?.rootExecutionId,
-    backendStageGroups: plan?.stageGroups,
-    backendNodeDurations: plan?.nodeDurations,
   };
 }
 
@@ -522,8 +519,6 @@ export function updateSqlNodeMetrics(
   sqlId: string,
   sqlMetrics: NodesMetrics,
   stages: SparkStagesStore,
-  stageGroups?: ResolvedStageGroup[],
-  nodeDurations?: NodeDurationData[],
 ): SparkSQLStore {
   const runningSqls = currentStore.sqls.filter((sql) => sql.id === sqlId);
   if (runningSqls.length === 0) {
@@ -591,8 +586,6 @@ export function updateSqlNodeMetrics(
     nodes: nodesEnrichedWithStorageInfo,
     codegenNodes: codegenNodes,
     metricUpdateId: uuidv4(),
-    backendStageGroups: stageGroups,
-    backendNodeDurations: nodeDurations,
   };
   const notEffectedSqlsBefore = currentStore.sqls.filter(
     (sql) => sql.id < sqlId,

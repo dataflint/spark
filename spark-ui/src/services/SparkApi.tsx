@@ -8,7 +8,7 @@ import { SparkExecutors } from "../interfaces/SparkExecutors";
 import { SparkJobs } from "../interfaces/SparkJobs";
 import { SparkSQLs, SqlStatus } from "../interfaces/SparkSQLs";
 import { SparkStages } from "../interfaces/SparkStages";
-import { SQLMetricsWithDuration } from "../interfaces/SqlMetrics";
+import { NodesMetrics } from "../interfaces/SqlMetrics";
 import { SQLPlans } from "../interfaces/SQLPlan";
 import { StagesRdd } from "../interfaces/StagesRdd";
 import {
@@ -134,10 +134,6 @@ class SparkAPI {
 
   private cachedstoragePath(): string {
     return `${this.baseCurrentPage}/cachedstorage/json/`;
-  }
-
-  private getSqlDurationPath(sqlId: string): string {
-    return `${this.baseCurrentPage}/sqlduration/json/?executionId=${sqlId}`;
   }
 
   private get executorsPath(): string {
@@ -461,14 +457,10 @@ class SparkAPI {
           .map((sql) => sql.id);
         if (runningSqlIds.length !== 0) {
           const sqlId = runningSqlIds.slice(-1)[0];
-          const rawResponse = await this.queryData(
+          const nodesMetrics: NodesMetrics = await this.queryData(
             this.getSqlMetricsPath(sqlId)
           );
-          // Guard against empty/error response from backend
-          if (rawResponse && rawResponse.nodeMetrics) {
-            const metricsResponse = rawResponse as SQLMetricsWithDuration;
-            this.dispatch(setSQLMetrics({ value: metricsResponse, sqlId: sqlId }));
-          }
+          this.dispatch(setSQLMetrics({ value: nodesMetrics, sqlId: sqlId }));
         }
       }
 

@@ -2,25 +2,28 @@ import { v4 as uuidv4 } from "uuid";
 import {
   EnrichedSparkSQL,
   EnrichedSqlNode,
-  NodeDurationData,
   SparkJobsStore,
   SparkStagesStore,
-  ResolvedStageGroup,
 } from "../interfaces/AppStore";
 import { calculatePercentage } from "../utils/FormatUtils";
 import { calculateNodeToStorageInfo } from "./SqlReducer";
+import {
+  computeStageGroupsAndDurations,
+  ComputedStageGroup,
+  NodeDuration,
+  StageInfo,
+} from "./GraphDurationAttribution";
 
 /**
- * Assign stages to nodes using backend-resolved stage groups.
+ * Assign stages to nodes using computed stage groups.
  * Each group has a sparkStageId + node IDs + exchange write/read IDs.
- * No guessing or mapping needed — the backend resolved everything.
  */
-function assignStagesFromBackendGroups(
+function assignStagesFromGroups(
   nodes: EnrichedSqlNode[],
-  stageGroups: ResolvedStageGroup[],
+  stageGroups: ComputedStageGroup[],
 ): EnrichedSqlNode[] {
   // Build nodeId -> group for regular nodes
-  const nodeToGroup = new Map<number, ResolvedStageGroup>();
+  const nodeToGroup = new Map<number, ComputedStageGroup>();
   for (const group of stageGroups) {
     for (const nodeId of group.nodeIds) {
       nodeToGroup.set(nodeId, group);
@@ -28,8 +31,8 @@ function assignStagesFromBackendGroups(
   }
 
   // Build exchange write/read stage lookup
-  const exchangeWriteStage = new Map<number, { sparkStageId: number, status: string }>();
-  const exchangeReadStage = new Map<number, { sparkStageId: number, status: string }>();
+  const exchangeWriteStage = new Map<number, { sparkStageId: number; status: string }>();
+  const exchangeReadStage = new Map<number, { sparkStageId: number; status: string }>();
   for (const group of stageGroups) {
     for (const exId of group.exchangeWriteIds) {
       exchangeWriteStage.set(exId, { sparkStageId: group.sparkStageId, status: group.status });
@@ -55,7 +58,7 @@ function assignStagesFromBackendGroups(
       };
     }
 
-    // Regular node — build stage data directly from backend group
+    // Regular node — build stage data from computed group
     const group = nodeToGroup.get(node.nodeId);
     if (group === undefined || group.sparkStageId === -1) return node;
     return {
@@ -71,15 +74,6 @@ function assignStagesFromBackendGroups(
   });
 }
 
-export function calculateSQLNodeStage(sql: EnrichedSparkSQL): EnrichedSparkSQL {
-  if (sql.backendStageGroups && sql.backendStageGroups.length > 0) {
-    const assignedNodes = assignStagesFromBackendGroups(sql.nodes, sql.backendStageGroups);
-    return { ...sql, nodes: assignedNodes };
-  }
-  return sql;
-}
-
-
 export function calculateSqlStage(
   sql: EnrichedSparkSQL,
   stages: SparkStagesStore,
@@ -94,51 +88,65 @@ export function calculateSqlStage(
   const stagesIdSet = new Set(sqlJobs.flatMap((job) => job.stageIds));
   const sqlStages = stages.filter((stage) => stagesIdSet.has(stage.stageId));
 
-  // Assign stages using backend-resolved stage groups
-  const calculatedStageSql = calculateSQLNodeStage(
-    { ...sql, metricUpdateId: uuidv4() },
+  // Build stage info for the attribution computation
+  const sqlStageIds = new Set(sqlStages.map((s) => s.stageId));
+  const stageInfos: StageInfo[] = sqlStages.map((s) => ({
+    stageId: s.stageId,
+    status: s.status,
+    numTasks: s.numTasks,
+    numCompleteTasks: s.completedTasks,
+    executorRunTime: s.metrics.executorRunTime,
+  }));
+
+  // Compute stage groups and durations from frontend data
+  const { stageGroups, nodeDurations } = computeStageGroupsAndDurations(
+    sql.nodes,
+    sql.edges,
+    sqlStageIds,
+    stageInfos,
   );
 
-  // Backend-computed durations from GraphDurationAttribution
-  const backendDurationMap = new Map<number, NodeDurationData>();
-  if (calculatedStageSql.backendNodeDurations) {
-    for (const nd of calculatedStageSql.backendNodeDurations) {
-      backendDurationMap.set(nd.nodeId, nd);
-    }
+  // Assign stages to nodes
+  const nodesWithStages = assignStagesFromGroups(sql.nodes, stageGroups);
+
+  // Build duration lookup
+  const durationMap = new Map<number, NodeDuration>();
+  for (const nd of nodeDurations) {
+    durationMap.set(nd.nodeId, nd);
   }
 
   // Assign durations + percentages + exchange write/read durations
-  const nodesWithDuration: EnrichedSqlNode[] = calculatedStageSql.nodes.map(
-    (node) => {
-      const backendData = backendDurationMap.get(node.nodeId);
-      const duration = backendData !== undefined && backendData.durationMs > 0 ? backendData.durationMs : undefined;
+  const nodesWithDuration: EnrichedSqlNode[] = nodesWithStages.map((node) => {
+    const nd = durationMap.get(node.nodeId);
+    const duration = nd !== undefined && nd.durationMs > 0 ? nd.durationMs : undefined;
 
-      const durationPercentage =
-        duration !== undefined && sql.stageMetrics !== undefined
-          ? calculatePercentage(duration, sql.stageMetrics?.executorRunTime) : undefined;
+    const durationPercentage =
+      duration !== undefined && sql.stageMetrics !== undefined
+        ? calculatePercentage(duration, sql.stageMetrics?.executorRunTime)
+        : undefined;
 
-      // For exchange nodes: update write/read durations from backend
-      const exchangeMetrics = (backendData?.writeDurationMs || backendData?.readDurationMs)
+    // For exchange nodes: update write/read durations
+    const exchangeMetrics =
+      nd?.writeDurationMs || nd?.readDurationMs
         ? {
             ...node.exchangeMetrics,
-            writeDuration: backendData.writeDurationMs ?? 0,
-            readDuration: backendData.readDurationMs ?? 0,
-            duration: (backendData.writeDurationMs ?? 0) + (backendData.readDurationMs ?? 0),
+            writeDuration: nd.writeDurationMs ?? 0,
+            readDuration: nd.readDurationMs ?? 0,
+            duration: (nd.writeDurationMs ?? 0) + (nd.readDurationMs ?? 0),
           }
         : node.exchangeMetrics;
 
-      return { ...node, duration, durationPercentage, exchangeMetrics };
-    },
-  );
+    return { ...node, duration, durationPercentage, exchangeMetrics };
+  });
 
   // Add storage info
   const nodesToStorageInfo = calculateNodeToStorageInfo(stages, nodesWithDuration);
-  const storageInfoByNodeId = new Map<number, typeof nodesToStorageInfo[0]["storageInfo"]>();
+  const storageInfoByNodeId = new Map<number, (typeof nodesToStorageInfo)[0]["storageInfo"]>();
   for (const item of nodesToStorageInfo) {
     storageInfoByNodeId.set(item.nodeId, item.storageInfo);
   }
   const nodesWithStorageInfo = nodesWithDuration.map((node) => {
     return { ...node, cachedStorage: storageInfoByNodeId.get(node.nodeId) };
   });
-  return { ...calculatedStageSql, nodes: nodesWithStorageInfo };
+  return { ...sql, nodes: nodesWithStorageInfo, metricUpdateId: uuidv4() };
 }

@@ -11,7 +11,7 @@ class DataflintSQLStagesRddPage(ui: SparkUI)
   extends WebUIPage("stagesrdd") with Logging {
   override def renderJson(request: HttpServletRequest) = {
     try {
-      val graphs = AppStatusStoreCompat.stageList(ui.store)
+      val graphs = ui.store.stageList(null)
         .filter(_.submissionTime.isDefined) // filter skipped or pending stages
         .map(stage => Tuple2(stage.stageId,
           ui.store.operationGraphForStage(stage.stageId).rootCluster.childClusters

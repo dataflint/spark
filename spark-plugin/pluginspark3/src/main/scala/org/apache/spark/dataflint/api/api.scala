@@ -16,27 +16,19 @@
  */
 package org.apache.spark.dataflint.api
 
-import org.apache.spark.status.AppStatusStore
-import org.apache.spark.status.api.v1.StageData
+import org.apache.spark.dataflint.listener.{IcebergCommitInfo, DataflintEnvironmentInfo, DataflintDeltaLakeScanInfo}
+import org.apache.spark.status.api.v1.ApplicationInfo
 
-case class SqlEnrichedData(executionId: Long, rootExecutionId: Option[Long], numOfNodes:Int, rddScopesToStages: Option[Map[String, Set[Object]]], nodesPlan: Seq[NodePlan], stageGroups: Seq[ResolvedStageGroup], nodeDurations: Seq[NodeDurationData])
+case class NodeMetric(name: String, value: Option[String])
 
-/**
- * Compatibility helper for AppStatusStore methods whose signatures changed across Spark 3.x.
- */
-object AppStatusStoreCompat {
-  // In Spark 3.2+ stageList has a second `includeSkipped: Boolean = false` parameter.
-  // The Scala compiler generates a `stageList$default$2()` call even for `stageList(null)`,
-  // which causes NoSuchMethodError at runtime on Spark 3.1.x.
-  // We use reflection so the call works on all Spark 3.x versions.
-  def stageList(store: AppStatusStore): Seq[StageData] = {
-    try {
-      store.stageList(null)
-    } catch {
-      case _: NoSuchMethodError =>
-        // Spark 3.1.x has a single-param stageList(statuses); the multi-param version was added in 3.2
-        val m = store.getClass.getMethod("stageList", classOf[java.util.List[_]])
-        m.invoke(store, null).asInstanceOf[Seq[StageData]]
-    }
-  }
-}
+case class NodeMetrics(id: Long, name: String, metrics: Seq[NodeMetric])
+
+case class SqlEnrichedData(executionId: Long, rootExecutionId: Option[Long], numOfNodes:Int, rddScopesToStages: Option[Map[String, Set[Object]]], nodesPlan: Seq[NodePlan])
+
+case class NodePlan(id: Long, planDescription: String, rddScopeId: Option[String])
+
+case class DataFlintApplicationInfo(runId: Option[String], info: ApplicationInfo, environmentInfo: Option[DataflintEnvironmentInfo])
+
+case class IcebergInfo(commitsInfo: Seq[IcebergCommitInfo])
+
+case class DeltaLakeScanInfo(scans: Seq[DataflintDeltaLakeScanInfo])
