@@ -156,7 +156,7 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     // With 200 rows / 5 categories = 40 rows per partition, finish() is called 5 times total
     // → at least 20ms of window-internal computation that the metric must capture.
     val sleepTime=4
-    spark.udf.register("slow_sum", udaf(new SlowSumAggregator(sleepTime, 10)))
+    spark.udf.register("slow_sum", udaf(new SlowSumAggregator(sleepTime, 20)))
 
     val rows = 200
     val partitions = 5
