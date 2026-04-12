@@ -378,6 +378,7 @@ function classicNode(
 export function computeDurations(
   nodes: EnrichedSqlNode[],
   edges: EnrichedSqlEdge[],
+  codegenNodes: EnrichedSqlNode[] = [],
 ): NodeDuration[] {
   // Auto-detect instrumentation
   const hasInstrumentation = nodes.some(
@@ -420,9 +421,9 @@ export function computeDurations(
       nativeExclusiveMs(baseName, node.metrics) === undefined
     ) {
       if (node.wholeStageCodegenId !== undefined) {
-        // Find the codegen node with matching wholeStageCodegenId
-        const codegenNode = nodes.find(
-          n => n.isCodegenNode && n.wholeStageCodegenId === node.wholeStageCodegenId,
+        // Find the codegen node with matching wholeStageCodegenId (codegen nodes are in a separate array)
+        const codegenNode = codegenNodes.find(
+          n => n.wholeStageCodegenId === node.wholeStageCodegenId,
         );
         if (codegenNode !== undefined && codegenNode.codegenDuration !== undefined && codegenNode.codegenDuration > 0) {
           durationMs = codegenNode.codegenDuration;
@@ -505,6 +506,7 @@ export function computeStageGroupsAndDurations(
   edges: EnrichedSqlEdge[],
   sqlStageIds: Set<number>,
   stageInfos: StageInfo[],
+  codegenNodes: EnrichedSqlNode[] = [],
 ): { stageGroups: ComputedStageGroup[]; nodeDurations: NodeDuration[] } {
   // Step 1: Compute stage groups from topology
   const rawStageGroups = computeStageGroups(nodes, edges);
@@ -513,7 +515,7 @@ export function computeStageGroupsAndDurations(
   const resolvedGroups = resolveStageGroups(rawStageGroups, nodes, sqlStageIds, stageInfos);
 
   // Step 3: Compute raw durations
-  const rawDurations = computeDurations(nodes, edges);
+  const rawDurations = computeDurations(nodes, edges, codegenNodes);
 
   // Step 4: Normalize by stage executorRunTime
   const normalizedDurations = normalizeByStage(rawDurations, resolvedGroups);

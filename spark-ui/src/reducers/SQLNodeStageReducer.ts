@@ -104,6 +104,7 @@ export function calculateSqlStage(
     sql.edges,
     sqlStageIds,
     stageInfos,
+    sql.codegenNodes,
   );
 
   // Assign stages to nodes
