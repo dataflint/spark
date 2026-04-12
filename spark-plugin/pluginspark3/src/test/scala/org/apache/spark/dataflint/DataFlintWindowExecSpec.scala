@@ -163,11 +163,13 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     // Pre-repartition by cat so Spark reuses the existing HashPartitioning(cat, 5) for the
     // window exchange (skips the shuffle), guaranteeing exactly `partitions` tasks.
     val dforg = (1 to rows).map(i => (i, i % partitions)).toDF("id", "cat")
+      .cache()
+    dforg.count()
 
     //repartition by exact number of partitions (require adaptive and ExplicitRepartitionExtension)
     import ExplicitRepartitionOps._
-    val df = dforg.adaptiveRepartition(col("cat"))
-
+    val df = dforg
+      .adaptiveRepartition(col("cat"))
     df.createOrReplaceTempView("test_window_udaf")
 
     // Fast baseline: rank() has negligible per-row computation
