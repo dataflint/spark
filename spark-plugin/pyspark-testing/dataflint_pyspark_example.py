@@ -21,7 +21,7 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 import time
 
-SLEEP_ENABLED = True
+SLEEP_ENABLED = False
 
 def sleep(seconds):
     if SLEEP_ENABLED:
@@ -56,7 +56,7 @@ if not _plugin_jar.exists():
         f"Plugin JAR not found at {_plugin_jar}\n"
         f"Run: cd {_project_root} && sbt {_plugin_module}/assembly"
     )
-
+instrument = "true"
 spark = SparkSession \
     .builder \
     .appName("DataFlint Pyspark Example") \
@@ -66,14 +66,14 @@ spark = SparkSession \
     .config("spark.sql.maxMetadataStringLength", "10000") \
     .config("spark.sql.adaptive.enabled", "false") \
     .config("spark.dataflint.telemetry.enabled", "false") \
-    .config("spark.dataflint.instrument.spark.mapInPandas.enabled", "true") \
-    .config("spark.dataflint.instrument.spark.mapInArrow.enabled", "true") \
-    .config("spark.dataflint.instrument.spark.window.enabled", "true") \
-    .config("spark.dataflint.instrument.spark.arrowEvalPython.enabled", "true") \
-    .config("spark.dataflint.instrument.spark.batchEvalPython.enabled", "true") \
-    .config("spark.dataflint.instrument.spark.flatMapGroupsInPandas.enabled", "true") \
-    .config("spark.dataflint.instrument.spark.flatMapCoGroupsInPandas.enabled", "true") \
-    .config("spark.dataflint.instrument.spark.sqlNodes.enabled", "true") \
+    .config("spark.dataflint.instrument.spark.mapInPandas.enabled", instrument) \
+    .config("spark.dataflint.instrument.spark.mapInArrow.enabled", instrument) \
+    .config("spark.dataflint.instrument.spark.window.enabled", instrument) \
+    .config("spark.dataflint.instrument.spark.arrowEvalPython.enabled", instrument) \
+    .config("spark.dataflint.instrument.spark.batchEvalPython.enabled", instrument) \
+    .config("spark.dataflint.instrument.spark.flatMapGroupsInPandas.enabled", instrument) \
+    .config("spark.dataflint.instrument.spark.flatMapCoGroupsInPandas.enabled", instrument) \
+    .config("spark.dataflint.instrument.spark.sqlNodes.enabled", instrument) \
     .master("local[*]") \
     .getOrCreate()
 # .config("spark.dataflint.test.codegenSleepMs", "1") \
@@ -110,7 +110,8 @@ schema = StructType([
     StructField("price", DoubleType(), False),
 ])
 
-df = spark.createDataFrame(data, schema).repartition(4)
+df = (spark.createDataFrame(data, schema))
+      #.repartition(4))
 
 
 # mapInPandas function
@@ -128,7 +129,7 @@ def compute_discounted_totals_pandas(iterator):
 # mapInArrow function
 def compute_discounted_totals_arrow(iterator):
     for batch in iterator:
-        sleep(1)
+        sleep(20)
         quantity = batch.column("quantity")
         price = batch.column("price")
 
@@ -519,6 +520,33 @@ df.groupBy("category") \
   .write.mode("overwrite").parquet("/tmp/dataflint_sort_agg_example")
 spark.conf.set("spark.sql.execution.useObjectHashAggregateExec", "true")
 print("\nResult written to /tmp/dataflint_sort_agg_example")
+
+
+# ── Cache + Filter + Aggregate + Union ────────────────────────────────────────
+print("="*80)
+print("Running Cache + Filter + Aggregate + Union example")
+print("="*80)
+spark.sparkContext.setJobDescription("Cache + Filter + Agg + Union: read, cache, two branches, union")
+
+df.write.mode("overwrite").parquet("/tmp/tempsave")
+
+df = spark.read.parquet("/tmp/tempsave").filter(col("price") > 0)
+cached_df = df.cache()
+# cached_df.count()  # materialize the cache
+
+high_value = cached_df.filter(col("price") > 200) \
+    .groupBy("category") \
+    .agg(spark_sum("price").alias("total_price"), avg("price").alias("avg_price"))
+
+low_value = cached_df.filter(col("price") <= 200) \
+    .groupBy("category") \
+    .agg(spark_sum("price").alias("total_price"), avg("price").alias("avg_price"))
+
+high_value.union(low_value) \
+    .write.mode("overwrite").parquet("/tmp/dataflint_cache_filter_union_example")
+
+cached_df.unpersist()
+print("\nResult written to /tmp/dataflint_cache_filter_union_example")
 
 
 print("\n" + "="*80)
