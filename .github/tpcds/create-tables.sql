@@ -7,17 +7,22 @@ SELECT
   CAST(id AS INT) AS d_date_sk,
   CONCAT('AAAAAAAAA', LPAD(CAST(id AS STRING), 7, '0')) AS d_date_id,
   DATE_ADD('2000-01-01', CAST(id AS INT)) AS d_date,
-  CAST(FLOOR(id / 30) AS INT) AS d_month_seq,
-  CAST(FLOOR(id / 7) AS INT) AS d_week_seq,
-  CAST(FLOOR(id / 91) AS INT) AS d_quarter_seq,
+  -- d_month_seq must be uniquely determined by (d_year, d_moy) so standard TPC-DS
+  -- scalar subqueries like `(SELECT DISTINCT d_month_seq WHERE d_year=X AND d_moy=Y)`
+  -- return exactly one row.
+  CAST((YEAR(DATE_ADD('2000-01-01', CAST(id AS INT))) - 1900) * 12 + MONTH(DATE_ADD('2000-01-01', CAST(id AS INT))) - 1 AS INT) AS d_month_seq,
+  -- d_week_seq must be uniquely determined by calendar week.
+  CAST(FLOOR((id + DAYOFWEEK(DATE '2000-01-01') - 1) / 7) AS INT) AS d_week_seq,
+  -- d_quarter_seq must be uniquely determined by (d_year, d_qoy).
+  CAST((YEAR(DATE_ADD('2000-01-01', CAST(id AS INT))) - 1900) * 4 + QUARTER(DATE_ADD('2000-01-01', CAST(id AS INT))) - 1 AS INT) AS d_quarter_seq,
   YEAR(DATE_ADD('2000-01-01', CAST(id AS INT))) AS d_year,
   DAYOFWEEK(DATE_ADD('2000-01-01', CAST(id AS INT))) AS d_dow,
   MONTH(DATE_ADD('2000-01-01', CAST(id AS INT))) AS d_moy,
   DAYOFMONTH(DATE_ADD('2000-01-01', CAST(id AS INT))) AS d_dom,
   QUARTER(DATE_ADD('2000-01-01', CAST(id AS INT))) AS d_qoy,
   YEAR(DATE_ADD('2000-01-01', CAST(id AS INT))) AS d_fy_year,
-  CAST(FLOOR(id / 91) AS INT) AS d_fy_quarter_seq,
-  CAST(FLOOR(id / 7) AS INT) AS d_fy_week_seq,
+  CAST((YEAR(DATE_ADD('2000-01-01', CAST(id AS INT))) - 1900) * 4 + QUARTER(DATE_ADD('2000-01-01', CAST(id AS INT))) - 1 AS INT) AS d_fy_quarter_seq,
+  CAST(FLOOR((id + DAYOFWEEK(DATE '2000-01-01') - 1) / 7) AS INT) AS d_fy_week_seq,
   ELT(DAYOFWEEK(DATE_ADD('2000-01-01', CAST(id AS INT))), 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday') AS d_day_name,
   CONCAT(CAST(YEAR(DATE_ADD('2000-01-01', CAST(id AS INT))) AS STRING), 'Q', CAST(QUARTER(DATE_ADD('2000-01-01', CAST(id AS INT))) AS STRING)) AS d_quarter_name,
   CASE WHEN id % 20 = 0 THEN 'Y' ELSE 'N' END AS d_holiday,

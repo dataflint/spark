@@ -25,6 +25,7 @@ COMMON_CONF=(
   --conf "spark.driver.extraJavaOptions=-Dderby.system.home=${WAREHOUSE_DIR}/derby"
   --conf spark.ui.enabled=false
   --conf spark.sql.adaptive.enabled=true
+  --conf spark.sql.ansi.enabled=false
 )
 
 echo "=============================="

@@ -117,6 +117,7 @@ jobs:
             --conf spark.sql.warehouse.dir=/tmp/tpcds-warehouse \
             --conf spark.driver.memory=2g \
             --conf spark.driver.extraJavaOptions=-Dderby.system.home=/tmp/tpcds-warehouse/derby \
+            --conf spark.sql.ansi.enabled=false \
             --conf spark.app.name=TPC-DS-DataGen \
             -f .github/tpcds/create-tables.sql
 
