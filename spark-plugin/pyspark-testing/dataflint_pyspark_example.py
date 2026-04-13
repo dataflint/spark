@@ -79,6 +79,16 @@ spark = SparkSession \
 # .config("spark.dataflint.test.codegenSleepMs", "1") \
 #     .config("spark.sql.codegen.wholeStage", "false") \
 # spark.sparkContext.setLogLevel("INFO")
+
+# Register the SlowSumAggregator (Scala UDAF) via py4j after the SparkSession exists
+_jvm = spark._jvm
+_aggregator = _jvm.org.apache.spark.dataflint.SlowSumAggregator()
+_input_encoder = _jvm.org.apache.spark.sql.Encoders.scalaDouble()
+spark._jsparkSession.udf().register(
+    "slow_sum",
+    _jvm.org.apache.spark.sql.functions.udaf(_aggregator, _input_encoder)
+)
+print("Registered slow_sum UDAF")
 # Get Spark version and check if mapInArrow is supported
 spark_version = spark.version
 version_parts = spark_version.split('.')
@@ -211,18 +221,19 @@ print("Running Window function example")
 print("="*80)
 
 from pyspark.sql import Window
-from pyspark.sql.functions import rank, sum as spark_sum, avg
+from pyspark.sql.functions import rank, sum as spark_sum, avg, expr
 from pyspark.sql.types import DoubleType
 
 window_by_category = Window.partitionBy("category").orderBy("price")
 window_category_total = Window.partitionBy("category")
 
+# slow_sum is a Scala UDAF registered by DataFlintInstrumentationExtension.
+# It sums Doubles but sleeps `spark.dataflint.test.slowSumSleepMs` per row on the JVM.
 df_window = df.withColumn("rank_in_category", rank().over(window_by_category)) \
-              .withColumn("cumulative_revenue", spark_sum("price").over(window_by_category)) \
-              .withColumn("avg_price_in_category", avg("price").over(window_category_total)) \
-              .withColumn("price2", col("price")*2)
+              .withColumn("cumulative_slow_revenue", expr("slow_sum(price)").over(window_by_category)) \
+              .withColumn("avg_price_in_category", expr("slow_sum(price)").over(window_category_total))
 
-spark.sparkContext.setJobDescription("Window SQL: rank + cumulative sum + avg → DataFlintWindowExec")
+spark.sparkContext.setJobDescription("Window SQL: rank + slow_sum (Scala UDAF) + avg → DataFlintWindowExec")
 df_window.write \
     .mode("overwrite") \
     .parquet("/tmp/dataflint_window_example")
@@ -530,8 +541,7 @@ spark.sparkContext.setJobDescription("Cache + Filter + Agg + Union: read, cache,
 
 df.write.mode("overwrite").parquet("/tmp/tempsave")
 
-df = spark.read.parquet("/tmp/tempsave").filter(col("price") > 0)
-cached_df = df.cache()
+cached_df = spark.read.parquet("/tmp/tempsave").filter(col("price") > 0).cache()
 # cached_df.count()  # materialize the cache
 
 high_value = cached_df.filter(col("price") > 200) \
