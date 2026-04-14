@@ -527,50 +527,9 @@ export function computeStageGroupsAndDurations(
   }
 
   if (mode === "inclusive") {
-    // Inclusive/budgeted: nodes with metrics keep their raw value.
-    // Nodes WITHOUT metrics get the leftover stage budget.
+    // Inclusive: raw durations as-is, no normalization, no budget
     const mergedRaw = rawDurations.map(nd => exchangeById.get(nd.nodeId) ?? nd);
-
-    // Build per-stage budget: executorRunTime - sum of known durations
-    const nodeToGroup = new Map<number, ComputedStageGroup>();
-    for (const group of resolvedGroups) {
-      for (const nid of group.nodeIds) nodeToGroup.set(nid, group);
-    }
-    const knownSumByStage = new Map<number, number>();
-    const unknownCountByStage = new Map<number, number>();
-    for (const nd of mergedRaw) {
-      const group = nodeToGroup.get(nd.nodeId);
-      if (!group || group.sparkStageId === -1) continue;
-      if (nd.durationMs > 0) {
-        knownSumByStage.set(group.sparkStageId, (knownSumByStage.get(group.sparkStageId) ?? 0) + nd.durationMs);
-      } else {
-        unknownCountByStage.set(group.sparkStageId, (unknownCountByStage.get(group.sparkStageId) ?? 0) + 1);
-      }
-    }
-    // Also subtract exchange durations from stage budgets
-    for (const ex of exchangeDurations) {
-      for (const group of resolvedGroups) {
-        if (group.exchangeWriteIds.includes(ex.nodeId) && ex.writeDurationMs) {
-          knownSumByStage.set(group.sparkStageId, (knownSumByStage.get(group.sparkStageId) ?? 0) + (ex.writeDurationMs ?? 0));
-        }
-        if (group.exchangeReadIds.includes(ex.nodeId) && ex.readDurationMs) {
-          knownSumByStage.set(group.sparkStageId, (knownSumByStage.get(group.sparkStageId) ?? 0) + (ex.readDurationMs ?? 0));
-        }
-      }
-    }
-
-    const budgetedDurations = mergedRaw.map(nd => {
-      if (nd.durationMs > 0) return nd;
-      const group = nodeToGroup.get(nd.nodeId);
-      if (!group || group.sparkStageId === -1 || group.executorRunTime <= 0) return nd;
-      const knownSum = knownSumByStage.get(group.sparkStageId) ?? 0;
-      const unknownCount = unknownCountByStage.get(group.sparkStageId) ?? 0;
-      if (unknownCount <= 0) return nd;
-      const budget = Math.max(0, group.executorRunTime - knownSum);
-      return { ...nd, durationMs: Math.round(budget / unknownCount) };
-    });
-
-    return { stageGroups: resolvedGroups, nodeDurations: budgetedDurations };
+    return { stageGroups: resolvedGroups, nodeDurations: mergedRaw };
   }
 
   // Exclusive mode: normalize by stage executorRunTime
