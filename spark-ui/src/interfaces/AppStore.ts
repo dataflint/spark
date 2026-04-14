@@ -27,6 +27,7 @@ export type AppStore = {
   executorTimeline: ExecutorTimelinePoints | undefined;
   alerts: AlertsStore | undefined;
   environmentInfo: EnvironmentInfo | undefined;
+  durationMode: "exclusive" | "inclusive";
 };
 
 export interface AlertsStore {

@@ -379,9 +379,10 @@ export function computeDurations(
   nodes: EnrichedSqlNode[],
   edges: EnrichedSqlEdge[],
   codegenNodes: EnrichedSqlNode[] = [],
+  mode: "exclusive" | "inclusive" = "exclusive",
 ): NodeDuration[] {
-  // Auto-detect instrumentation
-  const hasInstrumentation = nodes.some(
+  // In inclusive mode, always use classicNode (raw metric values, no subtraction)
+  const hasInstrumentation = mode === "inclusive" ? false : nodes.some(
     n => !n.isCodegenNode && getMetricDuration("duration", n.metrics) !== undefined,
   );
 
@@ -507,6 +508,7 @@ export function computeStageGroupsAndDurations(
   sqlStageIds: Set<number>,
   stageInfos: StageInfo[],
   codegenNodes: EnrichedSqlNode[] = [],
+  mode: "exclusive" | "inclusive" = "exclusive",
 ): { stageGroups: ComputedStageGroup[]; nodeDurations: NodeDuration[] } {
   // Step 1: Compute stage groups from topology
   const rawStageGroups = computeStageGroups(nodes, edges);
@@ -515,26 +517,67 @@ export function computeStageGroupsAndDurations(
   const resolvedGroups = resolveStageGroups(rawStageGroups, nodes, sqlStageIds, stageInfos);
 
   // Step 3: Compute raw durations
-  const rawDurations = computeDurations(nodes, edges, codegenNodes);
+  const rawDurations = computeDurations(nodes, edges, codegenNodes, mode);
 
-  // Step 4: Normalize by stage executorRunTime
-  const normalizedDurations = normalizeByStage(rawDurations, resolvedGroups);
-
-  // Step 5: Compute exchange durations
+  // Step 4: Compute exchange durations (same in both modes)
   const exchangeDurations = computeExchangeDurations(nodes);
   const exchangeById = new Map<number, NodeDuration>();
   for (const ex of exchangeDurations) {
     exchangeById.set(ex.nodeId, ex);
   }
 
-  // Step 6: Merge exchange durations into normalized list
-  const mergedDurations = normalizedDurations.map(nd => {
-    const ex = exchangeById.get(nd.nodeId);
-    if (ex !== undefined) {
-      return ex;
+  if (mode === "inclusive") {
+    // Inclusive/budgeted: nodes with metrics keep their raw value.
+    // Nodes WITHOUT metrics get the leftover stage budget.
+    const mergedRaw = rawDurations.map(nd => exchangeById.get(nd.nodeId) ?? nd);
+
+    // Build per-stage budget: executorRunTime - sum of known durations
+    const nodeToGroup = new Map<number, ComputedStageGroup>();
+    for (const group of resolvedGroups) {
+      for (const nid of group.nodeIds) nodeToGroup.set(nid, group);
     }
-    return nd;
-  });
+    const knownSumByStage = new Map<number, number>();
+    const unknownCountByStage = new Map<number, number>();
+    for (const nd of mergedRaw) {
+      const group = nodeToGroup.get(nd.nodeId);
+      if (!group || group.sparkStageId === -1) continue;
+      if (nd.durationMs > 0) {
+        knownSumByStage.set(group.sparkStageId, (knownSumByStage.get(group.sparkStageId) ?? 0) + nd.durationMs);
+      } else {
+        unknownCountByStage.set(group.sparkStageId, (unknownCountByStage.get(group.sparkStageId) ?? 0) + 1);
+      }
+    }
+    // Also subtract exchange durations from stage budgets
+    for (const ex of exchangeDurations) {
+      for (const group of resolvedGroups) {
+        if (group.exchangeWriteIds.includes(ex.nodeId) && ex.writeDurationMs) {
+          knownSumByStage.set(group.sparkStageId, (knownSumByStage.get(group.sparkStageId) ?? 0) + (ex.writeDurationMs ?? 0));
+        }
+        if (group.exchangeReadIds.includes(ex.nodeId) && ex.readDurationMs) {
+          knownSumByStage.set(group.sparkStageId, (knownSumByStage.get(group.sparkStageId) ?? 0) + (ex.readDurationMs ?? 0));
+        }
+      }
+    }
+
+    const budgetedDurations = mergedRaw.map(nd => {
+      if (nd.durationMs > 0) return nd;
+      const group = nodeToGroup.get(nd.nodeId);
+      if (!group || group.sparkStageId === -1 || group.executorRunTime <= 0) return nd;
+      const knownSum = knownSumByStage.get(group.sparkStageId) ?? 0;
+      const unknownCount = unknownCountByStage.get(group.sparkStageId) ?? 0;
+      if (unknownCount <= 0) return nd;
+      const budget = Math.max(0, group.executorRunTime - knownSum);
+      return { ...nd, durationMs: Math.round(budget / unknownCount) };
+    });
+
+    return { stageGroups: resolvedGroups, nodeDurations: budgetedDurations };
+  }
+
+  // Exclusive mode: normalize by stage executorRunTime
+  const normalizedDurations = normalizeByStage(rawDurations, resolvedGroups);
+
+  // Merge exchange durations into normalized list
+  const mergedDurations = normalizedDurations.map(nd => exchangeById.get(nd.nodeId) ?? nd);
 
   return { stageGroups: resolvedGroups, nodeDurations: mergedDurations };
 }

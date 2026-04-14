@@ -78,6 +78,7 @@ export function calculateSqlStage(
   sql: EnrichedSparkSQL,
   stages: SparkStagesStore,
   jobs: SparkJobsStore,
+  durationMode: "exclusive" | "inclusive" = "exclusive",
 ): EnrichedSparkSQL {
   // Find stages belonging to this SQL
   const allJobsIds = sql.successJobIds
@@ -105,6 +106,7 @@ export function calculateSqlStage(
     sqlStageIds,
     stageInfos,
     sql.codegenNodes,
+    durationMode,
   );
 
   // Assign stages to nodes

@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { setDurationMode } from "./GeneralSlice";
 import { EnvironmentInfo } from '../interfaces/ApplicationInfo';
 import { AppStore, StatusStore } from "../interfaces/AppStore";
 import { CachedStorage } from "../interfaces/CachedStorage";
@@ -46,6 +47,7 @@ export const initialState: AppStore = {
   alerts: undefined,
   executorTimeline: undefined,
   environmentInfo: undefined,
+  durationMode: "exclusive",
 };
 
 const sparkSlice = createSlice({
@@ -177,6 +179,7 @@ const sparkSlice = createSlice({
           state.jobs,
           state.stages,
           state.executors,
+          state.durationMode,
         );
       }
     },
@@ -239,6 +242,7 @@ const sparkSlice = createSlice({
           state.jobs,
           state.stages,
           state.executors,
+          state.durationMode,
         );
       } else {
         state.sql = sqlStore;
@@ -277,6 +281,7 @@ const sparkSlice = createSlice({
           state.jobs,
           state.stages,
           state.executors,
+          state.durationMode,
         );
         state.alerts = reduceAlerts(
           state.sql,
@@ -288,6 +293,22 @@ const sparkSlice = createSlice({
         );
       }
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(setDurationMode, (state, action) => {
+      state.durationMode = action.payload.durationMode;
+      if (state.config && state.jobs && state.sql && state.executors && state.stages && state.status) {
+        state.sql = calculateSqlQueryLevelMetricsReducer(
+          state.config,
+          state.sql,
+          state.status,
+          state.jobs,
+          state.stages,
+          state.executors,
+          state.durationMode,
+        );
+      }
+    });
   },
 });
 
