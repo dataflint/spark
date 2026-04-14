@@ -80,8 +80,8 @@ else
     echo ""
     echo "  App: ${APP_ID}"
 
-    # Check DataFlint UI page
-    DF_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+    # Check DataFlint UI page — follow redirects (the route issues a 302 to the SPA entry)
+    DF_CODE=$(curl -sL -o /dev/null -w "%{http_code}" \
       "${HISTORY_URL}/history/${APP_ID}/dataflint/")
     if [ "$DF_CODE" != "200" ]; then
       echo "    FAIL: DataFlint UI returned HTTP ${DF_CODE}"

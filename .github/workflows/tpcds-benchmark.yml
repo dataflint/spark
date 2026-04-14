@@ -27,14 +27,15 @@ jobs:
             scala-full: "2.12.20"
             sbt-project: "pluginspark3"
             jar-path: "pluginspark3/target/scala-2.12"
-          - spark-version: "4.0.2"
-            spark-hadoop-suffix: "hadoop3"
-            java-version: "17"
-            java-distribution: "temurin"
-            scala-binary: "2.13"
-            scala-full: "2.13.16"
-            sbt-project: "pluginspark4"
-            jar-path: "pluginspark4/target/scala-2.13"
+          # Spark 4.0.2 flow temporarily disabled
+          # - spark-version: "4.0.2"
+          #   spark-hadoop-suffix: "hadoop3"
+          #   java-version: "17"
+          #   java-distribution: "temurin"
+          #   scala-binary: "2.13"
+          #   scala-full: "2.13.16"
+          #   sbt-project: "pluginspark4"
+          #   jar-path: "pluginspark4/target/scala-2.13"
 
     steps:
       - name: Checkout
@@ -88,8 +89,14 @@ jobs:
         if: steps.cache-spark.outputs.cache-hit != 'true'
         run: |
           SPARK_TGZ="spark-${{ matrix.spark-version }}-bin-${{ matrix.spark-hadoop-suffix }}.tgz"
-          curl -fSL -o "/tmp/${SPARK_TGZ}" \
-            "https://archive.apache.org/dist/spark/spark-${{ matrix.spark-version }}/${SPARK_TGZ}"
+          # Try the CDN first (fast), fallback to archive.apache.org (slow but complete).
+          CDN_URL="https://dlcdn.apache.org/spark/spark-${{ matrix.spark-version }}/${SPARK_TGZ}"
+          ARCHIVE_URL="https://archive.apache.org/dist/spark/spark-${{ matrix.spark-version }}/${SPARK_TGZ}"
+          echo "Trying CDN: $CDN_URL"
+          if ! curl -fSL --max-time 600 -o "/tmp/${SPARK_TGZ}" "$CDN_URL"; then
+            echo "CDN failed, falling back to archive.apache.org"
+            curl -fSL --max-time 1800 -o "/tmp/${SPARK_TGZ}" "$ARCHIVE_URL"
+          fi
           mkdir -p /opt/spark-${{ matrix.spark-version }}
           tar -xzf "/tmp/${SPARK_TGZ}" -C /opt/spark-${{ matrix.spark-version }} --strip-components=1
           rm -f "/tmp/${SPARK_TGZ}"
@@ -117,6 +124,7 @@ jobs:
             --conf spark.sql.warehouse.dir=/tmp/tpcds-warehouse \
             --conf spark.driver.memory=2g \
             --conf spark.driver.extraJavaOptions=-Dderby.system.home=/tmp/tpcds-warehouse/derby \
+            --conf spark.sql.ansi.enabled=false \
             --conf spark.app.name=TPC-DS-DataGen \
             -f .github/tpcds/create-tables.sql
 
