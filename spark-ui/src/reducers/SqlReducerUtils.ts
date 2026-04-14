@@ -762,6 +762,7 @@ export const AGGREGATE_NODE_NAMES = [
   "PhotonGroupingAgg",
   "GpuHashAggregate",
   "!CometGpuHashAggregate",
+  "CometHashAggregate",
   "HashAggregate",
   "SortAggregate",
   "ObjectHashAggregate",

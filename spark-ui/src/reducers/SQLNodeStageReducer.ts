@@ -148,7 +148,9 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
   nodes = nodes.map((node) => {
     // Convert Exchange nodes to exchange stage type if they have adjacent nodes with stage info
     // This handles both nodes without stage data and nodes with onestage type that should be exchange type
-    if ((node.nodeName === "Exchange" || node.nodeName === "ColumnarExchange") && (node.stage === undefined || node.stage.type === "onestage")) {
+    if ((node.nodeName === "Exchange" || node.nodeName === "ColumnarExchange" ||
+         node.nodeName === "CometExchange" || node.nodeName === "CometColumnarExchange" ||
+         node.nodeName === "GpuColumnarExchange") && (node.stage === undefined || node.stage.type === "onestage")) {
       const nextNode = findNextNode(node.nodeId);
       const previousNode = findPreviousNode(node.nodeId);
       const metricsExchangeStageIds = findExchangeStageIds(node.metrics);

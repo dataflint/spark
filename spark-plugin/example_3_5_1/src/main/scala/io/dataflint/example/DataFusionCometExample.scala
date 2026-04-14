@@ -43,7 +43,7 @@ object DataFusionCometExample extends App {
   println(s"number of unique words : $uniqueWords")
 
 
-  spark.read.load("/Users/menishmueli/Documents/GitHub/spark-sql-perf/data/store_sales").filter($"ss_quantity" > 1).count()
+//  spark.read.load("/Users/menishmueli/Documents/GitHub/spark-sql-perf/data/store_sales").filter($"ss_quantity" > 1).count()
 
   scala.io.StdIn.readLine()
   spark.stop()
