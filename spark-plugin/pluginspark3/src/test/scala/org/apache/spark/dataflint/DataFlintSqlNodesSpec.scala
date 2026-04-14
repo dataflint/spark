@@ -207,11 +207,6 @@ class DataFlintSqlNodesSpec extends AnyFunSuite with Matchers with BeforeAndAfte
     assertWrappedWithDuration(spark.read.parquet(path), "FileSourceScanExec")
   }
 
-  test("InMemoryTableScanExec") {
-    val cached = baseDF.cache()
-    cached.count() // materialize the cache
-    // Second read hits InMemoryTableScanExec
-    assertWrappedWithDuration(cached.select("id"), "InMemoryTableScanExec")
-    cached.unpersist()
-  }
+  // InMemoryTableScanExec is excluded from instrumentation — wrapping it
+  // changes the plan identity and breaks Spark's cache hit detection.
 }
