@@ -12,7 +12,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.util.concurrent.TimeUnit.NANOSECONDS
 
-private class SlowSumAggregator(fromSleep: Long, toSleep: Long) extends Aggregator[Long, Long, Long] {
+private class TestSlowSumAggregator(fromSleep: Long, toSleep: Long) extends Aggregator[Long, Long, Long] {
   def zero: Long = 0L
   def reduce(b: Long, a: Long): Long = {
     b + a
@@ -21,7 +21,7 @@ private class SlowSumAggregator(fromSleep: Long, toSleep: Long) extends Aggregat
   def finish(r: Long): Long = {
     val sleep = fromSleep + (math.random() * (toSleep - fromSleep)).toLong
     Thread.sleep(sleep)
-    println(s"SlowSumAggregator finished with sleep of $sleep")
+    println(s"TestSlowSumAggregator finished with sleep of $sleep")
     r
   }
   def bufferEncoder: Encoder[Long] = Encoders.scalaLong
@@ -156,7 +156,7 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     // With 200 rows / 5 categories = 40 rows per partition, finish() is called 5 times total
     // → at least 20ms of window-internal computation that the metric must capture.
     val sleepTime=4
-    spark.udf.register("slow_sum", udaf(new SlowSumAggregator(sleepTime, 20)))
+    spark.udf.register("slow_sum", udaf(new TestSlowSumAggregator(sleepTime, 20)))
 
     val rows = 200
     val partitions = 5
