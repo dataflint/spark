@@ -1,0 +1,198 @@
+name: TPC-DS Benchmark & History Server
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tpcds-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tpcds-benchmark:
+    name: TPC-DS (Spark ${{ matrix.spark-version }}, Java ${{ matrix.java-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - spark-version: "3.5.8"
+            spark-hadoop-suffix: "hadoop3"
+            java-version: "11"
+            java-distribution: "temurin"
+            scala-binary: "2.12"
+            scala-full: "2.12.20"
+            sbt-project: "pluginspark3"
+            jar-path: "pluginspark3/target/scala-2.12"
+          # Spark 4.0.2 flow temporarily disabled
+          # - spark-version: "4.0.2"
+          #   spark-hadoop-suffix: "hadoop3"
+          #   java-version: "17"
+          #   java-distribution: "temurin"
+          #   scala-binary: "2.13"
+          #   scala-full: "2.13.16"
+          #   sbt-project: "pluginspark4"
+          #   jar-path: "pluginspark4/target/scala-2.13"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java ${{ matrix.java-version }}
+        uses: actions/setup-java@v3
+        with:
+          distribution: ${{ matrix.java-distribution }}
+          java-version: ${{ matrix.java-version }}
+          cache: sbt
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: spark-ui/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('spark-ui/package-lock.json') }}
+
+      - name: Install npm dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+        working-directory: ./spark-ui
+
+      - name: Build UI
+        run: npm run deploy
+        working-directory: ./spark-ui
+
+      - name: Build DataFlint plugin JAR
+        run: sbt ++${{ matrix.scala-full }} ${{ matrix.sbt-project }}/assembly
+        working-directory: ./spark-plugin
+
+      - name: Cache Spark distribution
+        id: cache-spark
+        uses: actions/cache@v4
+        with:
+          path: /opt/spark-${{ matrix.spark-version }}
+          key: spark-${{ matrix.spark-version }}-${{ matrix.spark-hadoop-suffix }}
+
+      - name: Download Spark ${{ matrix.spark-version }}
+        if: steps.cache-spark.outputs.cache-hit != 'true'
+        run: |
+          SPARK_TGZ="spark-${{ matrix.spark-version }}-bin-${{ matrix.spark-hadoop-suffix }}.tgz"
+          # Try the CDN first (fast), fallback to archive.apache.org (slow but complete).
+          CDN_URL="https://dlcdn.apache.org/spark/spark-${{ matrix.spark-version }}/${SPARK_TGZ}"
+          ARCHIVE_URL="https://archive.apache.org/dist/spark/spark-${{ matrix.spark-version }}/${SPARK_TGZ}"
+          echo "Trying CDN: $CDN_URL"
+          if ! curl -fSL --max-time 600 -o "/tmp/${SPARK_TGZ}" "$CDN_URL"; then
+            echo "CDN failed, falling back to archive.apache.org"
+            curl -fSL --max-time 1800 -o "/tmp/${SPARK_TGZ}" "$ARCHIVE_URL"
+          fi
+          mkdir -p /opt/spark-${{ matrix.spark-version }}
+          tar -xzf "/tmp/${SPARK_TGZ}" -C /opt/spark-${{ matrix.spark-version }} --strip-components=1
+          rm -f "/tmp/${SPARK_TGZ}"
+
+      - name: Copy DataFlint JAR to Spark jars
+        run: |
+          cp spark-plugin/${{ matrix.jar-path }}/*.jar \
+             /opt/spark-${{ matrix.spark-version }}/jars/dataflint-plugin.jar
+
+      - name: Create working directories
+        run: |
+          mkdir -p /tmp/spark-events
+          mkdir -p /tmp/tpcds-warehouse
+
+      - name: Generate TPC-DS data
+        run: |
+          /opt/spark-${{ matrix.spark-version }}/bin/spark-sql \
+            --master "local[*]" \
+            --conf spark.plugins=io.dataflint.spark.SparkDataflintPlugin \
+            --conf spark.dataflint.telemetry.enabled=false \
+            --conf spark.dataflint.instrument.spark.enabled=true \
+            --conf spark.dataflint.cacheObservability.enabled=true \
+            --conf spark.eventLog.enabled=true \
+            --conf spark.eventLog.dir=file:///tmp/spark-events \
+            --conf spark.sql.warehouse.dir=/tmp/tpcds-warehouse \
+            --conf spark.driver.memory=2g \
+            --conf spark.driver.extraJavaOptions=-Dderby.system.home=/tmp/tpcds-warehouse/derby \
+            --conf spark.sql.ansi.enabled=false \
+            --conf spark.app.name=TPC-DS-DataGen \
+            -f .github/tpcds/create-tables.sql
+
+      - name: Run TPC-DS queries
+        run: |
+          chmod +x .github/tpcds/run-tpcds-queries.sh
+          .github/tpcds/run-tpcds-queries.sh \
+            /opt/spark-${{ matrix.spark-version }} \
+            /tmp/spark-events \
+            /tmp/tpcds-warehouse
+
+      - name: Verify event logs exist
+        run: |
+          echo "Event log files:"
+          ls -la /tmp/spark-events/
+          EVENT_COUNT=$(ls /tmp/spark-events/ | wc -l)
+          if [ "$EVENT_COUNT" -lt 1 ]; then
+            echo "ERROR: No event log files found"
+            exit 1
+          fi
+          echo "Found $EVENT_COUNT event log entries"
+
+      - name: Start History Server
+        run: |
+          export SPARK_HOME=/opt/spark-${{ matrix.spark-version }}
+          export SPARK_LOG_DIR=/tmp/spark-history-logs
+          mkdir -p "$SPARK_LOG_DIR"
+          export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=file:///tmp/spark-events -Dspark.history.ui.port=18080"
+          $SPARK_HOME/bin/spark-class org.apache.spark.deploy.history.HistoryServer \
+            2>&1 | tee /tmp/history-server.log &
+          echo $! > /tmp/history-server.pid
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:18080 > /dev/null 2>&1; then
+              echo "History Server is ready"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "ERROR: History Server failed to start within 60s"
+              cat /tmp/history-server.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Verify History Server and DataFlint UI
+        run: |
+          chmod +x .github/tpcds/verify-history-server.sh
+          .github/tpcds/verify-history-server.sh
+
+      - name: Stop History Server
+        if: always()
+        run: |
+          if [ -f /tmp/history-server.pid ]; then
+            kill "$(cat /tmp/history-server.pid)" 2>/dev/null || true
+          fi
+
+      - name: Upload event logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spark-events-${{ matrix.spark-version }}
+          path: /tmp/spark-events/
+          retention-days: 5
+
+      - name: Upload History Server logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: history-server-logs-${{ matrix.spark-version }}
+          path: /tmp/history-server.log
+          retention-days: 5
