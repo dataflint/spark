@@ -1,5 +1,6 @@
 import ErrorIcon from "@mui/icons-material/Error";
 import FlagIcon from "@mui/icons-material/Flag";
+import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import WarningIcon from "@mui/icons-material/Warning";
 import { Alert, AlertTitle, Box, Tooltip, Typography } from "@mui/material";
 import React, { FC, memo, useMemo } from "react";
@@ -7,6 +8,7 @@ import { useSearchParams } from "react-router-dom";
 import { Handle, Position } from "reactflow";
 import { Alert as AppAlert, EnrichedSqlNode, SQLNodeExchangeStageData, SQLNodeStageData } from "../../interfaces/AppStore";
 import { humanFileSize, parseBytesString } from "../../utils/FormatUtils";
+import { getNodeAccelerator } from "../../reducers/SqlReducerUtils";
 import { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import MetricDisplay, { MetricWithTooltip } from "./MetricDisplay";
 import {
@@ -46,6 +48,7 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
   const [searchParams] = useSearchParams();
   const exchangeVariant = data.exchangeVariant;
   const isDebugMode = localStorage.getItem("DATAFLINT_DEBUG_MODE_VIEW") === "true";
+
 
 
 
@@ -327,6 +330,39 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
             />
           </Box>
         )}
+
+        {/* Accelerator badge - bottom left corner */}
+        {(() => {
+          const accel = getNodeAccelerator(data.node.nodeName);
+          if (!accel) return null;
+          return (
+            <Tooltip title={accel.tooltip} placement="top">
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 6,
+                  left: 6,
+                  zIndex: 15,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.4,
+                  px: 0.75,
+                  py: 0.35,
+                  background: `linear-gradient(135deg, ${accel.gradientFrom}, ${accel.gradientTo})`,
+                  borderRadius: "5px",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                  cursor: "default",
+                  pointerEvents: "auto",
+                }}
+              >
+                <RocketLaunchIcon sx={{ fontSize: "0.8rem", color: "white" }} />
+                <Typography sx={{ fontSize: "0.65rem", color: "white", fontWeight: 700, letterSpacing: "0.5px", lineHeight: 1 }}>
+                  {accel.label}
+                </Typography>
+              </Box>
+            </Tooltip>
+          );
+        })()}
 
         {/* Alert badge */}
         {sqlNodeAlert && (

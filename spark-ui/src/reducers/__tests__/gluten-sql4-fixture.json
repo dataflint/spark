@@ -1,0 +1,744 @@
+{
+  "sql": {
+    "id": "4",
+    "description": "Sort by line count",
+    "successJobIds": [
+      7,
+      8
+    ],
+    "runningJobIds": [],
+    "failedJobIds": [],
+    "nodes": [
+      {
+        "nodeId": 16,
+        "nodeName": "Scan csv",
+        "metrics": [
+          {
+            "name": "number of output rows",
+            "value": "111,389"
+          },
+          {
+            "name": "number of files read",
+            "value": "1"
+          },
+          {
+            "name": "metadata time",
+            "value": "0 ms"
+          },
+          {
+            "name": "size of files read",
+            "value": "9.7 MiB"
+          }
+        ]
+      },
+      {
+        "nodeId": 15,
+        "nodeName": "RowToVeloxColumnar",
+        "metrics": [
+          {
+            "name": "number of input rows",
+            "value": "111,389"
+          },
+          {
+            "name": "number of output batches",
+            "value": "29"
+          },
+          {
+            "name": "time to convert",
+            "value": "total (min, med, max (stageId: taskId))\n43 ms (7 ms, 17 ms, 19 ms (stage 8.0: task 14))"
+          }
+        ]
+      },
+      {
+        "nodeId": 14,
+        "nodeName": "InputIteratorTransformer",
+        "metrics": [
+          {
+            "name": "cpu wall time count",
+            "value": "70"
+          },
+          {
+            "name": "time of operator input",
+            "value": "total (min, med, max (stageId: taskId))\n153 ms (34 ms, 59 ms, 60 ms (stage 8.0: task 13))"
+          },
+          {
+            "name": "number of output rows",
+            "value": "111,389"
+          },
+          {
+            "name": "number of output vectors",
+            "value": "29"
+          }
+        ]
+      },
+      {
+        "nodeId": 13,
+        "nodeName": "FilterExecTransformer",
+        "metrics": [
+          {
+            "name": "time of filter",
+            "value": "total (min, med, max (stageId: taskId))\n0 ms (0 ms, 0 ms, 0 ms (stage 8.0: task 15))"
+          },
+          {
+            "name": "number of output bytes",
+            "value": "total (min, med, max (stageId: taskId))\n7.3 MiB (1388.7 KiB, 3.0 MiB, 3.0 MiB (stage 8.0: task 14))"
+          },
+          {
+            "name": "cpu wall time count",
+            "value": "0"
+          },
+          {
+            "name": "number of output vectors",
+            "value": "29"
+          },
+          {
+            "name": "peak memory bytes",
+            "value": "total (min, med, max (stageId: taskId))\n0.0 B (0.0 B, 0.0 B, 0.0 B (stage 8.0: task 15))"
+          },
+          {
+            "name": "number of output rows",
+            "value": "111,389"
+          },
+          {
+            "name": "number of memory allocations",
+            "value": "0"
+          },
+          {
+            "name": "time of loading lazy vectors",
+            "value": "total (min, med, max (stageId: taskId))\n0 ms (0 ms, 0 ms, 0 ms (stage 8.0: task 15))"
+          }
+        ]
+      },
+      {
+        "nodeId": 12,
+        "nodeName": "ProjectExecTransformer",
+        "metrics": [
+          {
+            "name": "time of project",
+            "value": "total (min, med, max (stageId: taskId))\n0 ms (0 ms, 0 ms, 0 ms (stage 8.0: task 13))"
+          },
+          {
+            "name": "number of output bytes",
+            "value": "total (min, med, max (stageId: taskId))\n7.3 MiB (1388.7 KiB, 3.0 MiB, 3.0 MiB (stage 8.0: task 14))"
+          },
+          {
+            "name": "cpu wall time count",
+            "value": "262"
+          },
+          {
+            "name": "number of output vectors",
+            "value": "29"
+          },
+          {
+            "name": "peak memory bytes",
+            "value": "total (min, med, max (stageId: taskId))\n0.0 B (0.0 B, 0.0 B, 0.0 B (stage 8.0: task 15))"
+          },
+          {
+            "name": "number of output rows",
+            "value": "111,389"
+          },
+          {
+            "name": "number of memory allocations",
+            "value": "0"
+          },
+          {
+            "name": "time of loading lazy vectors",
+            "value": "total (min, med, max (stageId: taskId))\n0 ms (0 ms, 0 ms, 0 ms (stage 8.0: task 15))"
+          }
+        ]
+      },
+      {
+        "nodeId": 11,
+        "nodeName": "FlushableHashAggregateExecTransformer",
+        "metrics": [
+          {
+            "name": "number of final output vectors",
+            "value": "0"
+          },
+          {
+            "name": "time of extraction",
+            "value": "total (min, med, max (stageId: taskId))\n0 ms (0 ms, 0 ms, 0 ms (stage 8.0: task 13))"
+          },
+          {
+            "name": "rowConstruction cpu wall time count",
+            "value": "0"
+          },
+          {
+            "name": "number of memory allocations",
+            "value": "97"
+          },
+          {
+            "name": "number of output vectors",
+            "value": "3"
+          },
+          {
+            "name": "number of spilled bytes",
+            "value": "total (min, med, max (stageId: taskId))\n0.0 B (0.0 B, 0.0 B, 0.0 B (stage 8.0: task 15))"
+          },
+          {
+            "name": "number of final output rows",
+            "value": "0"
+          },
+          {
+            "name": "bloom filter blocks byte size",
+            "value": "0.0 B"
+          },
+          {
+            "name": "number of output rows",
+            "value": "1,338"
+          },
+          {
+            "name": "number of pushdown aggregations",
+            "value": "0"
+          },
+          {
+            "name": "number of output bytes",
+            "value": "total (min, med, max (stageId: taskId))\n1437.8 KiB (479.3 KiB, 479.3 KiB, 479.3 KiB (stage 8.0: task 15))"
+          },
+          {
+            "name": "number of spilled files",
+            "value": "0"
+          },
+          {
+            "name": "time of aggregation",
+            "value": "total (min, med, max (stageId: taskId))\n4 ms (0 ms, 1 ms, 1 ms (stage 8.0: task 13))"
+          },
+          {
+            "name": "peak memory bytes",
+            "value": "total (min, med, max (stageId: taskId))\n3.6 MiB (1176.1 KiB, 1216.1 KiB, 1260.1 KiB (stage 8.0: task 14))"
+          },
+          {
+            "name": "number of spilled rows",
+            "value": "0"
+          },
+          {
+            "name": "cpu wall time count",
+            "value": "254"
+          },
+          {
+            "name": "number of spilled partitions",
+            "value": "0"
+          },
+          {
+            "name": "time of loading lazy vectors",
+            "value": "total (min, med, max (stageId: taskId))\n0 ms (0 ms, 0 ms, 0 ms (stage 8.0: task 15))"
+          },
+          {
+            "name": "time of rowConstruction",
+            "value": "0 ms"
+          },
+          {
+            "name": "number of flushed rows",
+            "value": "0"
+          },
+          {
+            "name": "extraction cpu wall time count",
+            "value": "113"
+          }
+        ]
+      },
+      {
+        "nodeId": 10,
+        "nodeName": "ProjectExecTransformer",
+        "metrics": [
+          {
+            "name": "time of project",
+            "value": "total (min, med, max (stageId: taskId))\n0 ms (0 ms, 0 ms, 0 ms (stage 8.0: task 13))"
+          },
+          {
+            "name": "number of output bytes",
+            "value": "total (min, med, max (stageId: taskId))\n1444.5 KiB (480.2 KiB, 482.2 KiB, 482.2 KiB (stage 8.0: task 14))"
+          },
+          {
+            "name": "cpu wall time count",
+            "value": "84"
+          },
+          {
+            "name": "number of output vectors",
+            "value": "3"
+          },
+          {
+            "name": "peak memory bytes",
+            "value": "total (min, med, max (stageId: taskId))\n7.0 KiB (1024.0 B, 3.0 KiB, 3.0 KiB (stage 8.0: task 14))"
+          },
+          {
+            "name": "number of output rows",
+            "value": "1,338"
+          },
+          {
+            "name": "number of memory allocations",
+            "value": "3"
+          },
+          {
+            "name": "time of loading lazy vectors",
+            "value": "total (min, med, max (stageId: taskId))\n0 ms (0 ms, 0 ms, 0 ms (stage 8.0: task 15))"
+          }
+        ]
+      },
+      {
+        "nodeId": 9,
+        "nodeName": "WholeStageCodegenTransformer (1)",
+        "metrics": [
+          {
+            "name": "duration",
+            "value": "total (min, med, max (stageId: taskId))\n184 ms (43 ms, 70 ms, 71 ms (stage 8.0: task 13))"
+          }
+        ]
+      },
+      {
+        "nodeId": 8,
+        "nodeName": "VeloxResizeBatches",
+        "metrics": [
+          {
+            "name": "number of output batches",
+            "value": "3"
+          },
+          {
+            "name": "number of input rows",
+            "value": "1,338"
+          },
+          {
+            "name": "time to convert batches",
+            "value": "total (min, med, max (stageId: taskId))\n1 ms (0 ms, 0 ms, 1 ms (stage 8.0: task 15))"
+          },
+          {
+            "name": "number of input batches",
+            "value": "3"
+          },
+          {
+            "name": "number of output rows",
+            "value": "1,338"
+          }
+        ]
+      },
+      {
+        "nodeId": 7,
+        "nodeName": "ColumnarExchange",
+        "metrics": [
+          {
+            "name": "shuffle records written",
+            "value": "1,338"
+          },
+          {
+            "name": "local merged chunks fetched",
+            "value": "0"
+          },
+          {
+            "name": "shuffle write time",
+            "value": "total (min, med, max (stageId: taskId))\n1 ms (0 ms, 0 ms, 0 ms (stage 8.0: task 14))"
+          },
+          {
+            "name": "remote merged bytes read",
+            "value": "0.0 B"
+          },
+          {
+            "name": "time to compress",
+            "value": "total (min, med, max (stageId: taskId))\n0 ms (0 ms, 0 ms, 0 ms (stage 8.0: task 15))"
+          },
+          {
+            "name": "local merged blocks fetched",
+            "value": "0"
+          },
+          {
+            "name": "time to split",
+            "value": "total (min, med, max (stageId: taskId))\n8 ms (2 ms, 2 ms, 3 ms (stage 8.0: task 13))"
+          },
+          {
+            "name": "corrupt merged block chunks",
+            "value": "0"
+          },
+          {
+            "name": "shuffle wall time",
+            "value": "total (min, med, max (stageId: taskId))\n9 ms (2 ms, 2 ms, 4 ms (stage 8.0: task 13))"
+          },
+          {
+            "name": "number of input rows",
+            "value": "1,338"
+          },
+          {
+            "name": "time to decompress",
+            "value": "0 ms"
+          },
+          {
+            "name": "remote merged reqs duration",
+            "value": "0 ms"
+          },
+          {
+            "name": "remote merged blocks fetched",
+            "value": "0"
+          },
+          {
+            "name": "time to spill",
+            "value": "total (min, med, max (stageId: taskId))\n0 ms (0 ms, 0 ms, 0 ms (stage 8.0: task 15))"
+          },
+          {
+            "name": "records read",
+            "value": "1,338"
+          },
+          {
+            "name": "local bytes read",
+            "value": "142.9 KiB"
+          },
+          {
+            "name": "dictionary size",
+            "value": "total (min, med, max (stageId: taskId))\n0.0 B (0.0 B, 0.0 B, 0.0 B (stage 8.0: task 15))"
+          },
+          {
+            "name": "fetch wait time",
+            "value": "0 ms"
+          },
+          {
+            "name": "remote bytes read",
+            "value": "0.0 B"
+          },
+          {
+            "name": "time to deserialize",
+            "value": "0 ms"
+          },
+          {
+            "name": "merged fetch fallback count",
+            "value": "0"
+          },
+          {
+            "name": "avg read batch num rows",
+            "value": "2.5"
+          },
+          {
+            "name": "batches read",
+            "value": "515"
+          },
+          {
+            "name": "shuffle bytes spilled",
+            "value": "total (min, med, max (stageId: taskId))\n0.0 B (0.0 B, 0.0 B, 0.0 B (stage 8.0: task 15))"
+          },
+          {
+            "name": "number of input batches",
+            "value": "3"
+          },
+          {
+            "name": "avg dictionary fields",
+            "value": "0"
+          },
+          {
+            "name": "number of output rows",
+            "value": "1,338"
+          },
+          {
+            "name": "local blocks read",
+            "value": "3"
+          },
+          {
+            "name": "remote merged chunks fetched",
+            "value": "0"
+          },
+          {
+            "name": "remote blocks read",
+            "value": "0"
+          },
+          {
+            "name": "data size",
+            "value": "total (min, med, max (stageId: taskId))\n81.6 KiB (12.6 KiB, 33.0 KiB, 35.9 KiB (stage 8.0: task 13))"
+          },
+          {
+            "name": "local merged bytes read",
+            "value": "0.0 B"
+          },
+          {
+            "name": "peak bytes allocated",
+            "value": "total (min, med, max (stageId: taskId))\n128.8 MiB (35.3 MiB, 46.1 MiB, 47.4 MiB (stage 8.0: task 13))"
+          },
+          {
+            "name": "number of partitions",
+            "value": "200"
+          },
+          {
+            "name": "remote reqs duration",
+            "value": "0 ms"
+          },
+          {
+            "name": "remote bytes read to disk",
+            "value": "0.0 B"
+          },
+          {
+            "name": "shuffle bytes written",
+            "value": "total (min, med, max (stageId: taskId))\n142.9 KiB (29.1 KiB, 55.2 KiB, 58.6 KiB (stage 8.0: task 13))"
+          }
+        ]
+      },
+      {
+        "nodeId": 6,
+        "nodeName": "AQEShuffleRead",
+        "metrics": [
+          {
+            "name": "number of partitions",
+            "value": "1"
+          },
+          {
+            "name": "partition data size",
+            "value": "149.6 KiB"
+          },
+          {
+            "name": "number of coalesced partitions",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "nodeId": 5,
+        "nodeName": "InputIteratorTransformer",
+        "metrics": [
+          {
+            "name": "cpu wall time count",
+            "value": "1,034"
+          },
+          {
+            "name": "time of operator input",
+            "value": "3 ms"
+          },
+          {
+            "name": "number of output rows",
+            "value": "1,338"
+          },
+          {
+            "name": "number of output vectors",
+            "value": "515"
+          }
+        ]
+      },
+      {
+        "nodeId": 4,
+        "nodeName": "RegularHashAggregateExecTransformer",
+        "metrics": [
+          {
+            "name": "number of final output vectors",
+            "value": "0"
+          },
+          {
+            "name": "time of extraction",
+            "value": "0 ms"
+          },
+          {
+            "name": "rowConstruction cpu wall time count",
+            "value": "4,130"
+          },
+          {
+            "name": "number of memory allocations",
+            "value": "41"
+          },
+          {
+            "name": "number of output vectors",
+            "value": "1"
+          },
+          {
+            "name": "number of spilled bytes",
+            "value": "0.0 B"
+          },
+          {
+            "name": "number of final output rows",
+            "value": "0"
+          },
+          {
+            "name": "bloom filter blocks byte size",
+            "value": "0.0 B"
+          },
+          {
+            "name": "number of output rows",
+            "value": "1,326"
+          },
+          {
+            "name": "number of pushdown aggregations",
+            "value": "0"
+          },
+          {
+            "name": "number of output bytes",
+            "value": "431.3 KiB"
+          },
+          {
+            "name": "number of spilled files",
+            "value": "0"
+          },
+          {
+            "name": "time of aggregation",
+            "value": "2 ms"
+          },
+          {
+            "name": "peak memory bytes",
+            "value": "1004.6 KiB"
+          },
+          {
+            "name": "number of spilled rows",
+            "value": "0"
+          },
+          {
+            "name": "cpu wall time count",
+            "value": "3,622"
+          },
+          {
+            "name": "number of spilled partitions",
+            "value": "0"
+          },
+          {
+            "name": "time of loading lazy vectors",
+            "value": "0 ms"
+          },
+          {
+            "name": "time of rowConstruction",
+            "value": "2 ms"
+          },
+          {
+            "name": "number of flushed rows",
+            "value": "0"
+          },
+          {
+            "name": "extraction cpu wall time count",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "nodeId": 3,
+        "nodeName": "WholeStageCodegenTransformer (2)",
+        "metrics": []
+      },
+      {
+        "nodeId": 2,
+        "nodeName": "TakeOrderedAndProjectExecTransformer",
+        "metrics": []
+      },
+      {
+        "nodeId": 1,
+        "nodeName": "VeloxColumnarToRow",
+        "metrics": [
+          {
+            "name": "number of output rows",
+            "value": "21"
+          },
+          {
+            "name": "number of input batches",
+            "value": "1"
+          },
+          {
+            "name": "time to convert",
+            "value": "0 ms"
+          }
+        ]
+      },
+      {
+        "nodeId": 0,
+        "nodeName": "AdaptiveSparkPlan",
+        "metrics": []
+      }
+    ],
+    "edges": [
+      {
+        "fromId": 1,
+        "toId": 0
+      },
+      {
+        "fromId": 2,
+        "toId": 1
+      },
+      {
+        "fromId": 4,
+        "toId": 2
+      },
+      {
+        "fromId": 5,
+        "toId": 4
+      },
+      {
+        "fromId": 6,
+        "toId": 5
+      },
+      {
+        "fromId": 7,
+        "toId": 6
+      },
+      {
+        "fromId": 8,
+        "toId": 7
+      },
+      {
+        "fromId": 10,
+        "toId": 8
+      },
+      {
+        "fromId": 11,
+        "toId": 10
+      },
+      {
+        "fromId": 12,
+        "toId": 11
+      },
+      {
+        "fromId": 13,
+        "toId": 12
+      },
+      {
+        "fromId": 14,
+        "toId": 13
+      },
+      {
+        "fromId": 15,
+        "toId": 14
+      },
+      {
+        "fromId": 16,
+        "toId": 15
+      }
+    ]
+  },
+  "jobs": [
+    {
+      "jobId": 8,
+      "stageIds": [
+        9,
+        10
+      ]
+    },
+    {
+      "jobId": 7,
+      "stageIds": [
+        8
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "stageId": 10,
+      "status": "COMPLETE",
+      "numTasks": 1,
+      "numCompleteTasks": 1,
+      "numFailedTasks": 0,
+      "numActiveTasks": 0,
+      "executorRunTime": 14,
+      "attemptId": 0
+    },
+    {
+      "stageId": 8,
+      "status": "COMPLETE",
+      "numTasks": 3,
+      "numCompleteTasks": 3,
+      "numFailedTasks": 0,
+      "numActiveTasks": 0,
+      "executorRunTime": 203,
+      "attemptId": 0
+    }
+  ],
+  "stagesRdd": {
+    "8": {
+      "100": "Scan csv ",
+      "90": "ColumnarExchange",
+      "99": "RowToVeloxColumnar",
+      "92": "WholeStageCodegenTransformer (1)",
+      "91": "VeloxResizeBatches"
+    },
+    "9": {},
+    "10": {
+      "107": "AQEShuffleRead",
+      "108": "WholeStageCodegenTransformer (3)",
+      "101": "VeloxColumnarToRow",
+      "115": "mapPartitionsInternal"
+    }
+  }
+}

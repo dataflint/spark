@@ -97,9 +97,29 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
 
   nodes = nodes.map((node) => {
     if (
-      node.nodeName == "CollectLimit" ||
-      node.nodeName === "BroadcastExchange"
+      node.nodeName === "CollectLimit" ||
+      node.nodeName === "ColumnarCollectLimit" ||
+      node.nodeName === "BroadcastExchange" ||
+      node.nodeName === "ColumnarBroadcastExchange" ||
+      node.nodeName === "VeloxResizeBatches" ||
+      node.nodeName === "RowToVeloxColumnar"
     ) {
+      if (node.stage !== undefined) return node;
+      const previousNode = findPreviousNode(node.nodeId);
+      if (previousNode !== undefined && previousNode.stage !== undefined) {
+        return { ...node, stage: previousNode.stage };
+      }
+    }
+    return node;
+  });
+  rebuildNodeMap();
+  // TakeOrderedAndProjectExecTransformer and VeloxColumnarToRow: inherit from next node
+  nodes = nodes.map((node) => {
+    if (
+      node.nodeName === "TakeOrderedAndProjectExecTransformer" ||
+      node.nodeName === "VeloxColumnarToRow"
+    ) {
+      if (node.stage !== undefined) return node;
       const previousNode = findPreviousNode(node.nodeId);
       if (previousNode !== undefined && previousNode.stage !== undefined) {
         return { ...node, stage: previousNode.stage };
@@ -108,7 +128,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     return node;
   });
   nodes = nodes.map((node) => {
-    if (node.nodeName === "AQEShuffleRead" || node.nodeName === "Coalesce" ||
+    if (node.nodeName === "AQEShuffleRead" || node.nodeName === "Coalesce" || node.nodeName === "CoalesceExecTransformer" ||
       node.nodeName === "BatchEvalPython" || node.nodeName === "DataFlintBatchEvalPython" ||
       node.nodeName === "MapInPandas" || node.nodeName === "DataFlintMapInPandas" ||
       node.nodeName === "MapInArrow" || node.nodeName === "PythonMapInArrow" || node.nodeName === "DataFlintMapInArrow" ||
@@ -116,7 +136,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
       node.nodeName === "FlatMapGroupsInPandas" || node.nodeName === "DataFlintFlatMapGroupsInPandas" ||
       node.nodeName === "FlatMapCoGroupsInPandas" || node.nodeName === "DataFlintFlatMapCoGroupsInPandas" ||
       node.nodeName === "WindowInPandas" || node.nodeName === "DataFlintWindowInPandas" || node.nodeName === "DataFlintArrowWindowPython" ||
-      node.nodeName === "Window" || node.nodeName === "DataFlintWindow") {
+      node.nodeName === "Window" || node.nodeName === "DataFlintWindow" || node.nodeName === "WindowExecTransformer") {
       const nextNode = findNextNode(node.nodeId);
       if (nextNode !== undefined && nextNode.stage !== undefined) {
         return { ...node, stage: nextNode.stage };
@@ -128,7 +148,9 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
   nodes = nodes.map((node) => {
     // Convert Exchange nodes to exchange stage type if they have adjacent nodes with stage info
     // This handles both nodes without stage data and nodes with onestage type that should be exchange type
-    if (node.nodeName === "Exchange" && (node.stage === undefined || node.stage.type === "onestage")) {
+    if ((node.nodeName === "Exchange" || node.nodeName === "ColumnarExchange" ||
+         node.nodeName === "CometExchange" || node.nodeName === "CometColumnarExchange" ||
+         node.nodeName === "GpuColumnarExchange") && (node.stage === undefined || node.stage.type === "onestage")) {
       const nextNode = findNextNode(node.nodeId);
       const previousNode = findPreviousNode(node.nodeId);
       const metricsExchangeStageIds = findExchangeStageIds(node.metrics);
@@ -202,7 +224,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     return node;
   });
   nodes = nodes.map((node) => {
-    if (node.nodeName === "Window" && node.stage === undefined) {
+    if ((node.nodeName === "Window" || node.nodeName === "WindowExecTransformer") && node.stage === undefined) {
       // For Window nodes, try to find stage from next node first, then previous node
       const nextNode = findNextNode(node.nodeId);
       if (nextNode !== undefined && nextNode.stage !== undefined) {
@@ -216,7 +238,7 @@ export function calculateSQLNodeStage(sql: EnrichedSparkSQL, sqlStages: SparkSta
     return node;
   });
   nodes = nodes.map((node) => {
-    if (node.nodeName === "Union" && node.stage === undefined) {
+    if ((node.nodeName === "Union" || node.nodeName === "ColumnarUnion") && node.stage === undefined) {
       const nextNode = findNextNode(node.nodeId);
       if (nextNode !== undefined && nextNode.stage !== undefined) {
         return { ...node, stage: nextNode.stage };
@@ -402,6 +424,18 @@ export function calculateSqlStage(
     }
   }
 
+  // Collect stage IDs that have WholeStageCodegenTransformer in their RDD data
+  const stageCodegenNames = new Map<number, string>();
+  for (const stage of sqlStages) {
+    if (stage.stagesRdd !== undefined) {
+      for (const value of Object.values(stage.stagesRdd)) {
+        if (typeof value === "string" && value.startsWith("WholeStageCodegenTransformer")) {
+          stageCodegenNames.set(stage.stageId, value);
+        }
+      }
+    }
+  }
+
   const codegenNodes = sql.codegenNodes.map((node) => {
     const stageIdByName = rddValueToStageId.get(node.nodeName);
     const stageIdByRddScope = node.rddScopeId !== undefined ? rddKeyToStageId.get(node.rddScopeId) : undefined;
@@ -410,6 +444,20 @@ export function calculateSqlStage(
       stage: stageDataFromStage(stageIdByName ?? stageIdByRddScope, stages),
     };
   });
+
+  // Fallback: AQE may renumber codegen IDs at runtime (e.g., plan has codegen (2) but
+  // the actual stage has codegen (3)). Match unmatched codegen nodes to unmatched stages
+  // by ordering.
+  const matchedStageIds = new Set(codegenNodes.filter(cg => cg.stage !== undefined).map(cg => cg.stage!.type === "onestage" ? cg.stage!.stageId : -1));
+  const unmatchedCodegens = codegenNodes.filter(cg => cg.stage === undefined);
+  const unmatchedStages = Array.from(stageCodegenNames.keys()).filter(sid => !matchedStageIds.has(sid)).sort((a, b) => a - b);
+
+  if (unmatchedCodegens.length > 0 && unmatchedStages.length > 0) {
+    const sortedUnmatched = [...unmatchedCodegens].sort((a, b) => (a.wholeStageCodegenId ?? 0) - (b.wholeStageCodegenId ?? 0));
+    for (let i = 0; i < Math.min(sortedUnmatched.length, unmatchedStages.length); i++) {
+      sortedUnmatched[i].stage = stageDataFromStage(unmatchedStages[i], stages);
+    }
+  }
 
   // Build codegen lookup map, excluding duplicate codegen IDs
   // If the same codegen ID appears multiple times, we can't reliably determine which stage it belongs to
@@ -485,7 +533,7 @@ export function calculateSqlStage(
       readArr.push(node);
       exchangeReadByStageId.set(node.stage.readStage, readArr);
     }
-    if (node.nodeName === "BroadcastExchange" && node?.stage?.type === "onestage") {
+    if ((node.nodeName === "BroadcastExchange" || node.nodeName === "ColumnarBroadcastExchange") && node?.stage?.type === "onestage") {
       const arr = broadcastByStageId.get(node.stage.stageId) ?? [];
       arr.push(node);
       broadcastByStageId.set(node.stage.stageId, arr);

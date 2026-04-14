@@ -2,14 +2,14 @@ import { ParsedProjectPlan } from "../../interfaces/AppStore";
 import { bracedSplit, hashNumbersRemover } from "./PlanParserUtils";
 
 export function parseProject(input: string): ParsedProjectPlan {
-  // If the input is just "Project", "PhotonProject", or "GpuProject", return empty fields
-  if (input === "Project" || input === "PhotonProject" || input === "GpuProject") {
+  if (input === "Project" || input === "PhotonProject" || input === "GpuProject" || input === "ProjectExecTransformer") {
     return { fields: [] };
   }
 
   let fieldsStr = input;
-  // Remove the project type and opening bracket in the correct order
-  if (fieldsStr.startsWith("PhotonProject [")) {
+  if (fieldsStr.startsWith("ProjectExecTransformer [")) {
+    fieldsStr = fieldsStr.replace("ProjectExecTransformer [", "");
+  } else if (fieldsStr.startsWith("PhotonProject [")) {
     fieldsStr = fieldsStr.replace("PhotonProject [", "");
   } else if (fieldsStr.startsWith("GpuProject [")) {
     fieldsStr = fieldsStr.replace("GpuProject [", "");
