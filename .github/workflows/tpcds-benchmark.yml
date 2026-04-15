@@ -111,21 +111,30 @@ jobs:
           mkdir -p /tmp/spark-events
           mkdir -p /tmp/tpcds-warehouse
 
-      - name: Run TPC-DS benchmark (data gen + all queries)
+      - name: Generate TPC-DS data
+        run: |
+          /opt/spark-${{ matrix.spark-version }}/bin/spark-sql \
+            --master "local[*]" \
+            --conf spark.plugins=io.dataflint.spark.SparkDataflintPlugin \
+            --conf spark.dataflint.telemetry.enabled=false \
+            --conf spark.dataflint.instrument.spark.enabled=true \
+            --conf spark.dataflint.cacheObservability.enabled=true \
+            --conf spark.eventLog.enabled=true \
+            --conf spark.eventLog.dir=file:///tmp/spark-events \
+            --conf spark.sql.warehouse.dir=/tmp/tpcds-warehouse \
+            --conf spark.driver.memory=2g \
+            --conf spark.driver.extraJavaOptions=-Dderby.system.home=/tmp/tpcds-warehouse/derby \
+            --conf spark.sql.ansi.enabled=false \
+            --conf spark.app.name=TPC-DS-DataGen \
+            -f .github/tpcds/create-tables.sql
+
+      - name: Run TPC-DS queries
         run: |
           chmod +x .github/tpcds/run-tpcds-queries.sh
           .github/tpcds/run-tpcds-queries.sh \
             /opt/spark-${{ matrix.spark-version }} \
             /tmp/spark-events \
             /tmp/tpcds-warehouse
-
-      - name: Upload TPC-DS output log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tpcds-output-${{ matrix.spark-version }}
-          path: /tmp/tpcds-run.out
-          retention-days: 5
 
       - name: Verify event logs exist
         run: |
