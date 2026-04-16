@@ -21,7 +21,7 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 import time
 
-SLEEP_ENABLED = False
+SLEEP_ENABLED = True
 
 def sleep(seconds):
     if SLEEP_ENABLED:
@@ -64,7 +64,7 @@ spark = SparkSession \
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin") \
     .config("spark.ui.port", "10000") \
     .config("spark.sql.maxMetadataStringLength", "10000") \
-    .config("spark.sql.adaptive.enabled", "false") \
+    .config("spark.sql.adaptive.enabled", "true") \
     .config("spark.dataflint.telemetry.enabled", "false") \
     .config("spark.dataflint.instrument.spark.mapInPandas.enabled", instrument) \
     .config("spark.dataflint.instrument.spark.mapInArrow.enabled", instrument) \
@@ -251,7 +251,7 @@ from pyspark.sql.functions import pandas_udf
 @pandas_udf(DoubleType())
 def discounted_sum(prices: pd.Series) -> float:
     """Pandas UDF used as a window aggregate: sum of prices with a 10% discount."""
-    sleep(0.0001)
+    sleep(0.0002)
     return prices.sum() * 0.9
 
 df_window_udf = (df.withColumn("discounted_category_revenue", discounted_sum("price").over(window_by_category))

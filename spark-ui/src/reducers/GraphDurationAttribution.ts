@@ -309,7 +309,9 @@ function nativeExclusiveMs(baseName: string, metrics: EnrichedSqlMetric[]): numb
 
 /**
  * Find the maximum timing value among all descendants reachable without
- * crossing an exchange or blocking node.
+ * crossing an exchange. Stops at non-instrumented blocking nodes (their
+ * timing is independent). Instrumented blocking nodes are pipelined
+ * (TimedExec duration includes child time) so we cross into them.
  */
 function findTimedChild(
   nodeId: number,
@@ -325,7 +327,8 @@ function findTimedChild(
       const child = nodeById.get(childId);
       if (child !== undefined && !isExchangeNode(child.nodeName)) {
         const baseName = extractBaseName(child.nodeName);
-        if (!BLOCKING_NODES.has(baseName)) {
+        const isBlocking = BLOCKING_NODES.has(baseName) && !child.isInstrumented;
+        if (!isBlocking) {
           const ms = readTimingMs(child.metrics);
           if (ms !== undefined && ms > maxMs) {
             maxMs = ms;
@@ -346,14 +349,25 @@ function attributeNode(
   childrenOf: Map<number, number[]>,
   nodeById: Map<number, EnrichedSqlNode>,
 ): number {
-  // 1. Native exclusive metric
+  // 1. Instrumented nodes: prefer "duration" (pipelined subtraction) for consistent model
+  const durationMs = node.isInstrumented ? getMetricDuration("duration", node.metrics) : undefined;
+  if (durationMs !== undefined) {
+    const childMs = findTimedChild(node.nodeId, childrenOf, nodeById);
+    if (childMs !== undefined) {
+      return Math.max(0, durationMs - childMs);
+    }
+    return durationMs;
+  }
+
+  // 2. Native exclusive metric (sort time, agg time, build time)
   const nativeMs = nativeExclusiveMs(baseName, node.metrics);
   if (nativeMs !== undefined) return nativeMs;
 
-  // 2. Read timing
+  // 3. Read any timing metric
   const selfMs = readTimingMs(node.metrics);
   if (selfMs === undefined) return 0;
 
+  // Non-instrumented blocking nodes: use inclusive as-is (independent timer)
   if (BLOCKING_NODES.has(baseName)) {
     return selfMs;
   }
