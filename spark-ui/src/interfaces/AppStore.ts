@@ -27,6 +27,7 @@ export type AppStore = {
   executorTimeline: ExecutorTimelinePoints | undefined;
   alerts: AlertsStore | undefined;
   environmentInfo: EnvironmentInfo | undefined;
+  durationMode: "exclusive" | "inclusive";
 };
 
 export interface AlertsStore {
@@ -337,6 +338,7 @@ export interface EnrichedSqlNode {
   type: NodeType;
   wholeStageCodegenId?: number;
   isCodegenNode: boolean;
+  isInstrumented: boolean;
   codegenDuration: number | undefined;
   exchangeBroadcastDuration: number | undefined;
   duration: number | undefined;

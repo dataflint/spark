@@ -25,7 +25,7 @@ abstract class DataflintPageFactory {
   def createSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListener: () => Option[SQLAppStatusListener]): WebUIPage
   
   def createSQLStagesRddPage(ui: SparkUI): WebUIPage
-  
+
   def addStaticHandler(ui: SparkUI, resourceBase: String, contextPath: String): Unit
   
   def getTabs(ui: SparkUI): Seq[WebUITab]

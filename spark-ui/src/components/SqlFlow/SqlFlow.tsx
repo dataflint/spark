@@ -25,7 +25,7 @@ import { useSearchParams } from "react-router-dom";
 import "reactflow/dist/style.css";
 import { useAppDispatch, useAppSelector } from "../../Hooks";
 import { EnrichedSparkSQL, GraphFilter } from "../../interfaces/AppStore";
-import { setSQLMode, setSelectedStage, setShowStages } from "../../reducers/GeneralSlice";
+import { setDurationMode, setSQLMode, setSelectedStage, setShowStages } from "../../reducers/GeneralSlice";
 import { parseBytesString } from "../../utils/FormatUtils";
 import FlowLegend from "./FlowLegend";
 import CustomMiniMap from "./MiniMap";
@@ -93,6 +93,7 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
   const graphFilter = useAppSelector((state) => state.general.sqlMode);
   const selectedStage = useAppSelector((state) => state.general.selectedStage);
   const showStages = useAppSelector((state) => state.general.showStages);
+  const durationMode = useAppSelector((state) => state.general.durationMode);
 
   // Memoized statistics about the SQL flow
   const flowStats = useMemo(() => {
@@ -653,6 +654,26 @@ const SqlFlow: FC<{ sparkSQL: EnrichedSparkSQL }> = ({
                 }}
               >
                 {showStages ? <Layers /> : <LayersClear />}
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip
+              title={durationMode === "exclusive" ? "Show inclusive durations" : "Show exclusive durations"}
+              arrow
+              placement="top"
+            >
+              <IconButton
+                onClick={() => dispatch(setDurationMode({ durationMode: durationMode === "exclusive" ? "inclusive" : "exclusive" }))}
+                sx={{
+                  backgroundColor: durationMode === "exclusive" ? "rgba(25, 118, 210, 0.2)" : "rgba(245, 247, 250, 0.95)",
+                  color: durationMode === "exclusive" ? "#1976d2" : "#424242",
+                  border: durationMode === "exclusive" ? "1px solid rgba(25, 118, 210, 0.5)" : "1px solid rgba(0, 0, 0, 0.15)",
+                  "&:hover": {
+                    backgroundColor: durationMode === "exclusive" ? "rgba(25, 118, 210, 0.3)" : "rgba(245, 247, 250, 1)"
+                  },
+                }}
+              >
+                <Speed />
               </IconButton>
             </Tooltip>
           </Box>

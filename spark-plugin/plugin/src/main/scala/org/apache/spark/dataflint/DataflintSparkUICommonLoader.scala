@@ -139,6 +139,7 @@ object DataflintSparkUICommonLoader extends Logging {
   val INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED = "spark.dataflint.instrument.spark.batchEvalPython.enabled"
   val INSTRUMENT_FLAT_MAP_GROUPS_PANDAS_ENABLED = "spark.dataflint.instrument.spark.flatMapGroupsInPandas.enabled"
   val INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED = "spark.dataflint.instrument.spark.flatMapCoGroupsInPandas.enabled"
+  val INSTRUMENT_SQL_NODES_ENABLED = "spark.dataflint.instrument.spark.sqlNodes.enabled"
 
   def install(context: SparkContext, pageFactory: DataflintPageFactory): String = {
     new DataflintSparkUICommonInstaller().install(context, pageFactory)

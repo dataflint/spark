@@ -4,7 +4,7 @@ import org.apache.spark.api.python.{PythonEvalType, SimplePythonFunction}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.expressions.PythonUDF
 import org.apache.spark.sql.execution.LocalTableScanExec
-import org.apache.spark.sql.execution.python.{ArrowEvalPythonExec, BatchEvalPythonExec, DataFlintArrowEvalPythonExec, DataFlintBatchEvalPythonExec, DataFlintFlatMapCoGroupsInPandasExec, DataFlintFlatMapGroupsInPandasExec, DataFlintMapInPandasExec_3_5, DataFlintPythonMapInArrowExec_3_5, FlatMapCoGroupsInPandasExec, FlatMapGroupsInPandasExec, MapInPandasExec, PythonMapInArrowExec}
+import org.apache.spark.sql.execution.python.{ArrowEvalPythonExec, BatchEvalPythonExec, FlatMapCoGroupsInPandasExec, FlatMapGroupsInPandasExec, MapInPandasExec, PythonMapInArrowExec}
 import org.apache.spark.sql.types.LongType
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
@@ -50,115 +50,115 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
 
   // ---- MapInPandasExec (mapInPandas) ----
 
-  test("replaces MapInPandasExec in plan") {
+  test("wraps MapInPandasExec with TimedExec") {
     val udf = fakePythonUDF(PythonEvalType.SQL_MAP_PANDAS_ITER_UDF)
     val original = MapInPandasExec(udf, Seq.empty, emptyChild, false)
     val rule = DataFlintInstrumentationColumnarRule(spark)
     val result = rule.preColumnarTransitions(original)
-    result shouldBe a[DataFlintMapInPandasExec_3_5]
+    result shouldBe a[TimedExec]
+    result.asInstanceOf[TimedExec].child shouldBe a[MapInPandasExec]
   }
 
-  test("MapInPandasExec nodeName and metrics") {
+  test("MapInPandasExec TimedExec has duration metric") {
     val udf = fakePythonUDF(PythonEvalType.SQL_MAP_PANDAS_ITER_UDF)
     val original = MapInPandasExec(udf, Seq.empty, emptyChild, false)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[DataFlintMapInPandasExec_3_5]
-    result.nodeName shouldBe "DataFlintMapInPandas"
+    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 
   // ---- PythonMapInArrowExec (mapInArrow) ----
 
-  test("replaces PythonMapInArrowExec in plan") {
+  test("wraps PythonMapInArrowExec with TimedExec") {
     val udf = fakePythonUDF(PythonEvalType.SQL_MAP_ARROW_ITER_UDF)
     val original = PythonMapInArrowExec(udf, Seq.empty, emptyChild, false)
     val rule = DataFlintInstrumentationColumnarRule(spark)
     val result = rule.preColumnarTransitions(original)
-    result shouldBe a[DataFlintPythonMapInArrowExec_3_5]
+    result shouldBe a[TimedExec]
+    result.asInstanceOf[TimedExec].child shouldBe a[PythonMapInArrowExec]
   }
 
-  test("PythonMapInArrowExec nodeName and metrics") {
+  test("PythonMapInArrowExec TimedExec has duration metric") {
     val udf = fakePythonUDF(PythonEvalType.SQL_MAP_ARROW_ITER_UDF)
     val original = PythonMapInArrowExec(udf, Seq.empty, emptyChild, false)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[DataFlintPythonMapInArrowExec_3_5]
-    result.nodeName shouldBe "DataFlintMapInArrow"
+    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 
   // ---- ArrowEvalPythonExec (pandas_udf SCALAR) ----
 
-  test("replaces ArrowEvalPythonExec in plan") {
+  test("wraps ArrowEvalPythonExec with TimedExec") {
     val udf = fakePythonUDF(PythonEvalType.SQL_SCALAR_PANDAS_UDF)
     val original = ArrowEvalPythonExec(Seq(udf), Seq.empty, emptyChild, PythonEvalType.SQL_SCALAR_PANDAS_UDF)
     val rule = DataFlintInstrumentationColumnarRule(spark)
     val result = rule.preColumnarTransitions(original)
-    result shouldBe a[DataFlintArrowEvalPythonExec]
+    result shouldBe a[TimedExec]
+    result.asInstanceOf[TimedExec].child shouldBe a[ArrowEvalPythonExec]
   }
 
-  test("ArrowEvalPythonExec nodeName and metrics") {
+  test("ArrowEvalPythonExec TimedExec has duration metric") {
     val udf = fakePythonUDF(PythonEvalType.SQL_SCALAR_PANDAS_UDF)
     val original = ArrowEvalPythonExec(Seq(udf), Seq.empty, emptyChild, PythonEvalType.SQL_SCALAR_PANDAS_UDF)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[DataFlintArrowEvalPythonExec]
-    result.nodeName shouldBe "DataFlintArrowEvalPython"
+    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 
   // ---- FlatMapGroupsInPandasExec (applyInPandas / GROUPED_MAP) ----
 
-  test("replaces FlatMapGroupsInPandasExec in plan") {
+  test("wraps FlatMapGroupsInPandasExec with TimedExec") {
     val udf = fakePythonUDF(PythonEvalType.SQL_GROUPED_MAP_PANDAS_UDF)
     val original = FlatMapGroupsInPandasExec(Seq.empty, udf, Seq.empty, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
     val result = rule.preColumnarTransitions(original)
-    result shouldBe a[DataFlintFlatMapGroupsInPandasExec]
+    result shouldBe a[TimedExec]
+    result.asInstanceOf[TimedExec].child shouldBe a[FlatMapGroupsInPandasExec]
   }
 
-  test("FlatMapGroupsInPandasExec nodeName and metrics") {
+  test("FlatMapGroupsInPandasExec TimedExec has duration metric") {
     val udf = fakePythonUDF(PythonEvalType.SQL_GROUPED_MAP_PANDAS_UDF)
     val original = FlatMapGroupsInPandasExec(Seq.empty, udf, Seq.empty, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[DataFlintFlatMapGroupsInPandasExec]
-    result.nodeName shouldBe "DataFlintFlatMapGroupsInPandas"
+    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 
   // ---- BatchEvalPythonExec (regular @udf / SQL_BATCHED_UDF) ----
 
-  test("replaces BatchEvalPythonExec in plan") {
+  test("wraps BatchEvalPythonExec with TimedExec") {
     val udf = fakePythonUDF(PythonEvalType.SQL_BATCHED_UDF)
     val original = BatchEvalPythonExec(Seq(udf), Seq.empty, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
     val result = rule.preColumnarTransitions(original)
-    result shouldBe a[DataFlintBatchEvalPythonExec]
+    result shouldBe a[TimedExec]
+    result.asInstanceOf[TimedExec].child shouldBe a[BatchEvalPythonExec]
   }
 
-  test("BatchEvalPythonExec nodeName and metrics") {
+  test("BatchEvalPythonExec TimedExec has duration metric") {
     val udf = fakePythonUDF(PythonEvalType.SQL_BATCHED_UDF)
     val original = BatchEvalPythonExec(Seq(udf), Seq.empty, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[DataFlintBatchEvalPythonExec]
-    result.nodeName shouldBe "DataFlintBatchEvalPython"
+    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 
   // ---- FlatMapCoGroupsInPandasExec (cogroup / applyInPandas on two DataFrames) ----
 
-  test("replaces FlatMapCoGroupsInPandasExec in plan") {
+  test("wraps FlatMapCoGroupsInPandasExec with TimedExec") {
     val udf = fakePythonUDF(PythonEvalType.SQL_COGROUPED_MAP_PANDAS_UDF)
     val original = FlatMapCoGroupsInPandasExec(Seq.empty, Seq.empty, udf, Seq.empty, emptyChild, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
     val result = rule.preColumnarTransitions(original)
-    result shouldBe a[DataFlintFlatMapCoGroupsInPandasExec]
+    result shouldBe a[TimedExec]
+    result.asInstanceOf[TimedExec].child shouldBe a[FlatMapCoGroupsInPandasExec]
   }
 
-  test("FlatMapCoGroupsInPandasExec nodeName and metrics") {
+  test("FlatMapCoGroupsInPandasExec TimedExec has duration metric") {
     val udf = fakePythonUDF(PythonEvalType.SQL_COGROUPED_MAP_PANDAS_UDF)
     val original = FlatMapCoGroupsInPandasExec(Seq.empty, Seq.empty, udf, Seq.empty, emptyChild, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[DataFlintFlatMapCoGroupsInPandasExec]
-    result.nodeName shouldBe "DataFlintFlatMapCoGroupsInPandas"
+    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 }

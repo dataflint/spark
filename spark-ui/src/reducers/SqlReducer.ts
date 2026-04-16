@@ -178,27 +178,19 @@ export function parseNodePlan(
           plan: parseSort(plan.planDescription),
         };
       case "Window":
-      case "DataFlintWindow":
+      case "ArrowWindowPython":
       case "WindowInPandas":
-      case "DataFlintWindowInPandas":
-      case "DataFlintArrowWindowPython":
         return {
           type: "Window",
           plan: parseWindow(plan.planDescription),
         };
       case "BatchEvalPython":
-      case "DataFlintBatchEvalPython":
       case "ArrowEvalPython":
-      case "DataFlintArrowEvalPython":
       case "MapInPandas":
-      case "DataFlintMapInPandas":
       case "MapInArrow":
       case "PythonMapInArrow":
-      case "DataFlintMapInArrow":
       case "FlatMapGroupsInPandas":
-      case "DataFlintFlatMapGroupsInPandas":
       case "FlatMapCoGroupsInPandas":
-      case "DataFlintFlatMapCoGroupsInPandas":
         return {
           type: "BatchEvalPython",
           plan: parseBatchEvalPython(plan.planDescription),
@@ -265,13 +257,17 @@ function calculateSql(
   const enrichedSql = sql as EnrichedSparkSQL;
   const originalNumOfNodes = enrichedSql.nodes.length;
   const typeEnrichedNodes = enrichedSql.nodes.map((node) => {
-    const type = calcNodeType(node.nodeName);
+    const isInstrumented = node.nodeName.startsWith("DataFlint");
+    const strippedNodeName = isInstrumented ? node.nodeName.slice("DataFlint".length) : node.nodeName;
+    // Replace nodeName with the stripped version so all downstream code sees the base name
+    const normalizedNode = { ...node, nodeName: strippedNodeName };
+    const type = calcNodeType(normalizedNode.nodeName);
     const nodePlan = plan?.nodesPlan.find(
-      (planNode) => planNode.id === node.nodeId,
+      (planNode) => planNode.id === normalizedNode.nodeId,
     );
     const parsedPlan =
-      nodePlan !== undefined ? parseNodePlan(node, nodePlan) : undefined;
-    const isCodegenNode = node.nodeName.includes("WholeStageCodegen");
+      nodePlan !== undefined ? parseNodePlan(normalizedNode, nodePlan) : undefined;
+    const isCodegenNode = normalizedNode.nodeName.includes("WholeStageCodegen");
 
     // Find the Delta Lake scan that matches this node's table location
     // We match by table path and find the scan with the minimum execution ID 
@@ -300,15 +296,16 @@ function calculateSql(
     }
 
     return {
-      ...node,
+      ...normalizedNode,
       rddScopeId: nodePlan?.rddScopeId,
       type: type,
       parsedPlan: parsedPlan,
-      enrichedName: capitalizeWords(nodeEnrichedNameBuilder(node.nodeName, parsedPlan)),
+      enrichedName: capitalizeWords(nodeEnrichedNameBuilder(normalizedNode.nodeName, parsedPlan)),
       isCodegenNode: isCodegenNode,
+      isInstrumented: isInstrumented,
       wholeStageCodegenId: isCodegenNode
         ? extractCodegenId()
-        : node.wholeStageCodegenId,
+        : normalizedNode.wholeStageCodegenId,
       icebergCommit:
         type === "output" || enrichedSql.nodes.length === 1
           ? icebergCommit
@@ -318,7 +315,7 @@ function calculateSql(
 
     function extractCodegenId(): number | undefined {
       return parseInt(
-        node.nodeName.replace("WholeStageCodegen (", "").replace(")", ""),
+        normalizedNode.nodeName.replace("WholeStageCodegen (", "").replace(")", ""),
       );
     }
   });
@@ -540,7 +537,8 @@ export function updateSqlNodeMetrics(
 
     // TODO: cache the graph
     const graph = generateGraph(runningSql.edges, runningSql.nodes);
-    const originalMetrics = matchedMetricsNodes[0].metrics;
+    const originalMetrics = matchedMetricsNodes[0].metrics
+      .filter((m): m is { name: string; value: string } => m.value != null); // Backend sends Option[String] → null in JSON for uninitialized metrics
     const nodeIdFromMetrics = findStageIdFromMetrics(originalMetrics);
     const metrics = updateNodeMetrics(node, originalMetrics, graph, runningSql.nodes);
     // Use original metrics for exchange - shuffle write time is filtered out by allowlist
@@ -563,8 +561,10 @@ export function updateSqlNodeMetrics(
       return node;
     }
 
-    const nodeIdFromMetrics = findStageIdFromMetrics(matchedMetricsNodes[0].metrics);
-    const metrics = calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics);
+    const codegenMetrics = matchedMetricsNodes[0].metrics
+      .filter((m): m is { name: string; value: string } => m.value != null); // Backend sends Option[String] → null in JSON for uninitialized metrics
+    const nodeIdFromMetrics = findStageIdFromMetrics(codegenMetrics);
+    const metrics = calcNodeMetrics(node.type, codegenMetrics);
     const codegenDuration = calcCodegenDuration(metrics);
     return {
       ...node,
@@ -702,18 +702,12 @@ function updateNodeEnrichedName(
 
 const PYTHON_EVAL_NODE_NAMES = new Set([
   "BatchEvalPython",
-  "DataFlintBatchEvalPython",
   "ArrowEvalPython",
-  "DataFlintArrowEvalPython",
   "MapInPandas",
-  "DataFlintMapInPandas",
   "MapInArrow",
   "PythonMapInArrow",
-  "DataFlintMapInArrow",
   "FlatMapGroupsInPandas",
-  "DataFlintFlatMapGroupsInPandas",
   "FlatMapCoGroupsInPandas",
-  "DataFlintFlatMapCoGroupsInPandas",
 ]);
 
 function isPythonEvalNode(nodeName: string): boolean {

@@ -262,6 +262,7 @@ export function calculateSqlQueryLevelMetricsReducer(
   jobs: SparkJobsStore,
   stages: SparkStagesStore,
   executors: SparkExecutorsStore,
+  durationMode: "exclusive" | "inclusive" = "exclusive",
 ): SparkSQLStore {
   const newSqls = existingStore.sqls
     .map((sql) => {
@@ -331,6 +332,6 @@ export function calculateSqlQueryLevelMetricsReducer(
 
       return { ...sql, failureReason };
     })
-    .map((sql) => calculateSqlStage(sql, stages, jobs));
+    .map((sql) => calculateSqlStage(sql, stages, jobs, durationMode));
   return { sqls: newSqls };
 }
