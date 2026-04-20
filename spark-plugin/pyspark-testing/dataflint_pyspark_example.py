@@ -64,7 +64,7 @@ spark = SparkSession \
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin") \
     .config("spark.ui.port", "10000") \
     .config("spark.sql.maxMetadataStringLength", "10000") \
-    .config("spark.sql.adaptive.enabled", "true") \
+    .config("spark.sql.adaptive.enabled", "false") \
     .config("spark.dataflint.telemetry.enabled", "false") \
     .config("spark.dataflint.instrument.spark.mapInPandas.enabled", instrument) \
     .config("spark.dataflint.instrument.spark.mapInArrow.enabled", instrument) \

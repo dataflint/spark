@@ -16,7 +16,7 @@ class SlowSumAggregator extends Aggregator[Double, Double, Double] {
   private lazy val sleepMs: Long = {
     try {
       val sc = org.apache.spark.SparkContext.getActive
-      sc.map(_.conf.getLong("spark.dataflint.test.slowSumSleepMs", 1L)).getOrElse(1L)
+      sc.map(_.conf.getLong("spark.dataflint.test.slowSumSleepMs", 1L)).getOrElse(0L)
     } catch {
       case _: Throwable => 1L
     }
