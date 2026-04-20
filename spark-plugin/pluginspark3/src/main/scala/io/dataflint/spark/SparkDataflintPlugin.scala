@@ -46,15 +46,15 @@ class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
           DriverMetadataHelper.postExecutorMetadataEvent(sc, info)
           logInfo(s"Received executor metadata from executor ${msg.executorId}: " +
             s"provider=${msg.cloudProvider}, instance=${msg.instanceType}, lifecycle=${msg.lifecycleType}")
-          "OK"
+          null
         } catch {
           case e: Throwable =>
             logWarning(s"Failed to process executor metadata from ${msg.executorId}", e)
-            s"ERROR: ${e.getMessage}"
+            null
         }
       case _ =>
         logWarning(s"Received unknown message type: ${message.getClass.getName}")
-        "UNKNOWN_MESSAGE"
+        null
     }
   }
 
