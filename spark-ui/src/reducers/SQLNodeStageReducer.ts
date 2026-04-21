@@ -121,7 +121,7 @@ export function calculateSqlStage(
   // Assign durations + percentages + exchange write/read durations
   const nodesWithDuration: EnrichedSqlNode[] = nodesWithStages.map((node) => {
     const nd = durationMap.get(node.nodeId);
-    const duration = nd !== undefined && nd.durationMs > 0 ? nd.durationMs : undefined;
+    const duration = nd !== undefined && nd.durationMs >= 0 ? nd.durationMs : undefined;
 
     const durationPercentage =
       duration !== undefined && sql.stageMetrics !== undefined
