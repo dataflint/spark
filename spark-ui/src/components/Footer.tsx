@@ -6,6 +6,18 @@ import NewReleasesIcon from "@mui/icons-material/NewReleases";
 import { Box, Button, Chip, Typography } from "@mui/material";
 import * as React from "react";
 
+function isNewerVersion(latest: string, current: string): boolean {
+    const latestParts = latest.split(".").map(Number);
+    const currentParts = current.split(".").map(Number);
+    for (let i = 0; i < Math.max(latestParts.length, currentParts.length); i++) {
+        const l = latestParts[i] || 0;
+        const c = currentParts[i] || 0;
+        if (l > c) return true;
+        if (l < c) return false;
+    }
+    return false;
+}
+
 function useLatestVersion(): string | null {
     const [latestVersion, setLatestVersion] = React.useState<string | null>(null);
 
@@ -26,7 +38,7 @@ function useLatestVersion(): string | null {
 export default function Footer() {
     const currentVersion = process.env.REACT_APP_VERSION;
     const latestVersion = useLatestVersion();
-    const hasUpdate = latestVersion && currentVersion && latestVersion !== currentVersion;
+    const hasUpdate = latestVersion && currentVersion && isNewerVersion(latestVersion, currentVersion);
 
     const onGitHubClick = (): void => {
         window.open("https://github.com/dataflint/spark", "_blank");
