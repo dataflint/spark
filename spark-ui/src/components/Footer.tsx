@@ -1,5 +1,6 @@
 import GitHubIcon from "@mui/icons-material/GitHub";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
+import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import StarIcon from "@mui/icons-material/Star";
 import { Box, Button, Typography } from "@mui/material";
 import * as React from "react";
@@ -11,6 +12,10 @@ export default function Footer() {
 
     const onDocsClick = (): void => {
         window.open("https://dataflint.gitbook.io/dataflint-for-spark/", "_blank");
+    };
+
+    const onYouTubeClick = (): void => {
+        window.open("https://www.youtube.com/watch?v=4d_jBCmodKQ", "_blank");
     };
 
     const onDataFlintClick = (): void => {
@@ -51,6 +56,16 @@ export default function Footer() {
                 sx={{ fontSize: "11px", textTransform: "none" }}
             >
                 Docs
+            </Button>
+
+            <Button
+                onClick={onYouTubeClick}
+                color="inherit"
+                size="small"
+                startIcon={<OndemandVideoIcon />}
+                sx={{ fontSize: "11px", textTransform: "none" }}
+            >
+                YouTube Tutorial
             </Button>
 
             <Button
