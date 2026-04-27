@@ -255,7 +255,44 @@ function calculateSql(
   stages: SparkStagesStore,
 ): EnrichedSparkSQL {
   const enrichedSql = sql as EnrichedSparkSQL;
+
+  // Capture node count before merge so the incremental update path (case 3) doesn't
+  // see a mismatch between pre-merge API count and post-merge stored count.
   const originalNumOfNodes = enrichedSql.nodes.length;
+
+  // Merge duplicate nodes from non-transparent TimedExec wrapper (Spark 3.0/3.1).
+  // On legacy Spark, TimedExec uses children=Seq(child) which creates two nodes in the plan:
+  //   "DataFlintFilter" (wrapper with duration metric) ← "Filter" (actual child with plan info)
+  // Strategy: keep the CHILD node (has rich plan description, e.g. filter condition) and
+  // add the wrapper's extra metrics (duration, rddId) to it. Mark as instrumented via nodeName.
+  // Edges: fromId (child/input) → toId (parent/output).
+  const mergedWrapperIds = new Set<number>();
+  for (const node of enrichedSql.nodes) {
+    if (!node.nodeName.startsWith("DataFlint")) continue;
+    const strippedName = node.nodeName.slice("DataFlint".length);
+    // Find the wrapped child: edge where toId === wrapper
+    const childEdges = enrichedSql.edges.filter(e => e.toId === node.nodeId);
+    if (childEdges.length !== 1) continue;
+    const childNode = enrichedSql.nodes.find(n => n.nodeId === childEdges[0].fromId);
+    if (!childNode || childNode.nodeName !== strippedName) continue;
+    // Keep child, add wrapper's extra metrics, mark as instrumented with DataFlint prefix
+    const childMetricNames = new Set(childNode.metrics.map(m => m.name));
+    const extraMetrics = node.metrics.filter(m => !childMetricNames.has(m.name));
+    childNode.metrics = [...childNode.metrics, ...extraMetrics];
+    childNode.nodeName = "DataFlint" + childNode.nodeName;
+    // Remove wrapper: redirect edges that pointed to wrapper to point to child instead
+    mergedWrapperIds.add(node.nodeId);
+    for (const edge of enrichedSql.edges) {
+      if (edge.fromId === node.nodeId) {
+        edge.fromId = childNode.nodeId;
+      }
+    }
+  }
+  if (mergedWrapperIds.size > 0) {
+    enrichedSql.nodes = enrichedSql.nodes.filter(n => !mergedWrapperIds.has(n.nodeId));
+    enrichedSql.edges = enrichedSql.edges.filter(e => !mergedWrapperIds.has(e.toId));
+  }
+
   const typeEnrichedNodes = enrichedSql.nodes.map((node) => {
     const isInstrumented = node.nodeName.startsWith("DataFlint");
     const strippedNodeName = isInstrumented ? node.nodeName.slice("DataFlint".length) : node.nodeName;
@@ -494,7 +531,21 @@ export function calculateSqlStore(
       newSql.status === SqlStatus.Completed.valueOf() ||
       newSql.status === SqlStatus.Failed.valueOf()
     ) {
-      updatedSqls.push(calculateSql(newSql, plan, icebergCommit, deltaLakeScans, stages));
+      // If plan data is unavailable (offset advanced past this SQL) but we already
+      // have a fully calculated SQL with parsedPlan, preserve it — just update status/duration.
+      // This prevents losing plan descriptions on repeated polls with the non-paginated SQL API.
+      if (plan === undefined && currentSql.nodes.length > 0 && currentSql.nodes.some(n => n.parsedPlan !== undefined)) {
+        updatedSqls.push({
+          ...currentSql,
+          status: newSql.status,
+          duration: newSql.duration,
+          failedJobIds: newSql.failedJobIds,
+          runningJobIds: newSql.runningJobIds,
+          successJobIds: newSql.successJobIds,
+        });
+      } else {
+        updatedSqls.push(calculateSql(newSql, plan, icebergCommit, deltaLakeScans, stages));
+      }
       // From here newSql.status must be RUNNING
       // case 3: running SQL structure, so we need to update the plan
     } else if (currentSql.originalNumOfNodes !== newSql.nodes.length) {
