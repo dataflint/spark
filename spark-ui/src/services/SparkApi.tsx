@@ -66,6 +66,8 @@ class SparkAPI {
   historyServerMode: boolean = false;
   icebergEnabled: boolean = false;
   sparkVersion: string | undefined = undefined;
+  // When true, use non-paginated /sql endpoint (for older Spark apps where paginated API returns 404)
+  useLegacySqlApi: boolean = false;
 
   // Cache for response length+hash to skip processing when data hasn't changed
   // Length is checked first (O(1)), hash only calculated if lengths match
@@ -110,6 +112,9 @@ class SparkAPI {
   }
 
   private buildSqlPath(offset: number): string {
+    if (this.useLegacySqlApi) {
+      return `${this.applicationPath}/sql`;
+    }
     return `${this.applicationPath}/sql?offset=${offset}&length=${SQL_QUERY_LENGTH}&planDescription=false`;
   }
 
@@ -312,6 +317,12 @@ class SparkAPI {
             ? currentAttempt.attemptId
             : undefined;
         this.sparkVersion = currentAttempt?.appSparkVersion;
+        // Paginated SQL API (/sql?offset=&length=) was added in Spark 3.2+
+        // Older apps on the history server need the non-paginated /sql endpoint
+        if (this.sparkVersion) {
+          const [major, minor] = this.sparkVersion.split(".").map(Number);
+          this.useLegacySqlApi = major < 3 || (major === 3 && minor < 2);
+        }
         const sparkConfiguration: SparkConfiguration = await this.queryData(
           this.environmentPath,
         );
@@ -396,9 +407,10 @@ class SparkAPI {
         this.buildSqlPath(sqlIdToQueryFrom),
         true
       );
-      const sparkPlans: SQLPlans = await this.queryData(
+      const sparkPlansResponse = await this.queryData(
         this.buildSqlPlanPath(sqlIdToQueryFrom)
       );
+      const sparkPlans: SQLPlans = Array.isArray(sparkPlansResponse) ? sparkPlansResponse : [];
       let icebergInfo: IcebergInfo = { commitsInfo: [] };
       if (this.icebergEnabled) {
         icebergInfo = await this.queryData(
