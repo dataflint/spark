@@ -6,7 +6,7 @@ import org.apache.spark.dataflint.listener.{DataflintExecutorMetadataEvent, Data
 object DriverMetadataHelper {
 
   def isExecutorMetadataEnabled(sc: SparkContext): Boolean = {
-    sc.conf.getBoolean("spark.dataflint.executor.metadata.enabled", defaultValue = false)
+    sc.conf.getBoolean("spark.dataflint.experimental.executor.metadata.enabled", defaultValue = false)
   }
 
   def postExecutorMetadataEvent(sc: SparkContext, info: DataflintExecutorMetadataInfo): Unit = {
