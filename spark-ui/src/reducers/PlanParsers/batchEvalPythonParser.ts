@@ -5,8 +5,10 @@ export function parseBatchEvalPython(input: string): ParsedBatchEvalPythonPlan {
     // Remove hash numbers for cleaner parsing
     const cleanedInput = hashNumbersRemover(input);
 
-    // Pattern: Any text followed by [first_list], [second_list] - with flexible whitespace and optional content at end
-    const regex = /^.*?\[\s*(.*?)\s*\]\s*,\s*\[\s*(.*?)\s*\].*$/;
+    // BatchEvalPython/ArrowEvalPython: [func1(col), func2(col)], [pythonUDF0, pythonUDF1]
+    // The first bracket must contain function calls (parentheses) or be empty to distinguish
+    // from FlatMapCoGroupsInPandas which has [group_keys], [group_keys] before the function.
+    const regex = /^.*?\[\s*((?:.*?\(.*?)?)\s*\]\s*,\s*\[\s*(.*?)\s*\].*$/;
     const match = cleanedInput.match(regex);
 
     if (match) {
@@ -24,6 +26,7 @@ export function parseBatchEvalPython(input: string): ParsedBatchEvalPythonPlan {
     // as a bare identifier outside brackets:
     //   "MapInPandas compute_func(col1, col2), [output_cols], false"
     //   "FlatMapGroupsInPandas [group_keys], enrich_group(col1, col2), [output_cols]"
+    //   "FlatMapCoGroupsInPandas [left_keys], [right_keys], func(cols), [output_cols]"
     const funcMatch = cleanedInput.match(/\b(\w+)\([^)]*\)[^,]*,\s*\[/);
     if (funcMatch) {
         return { functionNames: [funcMatch[1]], udfNames: [] };
