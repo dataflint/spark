@@ -147,9 +147,13 @@ jobs:
           sed -i "s/${VERSION}/${NEW_VERSION}/g" pyspark-testing/dataflint_pyspark_example.py
           sed -i "s/${VERSION}/${NEW_VERSION}/g" pyspark-testing/dataflint_pyspark_example_test.py
           sed -i "s/${VERSION}/${NEW_VERSION}/g" pyspark-testing/README.md
+          OLD_README_VERSION=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' ../README.md | head -1)
+          if [ -n "$OLD_README_VERSION" ] && [ "$OLD_README_VERSION" != "$VERSION" ]; then
+            sed -i "s/${OLD_README_VERSION}/${VERSION}/g" ../README.md
+          fi
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add build.sbt ../spark-ui/package.json clean-and-setup.sh pyspark-testing/
+          git add build.sbt ../spark-ui/package.json clean-and-setup.sh pyspark-testing/ ../README.md
           git commit -m "version bump to ${NEW_VERSION}"
           git push origin HEAD:main
         working-directory: ./spark-plugin

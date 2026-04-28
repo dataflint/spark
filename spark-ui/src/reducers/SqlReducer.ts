@@ -274,7 +274,7 @@ function calculateSql(
     const childEdges = enrichedSql.edges.filter(e => e.toId === node.nodeId);
     if (childEdges.length !== 1) continue;
     const childNode = enrichedSql.nodes.find(n => n.nodeId === childEdges[0].fromId);
-    if (!childNode || childNode.nodeName !== strippedName) continue;
+    if (!childNode || childNode.nodeName.replace(/ /g, "") !== strippedName.replace(/ /g, "")) continue;
     // Keep child, add wrapper's extra metrics, mark as instrumented with DataFlint prefix
     const childMetricNames = new Set(childNode.metrics.map(m => m.name));
     const extraMetrics = node.metrics.filter(m => !childMetricNames.has(m.name));
@@ -299,9 +299,16 @@ function calculateSql(
     // Replace nodeName with the stripped version so all downstream code sees the base name
     const normalizedNode = { ...node, nodeName: strippedNodeName };
     const type = calcNodeType(normalizedNode.nodeName);
-    const nodePlan = plan?.nodesPlan.find(
+    const rawNodePlan = plan?.nodesPlan.find(
       (planNode) => planNode.id === normalizedNode.nodeId,
     );
+    // Strip "DataFlint<NodeName> " prefix from planDescription so parsers see the original format.
+    // Description format: "DataFlint<NodeName> <OriginalNodeName> <rest>", e.g.:
+    //   "DataFlintFilter Filter (cond)" → "Filter (cond)"
+    //   "DataFlintExecute InsertInto... Execute InsertInto... file:..." → "Execute InsertInto... file:..."
+    const nodePlan = rawNodePlan && isInstrumented
+      ? { ...rawNodePlan, planDescription: rawNodePlan.planDescription.replace("DataFlint" + strippedNodeName + " ", "") }
+      : rawNodePlan;
     const parsedPlan =
       nodePlan !== undefined ? parseNodePlan(normalizedNode, nodePlan) : undefined;
     const isCodegenNode = normalizedNode.nodeName.includes("WholeStageCodegen");
