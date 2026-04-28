@@ -21,7 +21,7 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 import time
 
-SLEEP_ENABLED = True
+SLEEP_ENABLED = False
 
 def sleep(seconds):
     if SLEEP_ENABLED:
@@ -64,7 +64,7 @@ spark = SparkSession \
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin") \
     .config("spark.ui.port", "10000") \
     .config("spark.sql.maxMetadataStringLength", "10000") \
-    .config("spark.sql.adaptive.enabled", "false") \
+    .config("spark.sql.adaptive.enabled", "true") \
     .config("spark.dataflint.telemetry.enabled", "false") \
     .config("spark.dataflint.instrument.spark.mapInPandas.enabled", instrument) \
     .config("spark.dataflint.instrument.spark.mapInArrow.enabled", instrument) \
@@ -229,7 +229,7 @@ window_category_total = Window.partitionBy("category")
 
 # slow_sum is a Scala UDAF registered by DataFlintInstrumentationExtension.
 # It sums Doubles but sleeps `spark.dataflint.test.slowSumSleepMs` per row on the JVM.
-df_window = df.withColumn("rank_in_category", rank().over(window_by_category)) \
+df_window = df.limit(1000).withColumn("rank_in_category", rank().over(window_by_category)) \
               .withColumn("cumulative_slow_revenue", expr("slow_sum(price)").over(window_by_category)) \
               .withColumn("avg_price_in_category", expr("slow_sum(price)").over(window_category_total))
 
@@ -425,6 +425,26 @@ print("\nResult written to /tmp/dataflint_flat_map_cogroups_in_pandas_example")
 
 
 from pyspark.sql.functions import explode, array, collect_list, row_number, lit
+
+# ── Python UDF over Parquet (columnar scan + shuffle) ────────────────────────
+# Reproduces ColumnarBatch→InternalRow ClassCastException on Spark 3.0/3.1 when
+# the transparent wrapper prevents ColumnarToRowExec insertion.
+print("="*80)
+print("Running Python UDF over Parquet source (columnar scan + shuffle)")
+print("="*80)
+spark.sparkContext.setJobDescription("Python UDF over Parquet: columnar scan + ArrowEvalPython + shuffle")
+df.write.mode("overwrite").parquet("/tmp/dataflint_columnar_test_input")
+df_parquet = spark.read.parquet("/tmp/dataflint_columnar_test_input")
+
+@pandas_udf(DoubleType())
+def double_price(price: pd.Series) -> pd.Series:
+    return price * 2.0
+
+df_parquet.withColumn("doubled_price", double_price("price")) \
+    .groupBy("category") \
+    .agg(spark_sum("doubled_price").alias("total")) \
+    .write.mode("overwrite").parquet("/tmp/dataflint_columnar_udf_shuffle_example")
+print("\nResult written to /tmp/dataflint_columnar_udf_shuffle_example")
 
 # ── FilterExec + ProjectExec ──────────────────────────────────────────────────
 print("="*80)
