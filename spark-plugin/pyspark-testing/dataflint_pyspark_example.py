@@ -229,7 +229,7 @@ window_category_total = Window.partitionBy("category")
 
 # slow_sum is a Scala UDAF registered by DataFlintInstrumentationExtension.
 # It sums Doubles but sleeps `spark.dataflint.test.slowSumSleepMs` per row on the JVM.
-df_window = df.withColumn("rank_in_category", rank().over(window_by_category)) \
+df_window = df.limit(1000).withColumn("rank_in_category", rank().over(window_by_category)) \
               .withColumn("cumulative_slow_revenue", expr("slow_sum(price)").over(window_by_category)) \
               .withColumn("avg_price_in_category", expr("slow_sum(price)").over(window_category_total))
 
@@ -432,6 +432,7 @@ from pyspark.sql.functions import explode, array, collect_list, row_number, lit
 print("="*80)
 print("Running Python UDF over Parquet source (columnar scan + shuffle)")
 print("="*80)
+spark.sparkContext.setJobDescription("Python UDF over Parquet: columnar scan + ArrowEvalPython + shuffle")
 df.write.mode("overwrite").parquet("/tmp/dataflint_columnar_test_input")
 df_parquet = spark.read.parquet("/tmp/dataflint_columnar_test_input")
 
@@ -439,7 +440,6 @@ df_parquet = spark.read.parquet("/tmp/dataflint_columnar_test_input")
 def double_price(price: pd.Series) -> pd.Series:
     return price * 2.0
 
-spark.sparkContext.setJobDescription("Python UDF over Parquet: columnar scan + ArrowEvalPython + shuffle")
 df_parquet.withColumn("doubled_price", double_price("price")) \
     .groupBy("category") \
     .agg(spark_sum("doubled_price").alias("total")) \
