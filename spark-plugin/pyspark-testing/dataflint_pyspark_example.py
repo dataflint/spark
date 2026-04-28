@@ -579,6 +579,64 @@ cached_df.unpersist()
 print("\nResult written to /tmp/dataflint_cache_filter_union_example")
 
 
+# ── RDDScanExec codegen with complex types ───────────────────────────────────
+# Reproduces codegen compilation error when TimedWithCodegenExec wraps RDDScanExec
+# ("Scan ExistingRDD") — the space in nodeName produces invalid Java identifiers
+# via variablePrefix. GenerateUnsafeProjection uses ctx.freshName("previousCursor")
+# which picks up the space-containing prefix when projecting structs/arrays/maps.
+print("="*80)
+print("Running RDDScanExec codegen with complex types (struct/array)")
+print("="*80)
+from pyspark.sql.types import ArrayType, MapType
+from pyspark.sql.functions import struct, array as spark_array, create_map
+
+complex_data = [
+    ("Alice", "Electronics", [1, 2, 3], {"color": "red", "size": "M"}),
+    ("Bob", "Books", [4, 5], {"color": "blue", "size": "L"}),
+    ("Charlie", "Clothing", [6], {"color": "green", "size": "S"}),
+] * 1000
+
+complex_schema = StructType([
+    StructField("customer", StringType(), False),
+    StructField("category", StringType(), False),
+    StructField("tags", ArrayType(IntegerType()), True),
+    StructField("attributes", MapType(StringType(), StringType()), True),
+])
+
+df_complex = spark.createDataFrame(complex_data, complex_schema)
+
+spark.sparkContext.setJobDescription("RDDScanExec codegen: struct/array/map projection triggers UnsafeProjection")
+df_complex.select(
+    col("customer"),
+    struct(col("category"), col("tags")).alias("info"),
+    col("attributes"),
+) \
+  .filter(col("customer") != "Alice") \
+  .write.mode("overwrite").parquet("/tmp/dataflint_rddscan_complex_codegen_test")
+print("\nResult written to /tmp/dataflint_rddscan_complex_codegen_test")
+
+# ── RDDScanExec codegen stress test ──────────────────────────────────────────
+print("="*80)
+print("Running RDDScanExec codegen stress test (variablePrefix space issue)")
+print("="*80)
+spark.sparkContext.setJobDescription("RDDScanExec codegen: multi-column projection + filter + agg over createDataFrame")
+df.select(
+    col("customer"),
+    col("category"),
+    (col("price") * col("quantity")).alias("revenue"),
+    (col("price") * 0.9).alias("discounted_price"),
+    (col("quantity") + 1).alias("quantity_plus_one"),
+) \
+  .filter(col("revenue") > 100) \
+  .groupBy("category") \
+  .agg(
+      spark_sum("revenue").alias("total_revenue"),
+      avg("discounted_price").alias("avg_discounted"),
+  ) \
+  .write.mode("overwrite").parquet("/tmp/dataflint_rddscan_codegen_test")
+print("\nResult written to /tmp/dataflint_rddscan_codegen_test")
+
+
 print("\n" + "="*80)
 print("Done!")
 print("="*80)

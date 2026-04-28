@@ -274,7 +274,7 @@ function calculateSql(
     const childEdges = enrichedSql.edges.filter(e => e.toId === node.nodeId);
     if (childEdges.length !== 1) continue;
     const childNode = enrichedSql.nodes.find(n => n.nodeId === childEdges[0].fromId);
-    if (!childNode || childNode.nodeName !== strippedName) continue;
+    if (!childNode || childNode.nodeName.replace(/ /g, "") !== strippedName.replace(/ /g, "")) continue;
     // Keep child, add wrapper's extra metrics, mark as instrumented with DataFlint prefix
     const childMetricNames = new Set(childNode.metrics.map(m => m.name));
     const extraMetrics = node.metrics.filter(m => !childMetricNames.has(m.name));

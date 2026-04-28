@@ -142,6 +142,7 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with Logging {
  * Only instantiated via TimedExec.apply() when child is CodegenSupport.
  */
 class TimedWithCodegenExec(override val child: SparkPlan) extends TimedExec(child) with CodegenSupport {
+  override def nodeName: String = ("DataFlint" + child.nodeName).replace(" ", "")
 
   override def inputRDDs(): Seq[RDD[InternalRow]] = {
     val rdds = child.asInstanceOf[CodegenSupport].inputRDDs()
