@@ -317,9 +317,9 @@ class SparkAPI {
             ? currentAttempt.attemptId
             : undefined;
         this.sparkVersion = currentAttempt?.appSparkVersion;
-        // Paginated SQL API (/sql?offset=&length=) was added in Spark 3.2+
-        // Older apps on the history server need the non-paginated /sql endpoint
-        if (this.sparkVersion) {
+        // Paginated SQL API (/sql?offset=&length=) returns 404 for pre-3.2 apps
+        // on the history server. Live apps support it on all versions.
+        if (this.historyServerMode && this.sparkVersion) {
           const [major, minor] = this.sparkVersion.split(".").map(Number);
           this.useLegacySqlApi = major < 3 || (major === 3 && minor < 2);
         }

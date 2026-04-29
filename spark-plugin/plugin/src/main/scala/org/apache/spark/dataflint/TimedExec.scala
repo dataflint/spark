@@ -45,10 +45,13 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with Logging {
   override def nodeName: String = "DataFlint" + child.nodeName
   override def output: Seq[Attribute] = child.output
 
-  // Expose child's children directly so TimedExec appears as a single node in the plan graph.
-  // The wrapped child is not visible in the tree; plan transformations see and update the
-  // grandchildren directly, and withNewChildrenInternal rebuilds child with the new ones.
-  override def children: Seq[SparkPlan] = child.children
+  // On Spark 3.2+: transparent — children = child.children, so TimedExec appears as one node
+  // in the plan graph. withNewChildrenInternal rebuilds child with the new grandchildren.
+  // On Spark 3.0/3.1: non-transparent — children = Seq(child), because 3.1's withNewChildren
+  // maps product elements via containsChild which can't see through the transparent wrapper.
+  // Shows two nodes in the plan graph, but plan transformations work correctly.
+  override def children: Seq[SparkPlan] =
+    if (TimedExec.isLegacySpark) Seq(child) else child.children
 
   override def outputPartitioning: Partitioning = child.outputPartitioning
   override def outputOrdering: Seq[SortOrder] = child.outputOrdering
@@ -125,10 +128,12 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with Logging {
   override def productElement(n: Int): Any =
     if (n == 0) child else throw new IndexOutOfBoundsException(s"$n")
 
-  // When Spark updates our children (= child's children), rebuild child with new children.
-  // Uses TimedExec.apply to pick the right variant (with or without codegen).
+  // On 3.2+: children = child.children, so newChildren are the grandchildren → rebuild child.
+  // On 3.0/3.1: children = Seq(child), so newChildren has one element → the new child itself.
+  // (3.0/3.1 doesn't call withNewChildrenInternal, but makeCopy handles it via productElement.)
   override protected def withNewChildrenInternal(newChildren: IndexedSeq[SparkPlan]): SparkPlan =
-    TimedExec(child.withNewChildren(newChildren))
+    if (TimedExec.isLegacySpark) TimedExec(newChildren.head)
+    else TimedExec(child.withNewChildren(newChildren))
 }
 
 /**
@@ -137,6 +142,7 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with Logging {
  * Only instantiated via TimedExec.apply() when child is CodegenSupport.
  */
 class TimedWithCodegenExec(override val child: SparkPlan) extends TimedExec(child) with CodegenSupport {
+  override def nodeName: String = ("DataFlint" + child.nodeName).replace(" ", "")
 
   override def inputRDDs(): Seq[RDD[InternalRow]] = {
     val rdds = child.asInstanceOf[CodegenSupport].inputRDDs()
@@ -144,9 +150,12 @@ class TimedWithCodegenExec(override val child: SparkPlan) extends TimedExec(chil
     rdds
   }
 
+  // On 3.2+ (transparent): children = child.children, multi-child nodes (joins) expose
+  // multiple children which breaks codegen assumptions → restrict to single-child.
+  // On 3.0/3.1 (non-transparent): children = Seq(child), always length 1 → no restriction.
   override def supportCodegen: Boolean = {
     val c = child.asInstanceOf[CodegenSupport]
-    c.supportCodegen && child.children.length <= 1
+    c.supportCodegen && (TimedExec.isLegacySpark || child.children.length <= 1)
   }
 
   override def needCopyResult: Boolean = child.asInstanceOf[CodegenSupport].needCopyResult
@@ -184,10 +193,19 @@ class TimedWithCodegenExec(override val child: SparkPlan) extends TimedExec(chil
     consume(ctx, input)
 
   override protected def withNewChildrenInternal(newChildren: IndexedSeq[SparkPlan]): SparkPlan =
-    TimedExec(child.withNewChildren(newChildren))
+    if (TimedExec.isLegacySpark) TimedExec(newChildren.head)
+    else TimedExec(child.withNewChildren(newChildren))
 }
 
 object TimedExec {
+  // Spark 3.0/3.1's withNewChildren uses mapProductIterator + containsChild which is
+  // incompatible with the transparent wrapper (children = child.children). Detected by
+  // checking for withNewChildrenInternal which was added in Spark 3.2.
+  val isLegacySpark: Boolean = {
+    val parts = org.apache.spark.SPARK_VERSION.split("\\.")
+    parts.length >= 2 && parts(0).toInt == 3 && parts(1).toInt < 2
+  }
+
   def apply(child: SparkPlan): TimedExec = child match {
     case _: CodegenSupport => new TimedWithCodegenExec(child)
     case _                 => new TimedExec(child)

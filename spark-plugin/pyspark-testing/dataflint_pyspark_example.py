@@ -21,41 +21,14 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 import time
 
-SLEEP_ENABLED = True
+SLEEP_ENABLED = False
 
 def sleep(seconds):
     if SLEEP_ENABLED:
         time.sleep(seconds)
 
-# Resolve the plugin JAR path relative to this script's location
-# Detect Spark version from environment to load the correct JAR
-_script_dir = Path(__file__).resolve().parent
-_project_root = _script_dir.parent
-
-# Try to detect Spark version from SPARK_HOME
-import os
-spark_home = os.environ.get('SPARK_HOME', '')
-spark_major_version = 3  # default to Spark 3
-
-if spark_home:
-    import re
-    m = re.search(r'[/_-](\d+)\.\d', spark_home)
-    if m:
-        spark_major_version = int(m.group(1))
-
-# Select the appropriate plugin JAR based on Spark version
-if spark_major_version == 4:
-    _plugin_jar = _project_root / "pluginspark4" / "target" / "scala-2.13" / "dataflint-spark4_2.13-0.9.4.jar"
-    _plugin_module = "pluginspark4"
-else:
-    _plugin_jar = _project_root / "pluginspark3" / "target" / "scala-2.12" / "spark_2.12-0.9.4.jar"
-    _plugin_module = "pluginspark3"
-
-if not _plugin_jar.exists():
-    raise FileNotFoundError(
-        f"Plugin JAR not found at {_plugin_jar}\n"
-        f"Run: cd {_project_root} && sbt {_plugin_module}/assembly"
-    )
+from find_plugin_jar import find_plugin_jar
+_plugin_jar = find_plugin_jar()
 instrument = "true"
 spark = SparkSession \
     .builder \
@@ -64,7 +37,7 @@ spark = SparkSession \
     .config("spark.plugins", "io.dataflint.spark.SparkDataflintPlugin") \
     .config("spark.ui.port", "10000") \
     .config("spark.sql.maxMetadataStringLength", "10000") \
-    .config("spark.sql.adaptive.enabled", "false") \
+    .config("spark.sql.adaptive.enabled", "true") \
     .config("spark.dataflint.telemetry.enabled", "false") \
     .config("spark.dataflint.instrument.spark.mapInPandas.enabled", instrument) \
     .config("spark.dataflint.instrument.spark.mapInArrow.enabled", instrument) \
@@ -229,7 +202,7 @@ window_category_total = Window.partitionBy("category")
 
 # slow_sum is a Scala UDAF registered by DataFlintInstrumentationExtension.
 # It sums Doubles but sleeps `spark.dataflint.test.slowSumSleepMs` per row on the JVM.
-df_window = df.withColumn("rank_in_category", rank().over(window_by_category)) \
+df_window = df.limit(1000).withColumn("rank_in_category", rank().over(window_by_category)) \
               .withColumn("cumulative_slow_revenue", expr("slow_sum(price)").over(window_by_category)) \
               .withColumn("avg_price_in_category", expr("slow_sum(price)").over(window_category_total))
 
@@ -426,6 +399,26 @@ print("\nResult written to /tmp/dataflint_flat_map_cogroups_in_pandas_example")
 
 from pyspark.sql.functions import explode, array, collect_list, row_number, lit
 
+# ── Python UDF over Parquet (columnar scan + shuffle) ────────────────────────
+# Reproduces ColumnarBatch→InternalRow ClassCastException on Spark 3.0/3.1 when
+# the transparent wrapper prevents ColumnarToRowExec insertion.
+print("="*80)
+print("Running Python UDF over Parquet source (columnar scan + shuffle)")
+print("="*80)
+spark.sparkContext.setJobDescription("Python UDF over Parquet: columnar scan + ArrowEvalPython + shuffle")
+df.write.mode("overwrite").parquet("/tmp/dataflint_columnar_test_input")
+df_parquet = spark.read.parquet("/tmp/dataflint_columnar_test_input")
+
+@pandas_udf(DoubleType())
+def double_price(price: pd.Series) -> pd.Series:
+    return price * 2.0
+
+df_parquet.withColumn("doubled_price", double_price("price")) \
+    .groupBy("category") \
+    .agg(spark_sum("doubled_price").alias("total")) \
+    .write.mode("overwrite").parquet("/tmp/dataflint_columnar_udf_shuffle_example")
+print("\nResult written to /tmp/dataflint_columnar_udf_shuffle_example")
+
 # ── FilterExec + ProjectExec ──────────────────────────────────────────────────
 print("="*80)
 print("Running FilterExec + ProjectExec example")
@@ -557,6 +550,64 @@ high_value.union(low_value) \
 
 cached_df.unpersist()
 print("\nResult written to /tmp/dataflint_cache_filter_union_example")
+
+
+# ── RDDScanExec codegen with complex types ───────────────────────────────────
+# Reproduces codegen compilation error when TimedWithCodegenExec wraps RDDScanExec
+# ("Scan ExistingRDD") — the space in nodeName produces invalid Java identifiers
+# via variablePrefix. GenerateUnsafeProjection uses ctx.freshName("previousCursor")
+# which picks up the space-containing prefix when projecting structs/arrays/maps.
+print("="*80)
+print("Running RDDScanExec codegen with complex types (struct/array)")
+print("="*80)
+from pyspark.sql.types import ArrayType, MapType
+from pyspark.sql.functions import struct, array as spark_array, create_map
+
+complex_data = [
+    ("Alice", "Electronics", [1, 2, 3], {"color": "red", "size": "M"}),
+    ("Bob", "Books", [4, 5], {"color": "blue", "size": "L"}),
+    ("Charlie", "Clothing", [6], {"color": "green", "size": "S"}),
+] * 1000
+
+complex_schema = StructType([
+    StructField("customer", StringType(), False),
+    StructField("category", StringType(), False),
+    StructField("tags", ArrayType(IntegerType()), True),
+    StructField("attributes", MapType(StringType(), StringType()), True),
+])
+
+df_complex = spark.createDataFrame(complex_data, complex_schema)
+
+spark.sparkContext.setJobDescription("RDDScanExec codegen: struct/array/map projection triggers UnsafeProjection")
+df_complex.select(
+    col("customer"),
+    struct(col("category"), col("tags")).alias("info"),
+    col("attributes"),
+) \
+  .filter(col("customer") != "Alice") \
+  .write.mode("overwrite").parquet("/tmp/dataflint_rddscan_complex_codegen_test")
+print("\nResult written to /tmp/dataflint_rddscan_complex_codegen_test")
+
+# ── RDDScanExec codegen stress test ──────────────────────────────────────────
+print("="*80)
+print("Running RDDScanExec codegen stress test (variablePrefix space issue)")
+print("="*80)
+spark.sparkContext.setJobDescription("RDDScanExec codegen: multi-column projection + filter + agg over createDataFrame")
+df.select(
+    col("customer"),
+    col("category"),
+    (col("price") * col("quantity")).alias("revenue"),
+    (col("price") * 0.9).alias("discounted_price"),
+    (col("quantity") + 1).alias("quantity_plus_one"),
+) \
+  .filter(col("revenue") > 100) \
+  .groupBy("category") \
+  .agg(
+      spark_sum("revenue").alias("total_revenue"),
+      avg("discounted_price").alias("avg_discounted"),
+  ) \
+  .write.mode("overwrite").parquet("/tmp/dataflint_rddscan_codegen_test")
+print("\nResult written to /tmp/dataflint_rddscan_codegen_test")
 
 
 print("\n" + "="*80)

@@ -26,36 +26,8 @@ import pyarrow.compute as pc
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 
-# Resolve the plugin JAR path relative to this script's location
-# Detect Spark version from environment to load the correct JAR
-_script_dir = Path(__file__).resolve().parent
-_project_root = _script_dir.parent
-
-# Try to detect Spark version from SPARK_HOME
-import os
-spark_home = os.environ.get('SPARK_HOME', '')
-spark_major_version = 3  # default to Spark 3
-
-if spark_home:
-    # Try to extract version from SPARK_HOME path
-    if '4.0' in spark_home or 'spark-4' in spark_home:
-        spark_major_version = 4
-    elif '3.' in spark_home or 'spark-3' in spark_home:
-        spark_major_version = 3
-
-# Select the appropriate plugin JAR based on Spark version
-if spark_major_version == 4:
-    _plugin_jar = _project_root / "pluginspark4" / "target" / "scala-2.13" / "dataflint-spark4_2.13-0.9.4.jar"
-    _plugin_module = "pluginspark4"
-else:
-    _plugin_jar = _project_root / "pluginspark3" / "target" / "scala-2.12" / "spark_2.12-0.9.4.jar"
-    _plugin_module = "pluginspark3"
-
-if not _plugin_jar.exists():
-    raise FileNotFoundError(
-        f"Plugin JAR not found at {_plugin_jar}\n"
-        f"Run: cd {_project_root} && sbt {_plugin_module}/assembly"
-    )
+from find_plugin_jar import find_plugin_jar
+_plugin_jar = find_plugin_jar()
 
 spark = SparkSession \
     .builder \
