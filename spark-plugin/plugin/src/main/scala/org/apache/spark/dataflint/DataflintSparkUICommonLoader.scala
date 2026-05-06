@@ -112,6 +112,10 @@ class DataflintSparkUICommonInstaller extends Logging {
       logInfo("DataFlint UI is already installed, skipping installation...")
       return ui.webUrl
     }
+    if (!pageFactory.isUISupported(ui)) {
+      logWarning("DataFlint UI is not supported in this environment, skipping UI installation; listeners will still run")
+      return ui.webUrl
+    }
     pageFactory.addStaticHandler(ui, "io/dataflint/spark/static/ui", ui.basePath + "/dataflint")
     val dataflintStore = new DataflintStore(store = ui.store.store)
     val tab = pageFactory.createDataFlintTab(ui)
