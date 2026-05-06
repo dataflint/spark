@@ -44,8 +44,15 @@ class Spark4PageFactory extends DataflintPageFactory {
   override def addStaticHandler(ui: SparkUI, resourceBase: String, contextPath: String): Unit = {
     DataflintJettyUtils.addStaticHandler(ui, resourceBase, contextPath)
   }
-  
+
   override def getTabs(ui: SparkUI): Seq[WebUITab] = {
     ui.getTabs.toSeq
+  }
+
+  // Databricks Runtime 17.3 (Spark 4 based) ships javax.servlet instead of jakarta.servlet,
+  // so any access to jakarta.servlet.* in this module crashes with NoClassDefFoundError.
+  // Skip the entire DataFlint UI on Databricks; listeners (data export) still run.
+  override def isUISupported(ui: SparkUI): Boolean = {
+    !ui.conf.getOption("spark.databricks.clusterUsageTags.cloudProvider").isDefined
   }
 }
