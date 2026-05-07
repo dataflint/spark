@@ -5,42 +5,47 @@ import org.apache.spark.sql.execution.ui.SQLAppStatusListener
 import org.apache.spark.ui.{SparkUI, WebUIPage, WebUITab}
 
 /**
- * Spark 4.x implementation of DataflintPageFactory using jakarta.servlet API
+ * Spark 4.x implementation of DataflintPageFactory.
+ *
+ * Unlike the Spark 3 factory, this implementation does NOT serve JSON via
+ * `WebUIPage` subclasses — those would tie the bytecode to either
+ * jakarta.servlet or javax.servlet at compile time, but the same artifact
+ * needs to load on both stock Spark 4 (jakarta) and Databricks Runtime 17.3
+ * (javax). Instead, the factory advertises [[usesReflectiveEndpoints]] and
+ * wires every endpoint through a reflective Jetty handler in
+ * [[DataflintReflectiveServletBuilder]]. The `createXxxPage` methods are
+ * therefore never called on the Spark 4 path and throw if invoked.
  */
 class Spark4PageFactory extends DataflintPageFactory {
-  
+
   override def createDataFlintTab(ui: SparkUI): WebUITab = {
     new DataFlintTab(ui)
   }
-  
-  override def createApplicationInfoPage(ui: SparkUI, dataflintStore: DataflintStore): WebUIPage = {
-    new DataflintApplicationInfoPage(ui, dataflintStore)
-  }
-  
-  override def createCachedStoragePage(ui: SparkUI, dataflintStore: DataflintStore): WebUIPage = {
-    new DataflintCachedStoragePage(ui, dataflintStore)
-  }
-  
-  override def createIcebergPage(ui: SparkUI, dataflintStore: DataflintStore): WebUIPage = {
-    new DataflintIcebergPage(ui, dataflintStore)
-  }
-  
-  override def createDeltaLakeScanPage(ui: SparkUI, dataflintStore: DataflintStore): WebUIPage = {
-    new DataflintDeltaLakeScanPage(ui, dataflintStore)
-  }
-  
-  override def createSQLMetricsPage(ui: SparkUI, sqlListener: () => Option[SQLAppStatusListener]): WebUIPage = {
-    new DataflintSQLMetricsPage(ui, sqlListener)
-  }
-  
-  override def createSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListener: () => Option[SQLAppStatusListener]): WebUIPage = {
-    new DataflintSQLPlanPage(ui, dataflintStore, sqlListener)
-  }
-  
-  override def createSQLStagesRddPage(ui: SparkUI): WebUIPage = {
-    new DataflintSQLStagesRddPage(ui)
-  }
-  
+
+  // The Spark 4 loader path skips WebUIPage instantiation entirely (see
+  // usesReflectiveEndpoints below). These methods exist only because the trait
+  // is shared with Spark 3; calling them would mean the loader took the wrong
+  // branch.
+  private def webUIPageNotUsed: Nothing =
+    throw new UnsupportedOperationException(
+      "WebUIPage is not used on Spark 4 — endpoints are attached reflectively via " +
+        "DataflintReflectiveServletBuilder.attachAllEndpoints"
+    )
+
+  override def createApplicationInfoPage(ui: SparkUI, dataflintStore: DataflintStore): WebUIPage = webUIPageNotUsed
+
+  override def createCachedStoragePage(ui: SparkUI, dataflintStore: DataflintStore): WebUIPage = webUIPageNotUsed
+
+  override def createIcebergPage(ui: SparkUI, dataflintStore: DataflintStore): WebUIPage = webUIPageNotUsed
+
+  override def createDeltaLakeScanPage(ui: SparkUI, dataflintStore: DataflintStore): WebUIPage = webUIPageNotUsed
+
+  override def createSQLMetricsPage(ui: SparkUI, sqlListener: () => Option[SQLAppStatusListener]): WebUIPage = webUIPageNotUsed
+
+  override def createSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListener: () => Option[SQLAppStatusListener]): WebUIPage = webUIPageNotUsed
+
+  override def createSQLStagesRddPage(ui: SparkUI): WebUIPage = webUIPageNotUsed
+
   override def addStaticHandler(ui: SparkUI, resourceBase: String, contextPath: String): Unit = {
     DataflintJettyUtils.addStaticHandler(ui, resourceBase, contextPath)
   }
@@ -49,10 +54,11 @@ class Spark4PageFactory extends DataflintPageFactory {
     ui.getTabs.toSeq
   }
 
-  // Databricks Runtime 17.3 (Spark 4 based) ships javax.servlet instead of jakarta.servlet,
-  // so any access to jakarta.servlet.* in this module crashes with NoClassDefFoundError.
-  // Skip the entire DataFlint UI on Databricks; listeners (data export) still run.
-  override def isUISupported(ui: SparkUI): Boolean = {
-    !ui.conf.getOption("spark.databricks.clusterUsageTags.cloudProvider").isDefined
+  override def usesReflectiveEndpoints: Boolean = true
+
+  override def attachReflectiveEndpoints(ui: SparkUI,
+                                         dataflintStore: DataflintStore,
+                                         sqlListener: () => Option[SQLAppStatusListener]): Unit = {
+    DataflintReflectiveServletBuilder.attachAllEndpoints(ui, dataflintStore, sqlListener, ui.basePath)
   }
 }

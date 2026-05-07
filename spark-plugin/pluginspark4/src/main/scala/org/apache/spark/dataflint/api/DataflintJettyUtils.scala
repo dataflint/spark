@@ -2,7 +2,6 @@ package org.apache.spark.dataflint.api
 
 import org.apache.spark.ui.SparkUI
 
-import jakarta.servlet.Servlet
 import scala.language.implicitConversions
 
 object DataflintJettyUtils {
@@ -16,7 +15,9 @@ object DataflintJettyUtils {
   // copy of createStaticHandler in core/src/main/scala/org/apache/spark/ui/JettyUtils.scala
   // only difference is we are loading the resources from this class loader which might be different from the spark one
   // with use reflection to support both org.sparkproject.jetty.servlet and org.eclipse.jetty
-  // in spark source code
+  // in spark source code.
+  // Avoids any compile-time reference to javax.servlet or jakarta.servlet so that the
+  // same artifact can run on Databricks Runtime 17.3 (javax) and on stock Spark 4 (jakarta).
   private def createStaticHandler(resourceBase: String, path: String): Any = {
     // Try to load classes from both packages
     def getClassForName(className: String): Class[_] = {
@@ -35,9 +36,15 @@ object DataflintJettyUtils {
     val setInitParameterMethod = contextHandler.getClass.getMethod("setInitParameter", classOf[String], classOf[String])
     setInitParameterMethod.invoke(contextHandler, "org.eclipse.jetty.servlet.Default.gzip", "false")
 
-    val staticHandler = defaultServletClass.getDeclaredConstructor().newInstance()
-    val servletHolderConstructor = servletHolderClass.getConstructor(classOf[Servlet])
-    val holder = servletHolderConstructor.newInstance(staticHandler.asInstanceOf[Object])
+    val staticHandler = defaultServletClass.getDeclaredConstructor().newInstance().asInstanceOf[Object]
+    // Pick the 1-arg ServletHolder constructor whose parameter type accepts our static
+    // handler, regardless of whether the runtime expects jakarta.servlet.Servlet or
+    // javax.servlet.Servlet. Replaces a previous getConstructor(classOf[jakarta.servlet.Servlet])
+    // call that broke load on javax-only runtimes (e.g. DBR 17.3).
+    val servletHolderConstructor = servletHolderClass.getConstructors
+      .find(c => c.getParameterCount == 1 && c.getParameterTypes()(0).isInstance(staticHandler))
+      .getOrElse(sys.error(s"No 1-arg ServletHolder constructor accepting ${staticHandler.getClass.getName}"))
+    val holder = servletHolderConstructor.newInstance(staticHandler)
 
     Option(this.getClass.getClassLoader.getResource(resourceBase)) match {
       case Some(res) =>

@@ -119,13 +119,22 @@ class DataflintSparkUICommonInstaller extends Logging {
     pageFactory.addStaticHandler(ui, "io/dataflint/spark/static/ui", ui.basePath + "/dataflint")
     val dataflintStore = new DataflintStore(store = ui.store.store)
     val tab = pageFactory.createDataFlintTab(ui)
-    tab.attachPage(pageFactory.createSQLPlanPage(ui, dataflintStore, sqlListener))
-    tab.attachPage(pageFactory.createSQLMetricsPage(ui, sqlListener))
-    tab.attachPage(pageFactory.createSQLStagesRddPage(ui))
-    tab.attachPage(pageFactory.createApplicationInfoPage(ui, dataflintStore))
-    tab.attachPage(pageFactory.createIcebergPage(ui, dataflintStore))
-    tab.attachPage(pageFactory.createDeltaLakeScanPage(ui, dataflintStore))
-    tab.attachPage(pageFactory.createCachedStoragePage(ui, dataflintStore))
+    if (pageFactory.usesReflectiveEndpoints) {
+      // Spark 4 path: bypass WebUIPage entirely and serve JSON via reflective Jetty
+      // ServletContextHandlers. Required for runtimes like Databricks Runtime 17.3
+      // that ship javax.servlet instead of jakarta.servlet — a WebUIPage subclass
+      // with jakarta-typed render/renderJson would fail JVM verification there.
+      pageFactory.attachReflectiveEndpoints(ui, dataflintStore, sqlListener)
+    } else {
+      // Spark 3 path: attach WebUIPage instances to the DataFlint tab in the usual way.
+      tab.attachPage(pageFactory.createSQLPlanPage(ui, dataflintStore, sqlListener))
+      tab.attachPage(pageFactory.createSQLMetricsPage(ui, sqlListener))
+      tab.attachPage(pageFactory.createSQLStagesRddPage(ui))
+      tab.attachPage(pageFactory.createApplicationInfoPage(ui, dataflintStore))
+      tab.attachPage(pageFactory.createIcebergPage(ui, dataflintStore))
+      tab.attachPage(pageFactory.createDeltaLakeScanPage(ui, dataflintStore))
+      tab.attachPage(pageFactory.createCachedStoragePage(ui, dataflintStore))
+    }
     ui.attachTab(tab)
     ui.webUrl
   }
