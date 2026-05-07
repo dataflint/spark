@@ -6,9 +6,9 @@ import org.apache.spark.ui.SparkUI
 
 /**
  * Databricks variant of the Spark 4 loader. Identical to the pluginspark4
- * loader except it instantiates [[Spark4DatabricksPageFactory]], which
+ * loader except it instantiates `Spark4DatabricksPageFactory`, which
  * inverts the Databricks UI gate so the shaded jar serves UI only on DBR.
- * Same FQN as the upstream loader so the shared SparkDataflintPlugin
+ * Same FQN as the upstream loader so the shared `SparkDataflintPlugin`
  * entrypoint resolves it without any per-flavor wiring.
  */
 object DataflintSparkUILoader {
