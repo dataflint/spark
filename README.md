@@ -125,7 +125,7 @@ spark-submit
 * There is also support for scala 2.13, if your spark cluster is using scala 2.13 change package name to io.dataflint:spark_**2.13**:0.9.6
 * For more installation options, including for **python** and **k8s spark-operator**, see [Install on Spark docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark)
 * For installing DataFlint OSS in **spark history server** for observability on completed runs see [install on spark history server docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-spark-history-server)
-* For installing DataFlint OSS on **DataBricks** see [install on databricks docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-databricks)
+* For installing DataFlint OSS on **DataBricks** see [install on databricks docs](https://dataflint.gitbook.io/dataflint-for-spark/getting-started/install-on-databricks). Databricks Runtime 17.3+ ships `javax.servlet` instead of `jakarta.servlet`, so use the dedicated shaded artifact `io.dataflint:dataflint-spark4-databricks_2.13` (same plugin class — only the jar coordinate differs).
 
 ## How it Works
 
