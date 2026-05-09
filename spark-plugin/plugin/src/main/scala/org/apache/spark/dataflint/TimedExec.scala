@@ -189,8 +189,11 @@ class TimedWithCodegenExec(override val child: SparkPlan) extends TimedExec(chil
      """.stripMargin
   }
 
+  // Propagate `row` so downstream CodegenFallback expressions (e.g. from_json) that
+  // reference ctx.INPUT_ROW in their generated code see a valid row variable instead of
+  // null. Dropping it produced an NPE in Block.code interpolation. (issue #74)
   override def doConsume(ctx: CodegenContext, input: Seq[ExprCode], row: ExprCode): String =
-    consume(ctx, input)
+    consume(ctx, input, if (row == null) null else row.value)
 
   override protected def withNewChildrenInternal(newChildren: IndexedSeq[SparkPlan]): SparkPlan =
     if (TimedExec.isLegacySpark) TimedExec(newChildren.head)
