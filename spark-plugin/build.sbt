@@ -165,7 +165,40 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
     Compile / unmanagedSourceDirectories += (plugin / Compile / sourceDirectory).value / "scala",
 
     // Include resources from plugin directory for static UI files
-    Compile / unmanagedResourceDirectories += (plugin / Compile / resourceDirectory).value
+    Compile / unmanagedResourceDirectories += (plugin / Compile / resourceDirectory).value,
+
+    // Test dependencies — Spark 4.0.1 + scalatest. Mirrors pluginspark3 so we can run the
+    // same regression suites against the Spark 4 surface (cross-version validation).
+    libraryDependencies += "org.scalatest" %% "scalatest-funsuite"       % "3.2.17" % Test,
+    libraryDependencies += "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.17" % Test,
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "4.0.1" % Test,
+    libraryDependencies += "org.apache.spark" %% "spark-sql"  % "4.0.1" % Test,
+
+    // Share version-portable test sources with pluginspark3. Most pluginspark3 specs
+    // depend on Spark-3-only internals (Dataset constructor, PythonMapInArrowExec, etc.)
+    // and don't compile against Spark 4, so we explicitly include only the suites that
+    // exercise version-stable surface area.
+    Test / unmanagedSourceDirectories += (plugin / Compile / sourceDirectory).value / "scala",
+    Test / unmanagedSources ++= {
+      val pluginspark3Tests = (pluginspark3 / Test / sourceDirectory).value / "scala"
+      Seq(
+        pluginspark3Tests / "org" / "apache" / "spark" / "dataflint" / "DataFlintCodegenFallbackSpec.scala"
+      )
+    },
+
+    // Fork JVM for tests; Spark on Java 9+ requires the same --add-opens as pluginspark3.
+    Test / fork := true,
+    Test / parallelExecution := false,
+    Test / javaOptions ++= {
+      if (sys.props("java.specification.version").startsWith("1.")) Seq.empty
+      else Seq(
+        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+        "--add-opens=java.base/java.nio=ALL-UNNAMED",
+        "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+        "--add-opens=java.base/java.util=ALL-UNNAMED",
+        "--add-opens=java.base/java.io=ALL-UNNAMED",
+      )
+    }
   )
 
 lazy val pluginspark4databricks = (project in file("pluginspark4databricks"))
