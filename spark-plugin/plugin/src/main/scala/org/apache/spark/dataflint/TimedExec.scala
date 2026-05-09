@@ -3,7 +3,7 @@ package org.apache.spark.dataflint
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
 import org.apache.spark.sql.catalyst.expressions.{Attribute, SortOrder}
 import org.apache.spark.sql.catalyst.plans.physical.Partitioning
 import org.apache.spark.sql.catalyst.util.DateTimeConstants.NANOS_PER_MILLIS
@@ -153,9 +153,18 @@ class TimedWithCodegenExec(override val child: SparkPlan) extends TimedExec(chil
   // On 3.2+ (transparent): children = child.children, multi-child nodes (joins) expose
   // multiple children which breaks codegen assumptions → restrict to single-child.
   // On 3.0/3.1 (non-transparent): children = Seq(child), always length 1 → no restriction.
+  //
+  // Mirror Spark's CollapseCodegenStages CodegenFallback check on `child.expressions`.
+  // The framework normally excludes plans whose expressions contain a CodegenFallback
+  // (e.g. JsonToStructs / from_json), but our transparent `children = child.children`
+  // hides `child` from that check, so we must do it ourselves — otherwise downstream
+  // CodegenFallback.doGenCode reads ctx.INPUT_ROW = null and NPEs in Block.code
+  // interpolation. (issue #74)
   override def supportCodegen: Boolean = {
     val c = child.asInstanceOf[CodegenSupport]
-    c.supportCodegen && (TimedExec.isLegacySpark || child.children.length <= 1)
+    c.supportCodegen &&
+      (TimedExec.isLegacySpark || child.children.length <= 1) &&
+      !child.expressions.exists(_.exists(_.isInstanceOf[CodegenFallback]))
   }
 
   override def needCopyResult: Boolean = child.asInstanceOf[CodegenSupport].needCopyResult
@@ -189,11 +198,8 @@ class TimedWithCodegenExec(override val child: SparkPlan) extends TimedExec(chil
      """.stripMargin
   }
 
-  // Propagate `row` so downstream CodegenFallback expressions (e.g. from_json) that
-  // reference ctx.INPUT_ROW in their generated code see a valid row variable instead of
-  // null. Dropping it produced an NPE in Block.code interpolation. (issue #74)
   override def doConsume(ctx: CodegenContext, input: Seq[ExprCode], row: ExprCode): String =
-    consume(ctx, input, if (row == null) null else row.value)
+    consume(ctx, input)
 
   override protected def withNewChildrenInternal(newChildren: IndexedSeq[SparkPlan]): SparkPlan =
     if (TimedExec.isLegacySpark) TimedExec(newChildren.head)

@@ -8,11 +8,14 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 /**
- * Regression test for issue #74: TimedWithCodegenExec.doConsume must propagate the
- * `row: ExprCode` parameter so downstream CodegenFallback expressions (e.g. from_json)
- * that reference ctx.INPUT_ROW in their generated code see a valid row variable.
+ * Regression test for issue #74: TimedWithCodegenExec must exclude itself from
+ * whole-stage codegen when its child contains a CodegenFallback expression (e.g.
+ * from_json / JsonToStructs). The transparent `children = child.children` hides
+ * the wrapped child from CollapseCodegenStages' CodegenFallback check, so that
+ * exclusion has to happen in TimedWithCodegenExec.supportCodegen.
  *
- * Without the fix, this throws an NPE inside Block.code interpolation:
+ * Without the fix, the wrapped child gets wholestaged anyway and CodegenFallback's
+ * generated code reads ctx.INPUT_ROW = null, NPE'ing in Block.code interpolation:
  *   java.lang.NullPointerException: Cannot invoke "Object.getClass()" because "arg" is null
  */
 class DataFlintCodegenFallbackSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll {
@@ -36,19 +39,26 @@ class DataFlintCodegenFallbackSpec extends AnyFunSuite with Matchers with Before
   }
 
   test("from_json under whole-stage codegen does not NPE (issue #74)") {
-    import spark.implicits._
+    val session = spark
+    import session.implicits._
 
     val schema = ArrayType(StructType(Seq(
       StructField("name", StringType, nullable = true),
       StructField("kind", StringType, nullable = true)
     )))
 
-    val df = Seq(
+    // Cache to materialize the rows so JsonToStructs is not constant-folded into the
+    // LocalTableScan — otherwise from_json never reaches whole-stage codegen and the bug
+    // doesn't fire.
+    val raw = Seq(
       ("k1", """[{"name":"a","kind":"x"}]"""),
       ("k2", null.asInstanceOf[String])
     ).toDF("key", "payload")
+      .repartition(1)
+      .cache()
+    raw.count()
 
-    val count = df
+    val rowCount: Long = raw
       .filter(col("payload").isNotNull)
       .withColumn("parsed", from_json(col("payload"), schema))
       .filter(col("parsed").isNotNull)
@@ -56,6 +66,6 @@ class DataFlintCodegenFallbackSpec extends AnyFunSuite with Matchers with Before
       .filter(col("d.name").isNotNull)
       .count()
 
-    count shouldBe 1L
+    rowCount shouldBe 1L
   }
 }
