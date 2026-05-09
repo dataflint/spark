@@ -36,4 +36,8 @@ class DataflintStore(val store: KVStore) {
       .sortBy(_.minExecutionId)
   }
 
+  def executorMetadata(): Seq[DataflintExecutorMetadataInfo] = {
+    mapToSeq(store.view(classOf[DataflintExecutorMetadataWrapper]))(_.info)
+  }
+
 }

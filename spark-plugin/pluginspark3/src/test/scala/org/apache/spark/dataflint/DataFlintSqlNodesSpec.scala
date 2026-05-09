@@ -50,8 +50,13 @@ class DataFlintSqlNodesSpec extends AnyFunSuite with Matchers with BeforeAndAfte
       case t: TimedExec if t.child.getClass.getSimpleName == childName => t
     }.headOption
 
-  /** Assert TimedExec wraps `childName` and duration > 0. */
+  /** Assert TimedExec wraps `childName` and duration >= sleepInCodeGenMs. */
   private def assertWrappedWithDuration(df: DataFrame, childName: String): Unit = {
+    assertWrapped(df, childName, sleepInCodeGenMs)
+  }
+
+  /** Assert TimedExec wraps `childName` and duration >= minDuration. */
+  private def assertWrapped(df: DataFrame, childName: String, minDuration: Long): Unit = {
     df.collect() // trigger execution
     val plan = executedPlan(df)
     val timed = findTimed(df, childName)
@@ -59,8 +64,8 @@ class DataFlintSqlNodesSpec extends AnyFunSuite with Matchers with BeforeAndAfte
       timed should not be empty
     }
     val duration = timed.get.metrics("duration").value
-    withClue(s"TimedExec($childName) duration=$duration ms should be >= $sleepInCodeGenMs") {
-      duration should be >= sleepInCodeGenMs
+    withClue(s"TimedExec($childName) duration=$duration ms should be >= $minDuration") {
+      duration should be >= minDuration
     }
   }
 
@@ -124,9 +129,10 @@ class DataFlintSqlNodesSpec extends AnyFunSuite with Matchers with BeforeAndAfte
   private def smallDF = spark.range(0, 10, 1, 1).toDF("sid")
 
   test("BroadcastHashJoinExec") {
-    assertWrappedWithDuration(
+    // Sleep is only in codegen doProduce path; BroadcastHashJoin uses doExecute, so only check wrapping
+    assertWrapped(
       baseDF.join(smallDF, col("id") === col("sid")),
-      "BroadcastHashJoinExec"
+      "BroadcastHashJoinExec", 0L
     )
   }
 
@@ -143,9 +149,10 @@ class DataFlintSqlNodesSpec extends AnyFunSuite with Matchers with BeforeAndAfte
   }
 
   test("BroadcastNestedLoopJoinExec") {
-    assertWrappedWithDuration(
+    // Sleep is only in codegen doProduce path; BroadcastNestedLoopJoin uses doExecute, so only check wrapping
+    assertWrapped(
       baseDF.join(smallDF, col("id") > col("sid")),
-      "BroadcastNestedLoopJoinExec"
+      "BroadcastNestedLoopJoinExec", 0L
     )
   }
 

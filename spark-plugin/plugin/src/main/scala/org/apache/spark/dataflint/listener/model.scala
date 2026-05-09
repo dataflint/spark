@@ -91,3 +91,25 @@ class DataflintDeltaLakeScanInfoWrapper(val info: DataflintDeltaLakeScanInfo) {
   @JsonIgnore
   def id: String = s"${info.minExecutionId}_${info.tablePath.replaceAll(" ", "")}"
 }
+
+case class DataflintExecutorMetadataInfo(
+  executorId: String,
+  executorHost: String,
+  instanceType: Option[String],
+  lifecycleType: Option[String],
+  cloudProvider: Option[String],
+  osName: String,
+  osArch: String,
+  jvmVersion: String,
+  availableProcessors: Int,
+  totalMemoryBytes: Long,
+  collectionError: Option[String]
+)
+
+case class DataflintExecutorMetadataEvent(metadata: DataflintExecutorMetadataInfo) extends SparkListenerEvent
+
+class DataflintExecutorMetadataWrapper(val info: DataflintExecutorMetadataInfo) {
+  @KVIndex
+  @JsonIgnore
+  def id: String = info.executorId
+}
