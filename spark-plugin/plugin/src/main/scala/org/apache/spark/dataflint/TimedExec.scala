@@ -57,11 +57,12 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with Logging {
   override def outputOrdering: Seq[SortOrder] = child.outputOrdering
   override def supportsColumnar: Boolean = child.supportsColumnar
 
-  // Preserves ALL of child's existing metrics (spillSize, numOutputRows, etc.) + adds duration and rddId
+  // Preserves ALL of child's existing metrics (spillSize, numOutputRows, etc.) + adds duration and rddId.
+  // rddId uses a plain sum metric — a "size" metric would render it as bytes ("12 B") in the UI.
   override lazy val metrics: Map[String, SQLMetric] =
     child.metrics ++ Map(
       MetricsUtils.getTimingMetric("duration")(sparkContext),
-      MetricsUtils.getSizeMetric("rddId")(sparkContext)
+      MetricsUtils.getSumMetric("rddId")(sparkContext)
     )
 
   // Delegate prepare() to child so that DataWritingCommandExec (and similar nodes that
@@ -72,7 +73,11 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with Logging {
 
   protected def postRddId(rddId: Int): Unit = {
       val rddIdMetric = longMetric("rddId")
-      rddIdMetric += rddId
+      // `set` instead of `+=` so re-execution of the same TimedExec instance overwrites
+      // the metric instead of accumulating. doExecute is invoked once per execute() call;
+      // a plan instance reused across queries (or AQE materialization) would otherwise
+      // sum every RDD id it ever wrapped.
+      rddIdMetric.set(rddId.toLong)
       MetricsUtils.postDriverMetrics(sparkContext, rddIdMetric)
   }
 
@@ -104,25 +109,33 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with Logging {
   override def executeCollect(): Array[InternalRow] = {
     if (child.getClass.getSimpleName == "DataWritingCommandExec") {
       val durationMetric = longMetric("duration")
-      val innerChild = child.children.head
-      val wrappedChild = if (innerChild.getClass.getSimpleName == "WriteFilesExec") {
-        // Spark 3.4+: wrap the data plan inside WriteFilesExec
-        val dataPlan = innerChild.children.head
-        val timedDataPlan = new TimedExec.RDDTimingWrapper(dataPlan, durationMetric)
-        val wrappedWriteFiles = innerChild.withNewChildren(IndexedSeq(timedDataPlan))
-        child.withNewChildren(IndexedSeq(wrappedWriteFiles))
-      } else {
-        // Older Spark: wrap the data plan directly
-        val timedDataPlan = new TimedExec.RDDTimingWrapper(innerChild, durationMetric)
-        child.withNewChildren(IndexedSeq(timedDataPlan))
+      // child.children may be empty on unusual DataWritingCommandExec shapes (vendor
+      // forks, future Spark versions). Fall through to super.executeCollect() in that
+      // case — duration will be zero on the rebuild path, but the write still runs.
+      val maybeRebuilt: Option[SparkPlan] = child.children.headOption.flatMap { innerChild =>
+        if (innerChild.getClass.getSimpleName == "WriteFilesExec") {
+          // Spark 3.4+: wrap the data plan inside WriteFilesExec
+          innerChild.children.headOption.map { dataPlan =>
+            val timedDataPlan = new TimedExec.RDDTimingWrapper(dataPlan, durationMetric)
+            val wrappedWriteFiles = innerChild.withNewChildren(IndexedSeq(timedDataPlan))
+            child.withNewChildren(IndexedSeq(wrappedWriteFiles))
+          }
+        } else {
+          // Older Spark: wrap the data plan directly
+          val timedDataPlan = new TimedExec.RDDTimingWrapper(innerChild, durationMetric)
+          Some(child.withNewChildren(IndexedSeq(timedDataPlan)))
+        }
       }
-      wrappedChild.executeCollect()
+      maybeRebuilt.fold(super.executeCollect())(_.executeCollect())
     } else {
       super.executeCollect()
     }
   }
 
-  override def canEqual(that: Any): Boolean = that.isInstanceOf[TimedExec]
+  // Match the runtime class so TimedExec(x) and TimedWithCodegenExec(x) don't compare
+  // equal — they have different execution semantics (codegen vs RDD path), and TreeNode
+  // equality / canonicalization use canEqual to decide plan reuse.
+  override def canEqual(that: Any): Boolean = that.getClass == this.getClass
   // productArity/productElement support makeCopy on Spark 3.0/3.1 (constructor arg = child)
   override def productArity: Int = 1
   override def productElement(n: Int): Any =
@@ -210,9 +223,15 @@ object TimedExec {
   // Spark 3.0/3.1's withNewChildren uses mapProductIterator + containsChild which is
   // incompatible with the transparent wrapper (children = child.children). Detected by
   // checking for withNewChildrenInternal which was added in Spark 3.2.
+  //
+  // Wrap the parse in Try — any vendor distribution with a non-numeric major/minor (or
+  // a version string Spark doesn't expose at all) defaults to non-legacy, matching every
+  // released Spark line ≥ 3.2.
   val isLegacySpark: Boolean = {
-    val parts = org.apache.spark.SPARK_VERSION.split("\\.")
-    parts.length >= 2 && parts(0).toInt == 3 && parts(1).toInt < 2
+    scala.util.Try {
+      val parts = org.apache.spark.SPARK_VERSION.split("\\.")
+      parts.length >= 2 && parts(0).toInt == 3 && parts(1).toInt < 2
+    }.getOrElse(false)
   }
 
   def apply(child: SparkPlan): TimedExec = child match {
@@ -224,6 +243,15 @@ object TimedExec {
    * A minimal SparkPlan that wraps execute() with per-partition duration timing.
    * Used by the write path: inserted inside WriteFilesExec (or as the direct child on older
    * Spark) so that the write command consumes a timed RDD per partition.
+   *
+   * Reconstruction note: `durationMetric` is intentionally NOT exposed via productElement.
+   * The constructor takes (child, durationMetric) but `productArity = 1` reports only
+   * `child`, so any code that tries to clone us via `makeCopy` would fail to supply
+   * `durationMetric`. We sidestep this by overriding `withNewChildrenInternal` to plumb
+   * the metric through manually — it's the only reconstruction path Spark 3.2+ takes for
+   * us. Spark 3.0/3.1's makeCopy-based path is not reached because this wrapper is only
+   * constructed inside `executeCollect` on Spark 3.4+ (WriteFilesExec branch) or as a
+   * direct child wrap on older Spark, neither of which round-trips through `makeCopy`.
    */
   private[dataflint] class RDDTimingWrapper(val child: SparkPlan, durationMetric: SQLMetric) extends SparkPlan {
     override def output: Seq[Attribute] = child.output
