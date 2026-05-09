@@ -386,7 +386,12 @@ function getLayoutedElementsWithStages(
   });
 
   // Step 4: Run dagre layout
-  dagre.layout(g);
+  try {
+    dagre.layout(g);
+  } catch (e) {
+    console.warn("Compound dagre layout failed, falling back to simple layout", e);
+    return getLayoutedElements(flowNodes, flowEdges, cacheKey + "-fallback");
+  }
 
   // Step 5: Extract positions and build result nodes
   const allNodes: Node[] = [];
