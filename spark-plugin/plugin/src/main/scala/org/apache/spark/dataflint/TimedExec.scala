@@ -175,9 +175,12 @@ class TimedWithCodegenExec(override val child: SparkPlan) extends TimedExec(chil
   // interpolation. (issue #74)
   override def supportCodegen: Boolean = {
     val c = child.asInstanceOf[CodegenSupport]
+    // Use TreeNode.find (available since Spark 3.0) rather than TreeNode.exists, which
+    // was added in 3.2 — calling `.exists` on Expression NoSuchMethodErrors at runtime
+    // on Spark 3.0/3.1 even though it compiles fine against newer Spark headers.
     c.supportCodegen &&
       (TimedExec.isLegacySpark || child.children.length <= 1) &&
-      !child.expressions.exists(_.exists(_.isInstanceOf[CodegenFallback]))
+      !child.expressions.exists(_.find(_.isInstanceOf[CodegenFallback]).isDefined)
   }
 
   override def needCopyResult: Boolean = child.asInstanceOf[CodegenSupport].needCopyResult
