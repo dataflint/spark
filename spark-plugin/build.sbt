@@ -169,6 +169,7 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
 
     // Test dependencies — Spark 4.0.1 + scalatest. Mirrors pluginspark3 so we can run the
     // same regression suites against the Spark 4 surface (cross-version validation).
+    // Requires the launching JVM to be Java 17+ since Spark 4 won't run on Java 8/11.
     libraryDependencies += "org.scalatest" %% "scalatest-funsuite"       % "3.2.17" % Test,
     libraryDependencies += "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.17" % Test,
     libraryDependencies += "org.apache.spark" %% "spark-core" % "4.0.1" % Test,
