@@ -100,25 +100,31 @@ export function parseNodePlan(
       case "PhotonGroupingAgg":
       case "GpuHashAggregate":
       case "!CometGpuHashAggregate":
+      case "CometHashAggregate":
       case "HashAggregate":
       case "SortAggregate":
       case "ObjectHashAggregate":
+      case "FlushableHashAggregateExecTransformer":
+      case "RegularHashAggregateExecTransformer":
         return {
           type: "HashAggregate",
           plan: parseHashAggregate(plan.planDescription),
         };
 
       case "TakeOrderedAndProject":
+      case "TakeOrderedAndProjectExecTransformer":
         return {
           type: "TakeOrderedAndProject",
           plan: parseTakeOrderedAndProject(plan.planDescription),
         };
       case "CollectLimit":
+      case "ColumnarCollectLimit":
         return {
           type: "CollectLimit",
           plan: parseCollectLimit(plan.planDescription),
         };
       case "Coalesce":
+      case "CoalesceExecTransformer":
         return {
           type: "Coalesce",
           plan: parseCoalesce(plan.planDescription),
@@ -150,6 +156,7 @@ export function parseNodePlan(
       case "GpuFilter":
       case "CometFilter":
       case "Filter":
+      case "FilterExecTransformer":
         return {
           type: "Filter",
           plan: parseFilter(plan.planDescription),
@@ -158,6 +165,8 @@ export function parseNodePlan(
       case "CometExchange":
       case "CometColumnarExchange":
       case "GpuColumnarExchange":
+      case "ColumnarExchange":
+      case "ColumnarBroadcastExchange":
         return {
           type: "Exchange",
           plan: parseExchange(plan.planDescription),
@@ -166,6 +175,7 @@ export function parseNodePlan(
       case "GpuProject":
       case "CometFilter":
       case "Project":
+      case "ProjectExecTransformer":
         return {
           type: "Project",
           plan: parseProject(plan.planDescription),
@@ -173,6 +183,7 @@ export function parseNodePlan(
       case "GpuSort":
       case "CometSort":
       case "Sort":
+      case "SortExecTransformer":
         return {
           type: "Sort",
           plan: parseSort(plan.planDescription),
@@ -180,6 +191,7 @@ export function parseNodePlan(
       case "Window":
       case "ArrowWindowPython":
       case "WindowInPandas":
+      case "WindowExecTransformer":
         return {
           type: "Window",
           plan: parseWindow(plan.planDescription),
@@ -196,11 +208,13 @@ export function parseNodePlan(
           plan: parseBatchEvalPython(plan.planDescription),
         };
       case "Generate":
+      case "GenerateExecTransformer":
         return {
           type: "Generate",
           plan: parseGenerate(plan.planDescription),
         };
       case "Expand":
+      case "ExpandExecTransformer":
         return {
           type: "Expand",
           plan: parseExpand(plan.planDescription),
@@ -245,6 +259,57 @@ export function getMetricDuration(
   const totalDurationStr = extractTotalFromStatisticsMetric(durationStr);
   const duration = timeStringToMilliseconds(totalDurationStr);
   return duration;
+}
+
+/**
+ * When the DataFlint custom plan endpoint returns empty (e.g., for Gluten/Velox or Comet),
+ * fall back to parsing per-node descriptions from the SQL-level planDescription text.
+ * Matches plan sections like "(26) WindowExecTransformer\nArguments: [...]" to SQL nodes by name.
+ */
+function buildFallbackPlanDescriptions(
+  sqlPlanDescription: string,
+  nodes: { nodeId: number; nodeName: string }[],
+): Map<number, string> {
+  const result = new Map<number, string>();
+  if (!sqlPlanDescription) return result;
+
+  const lines = sqlPlanDescription.split("\n");
+  const sections: { name: string; body: string }[] = [];
+  let currentName: string | undefined;
+  let currentBody: string[] = [];
+
+  for (const line of lines) {
+    const headerMatch = line.match(/^\((\d+)\)\s+(\S+)/);
+    if (headerMatch) {
+      if (currentName !== undefined && currentBody.length > 0) {
+        sections.push({ name: currentName, body: currentBody.join(" ") });
+      }
+      currentName = headerMatch[2];
+      currentBody = [];
+    } else if (currentName !== undefined) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("Arguments:") || trimmed.startsWith("Keys:") || trimmed.startsWith("Functions")) {
+        currentBody.push(trimmed);
+      }
+    }
+  }
+  if (currentName !== undefined && currentBody.length > 0) {
+    sections.push({ name: currentName, body: currentBody.join(" ") });
+  }
+
+  const usedSections = new Set<number>();
+  for (const node of nodes) {
+    for (let i = 0; i < sections.length; i++) {
+      if (usedSections.has(i)) continue;
+      if (sections[i].name === node.nodeName && sections[i].body) {
+        result.set(node.nodeId, `${node.nodeName} ${sections[i].body}`);
+        usedSections.add(i);
+        break;
+      }
+    }
+  }
+
+  return result;
 }
 
 function calculateSql(
@@ -293,6 +358,11 @@ function calculateSql(
     enrichedSql.edges = enrichedSql.edges.filter(e => !mergedWrapperIds.has(e.toId));
   }
 
+  const hasPlanData = plan !== undefined && plan.nodesPlan.length > 0;
+  const fallbackDescs = hasPlanData
+    ? new Map<number, string>()
+    : buildFallbackPlanDescriptions(sql.planDescription, enrichedSql.nodes);
+
   const typeEnrichedNodes = enrichedSql.nodes.map((node) => {
     const isInstrumented = node.nodeName.startsWith("DataFlint");
     const strippedNodeName = isInstrumented ? node.nodeName.slice("DataFlint".length) : node.nodeName;
@@ -309,8 +379,16 @@ function calculateSql(
     const nodePlan = rawNodePlan && isInstrumented
       ? { ...rawNodePlan, planDescription: rawNodePlan.planDescription.replace("DataFlint" + strippedNodeName + " ", "") }
       : rawNodePlan;
-    const parsedPlan =
+    let parsedPlan =
       nodePlan !== undefined ? parseNodePlan(normalizedNode, nodePlan) : undefined;
+
+    if (parsedPlan === undefined) {
+      const fallbackDesc = fallbackDescs.get(normalizedNode.nodeId);
+      if (fallbackDesc) {
+        parsedPlan = parseNodePlan(normalizedNode, { id: normalizedNode.nodeId, planDescription: fallbackDesc, rddScopeId: undefined });
+      }
+    }
+
     const isCodegenNode = normalizedNode.nodeName.includes("WholeStageCodegen");
 
     // Find the Delta Lake scan that matches this node's table location
@@ -359,10 +437,42 @@ function calculateSql(
 
     function extractCodegenId(): number | undefined {
       return parseInt(
-        normalizedNode.nodeName.replace("WholeStageCodegen (", "").replace(")", ""),
+        normalizedNode.nodeName
+          .replace("WholeStageCodegenTransformer (", "")
+          .replace("WholeStageCodegen (", "")
+          .replace(")", ""),
       );
     }
   });
+
+  // For Gluten/Velox: WholeStageCodegenTransformer nodes are disconnected orphans in the graph
+  // and Spark doesn't set wholeStageCodegenId on their child nodes. Infer it from node ID ordering:
+  // a codegen node at ID X contains the pipeline nodes at IDs X+1, X+2, ... until hitting
+  // a stage boundary (exchange, AQE, scan) or another codegen node.
+  const hasGlutenCodegen = typeEnrichedNodes.some(
+    (n) => n.isCodegenNode && n.nodeName.includes("Transformer"),
+  );
+  if (hasGlutenCodegen) {
+    const stageBoundaryNames = new Set([
+      "ColumnarExchange", "ColumnarBroadcastExchange", "Exchange", "BroadcastExchange",
+      "AQEShuffleRead", "VeloxResizeBatches", "RowToVeloxColumnar", "VeloxColumnarToRow",
+      "ColumnarCollectLimit", "AdaptiveSparkPlan", "ColumnarUnion",
+    ]);
+    const sorted = [...typeEnrichedNodes].sort((a, b) => a.nodeId - b.nodeId);
+    let currentCodegenId: number | undefined = undefined;
+    for (const node of sorted) {
+      if (node.isCodegenNode) {
+        currentCodegenId = node.wholeStageCodegenId;
+      } else if (stageBoundaryNames.has(node.nodeName) || node.nodeName.includes("Scan")) {
+        currentCodegenId = undefined;
+      } else if (
+        currentCodegenId !== undefined &&
+        node.wholeStageCodegenId === undefined
+      ) {
+        node.wholeStageCodegenId = currentCodegenId;
+      }
+    }
+  }
 
   const onlyCodeGenNodes = typeEnrichedNodes
     .filter((node) => node.isCodegenNode)
@@ -684,8 +794,12 @@ function calcCodegenDuration(metrics: EnrichedSqlMetric[]): number | undefined {
 
 function calcExchangeMetrics(nodeName: string, metrics: EnrichedSqlMetric[]) {
   var exchangeMetrics: ExchangeMetrics | undefined = undefined;
-  if (nodeName == "Exchange") {
-    const writeDuration = getMetricDuration("shuffle write time", metrics) ?? 0;
+  if (nodeName === "Exchange" || nodeName === "ColumnarExchange" ||
+      nodeName === "CometExchange" || nodeName === "CometColumnarExchange" ||
+      nodeName === "GpuColumnarExchange") {
+    const writeDuration =
+      (getMetricDuration("shuffle write time", metrics) ?? 0) +
+      (getMetricDuration("shuffle wall time", metrics) ?? 0);
     const readDuration =
       (getMetricDuration("fetch wait time", metrics) ?? 0) +
       (getMetricDuration("remote reqs duration", metrics) ?? 0) +
@@ -703,7 +817,7 @@ function calcBroadcastExchangeDuration(
   nodeName: string,
   metrics: EnrichedSqlMetric[],
 ): number | undefined {
-  if (nodeName == "BroadcastExchange") {
+  if (nodeName === "BroadcastExchange" || nodeName === "ColumnarBroadcastExchange") {
     const duration = getMetricDuration("time to broadcast", metrics) ?? 0;
     +(getMetricDuration("time to build", metrics) ?? 0) +
       (getMetricDuration("time to collect", metrics) ?? 0);
