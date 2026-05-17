@@ -1,7 +1,7 @@
 import xerial.sbt.Sonatype._
 import sbtassembly.AssemblyPlugin.autoImport._
 
-lazy val versionNum: String = "0.8.9"
+lazy val versionNum: String = "0.9.9"
 lazy val scala212 = "2.12.20"
 lazy val scala213 = "2.13.16"
 lazy val supportedScalaVersions = List(scala212, scala213)
@@ -12,6 +12,7 @@ lazy val dataflint = project
     plugin,
     pluginspark3,
     pluginspark4,
+    pluginspark4databricks,
     example_3_1_3,
     example_3_2_4,
     example_3_3_3,
@@ -162,9 +163,98 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
     
     // Include source from plugin directory for self-contained build
     Compile / unmanagedSourceDirectories += (plugin / Compile / sourceDirectory).value / "scala",
-    
+
     // Include resources from plugin directory for static UI files
-    Compile / unmanagedResourceDirectories += (plugin / Compile / resourceDirectory).value
+    Compile / unmanagedResourceDirectories += (plugin / Compile / resourceDirectory).value,
+
+    // Test dependencies — Spark 4.0.1 + scalatest. Mirrors pluginspark3 so we can run the
+    // same regression suites against the Spark 4 surface (cross-version validation).
+    // Requires the launching JVM to be Java 17+ since Spark 4 won't run on Java 8/11.
+    libraryDependencies += "org.scalatest" %% "scalatest-funsuite"       % "3.2.17" % Test,
+    libraryDependencies += "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.17" % Test,
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "4.0.1" % Test,
+    libraryDependencies += "org.apache.spark" %% "spark-sql"  % "4.0.1" % Test,
+
+    // Share version-portable test sources with pluginspark3. Most pluginspark3 specs
+    // depend on Spark-3-only internals (Dataset constructor, PythonMapInArrowExec, etc.)
+    // and don't compile against Spark 4, so we explicitly include only the suites that
+    // exercise version-stable surface area.
+    Test / unmanagedSourceDirectories += (plugin / Compile / sourceDirectory).value / "scala",
+    Test / unmanagedSources ++= {
+      val pluginspark3Tests = (pluginspark3 / Test / sourceDirectory).value / "scala"
+      Seq(
+        pluginspark3Tests / "org" / "apache" / "spark" / "dataflint" / "DataFlintCodegenFallbackSpec.scala"
+      )
+    },
+
+    // Fork JVM for tests; Spark on Java 9+ requires the same --add-opens as pluginspark3.
+    Test / fork := true,
+    Test / parallelExecution := false,
+    Test / javaOptions ++= {
+      if (sys.props("java.specification.version").startsWith("1.")) Seq.empty
+      else Seq(
+        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+        "--add-opens=java.base/java.nio=ALL-UNNAMED",
+        "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+        "--add-opens=java.base/java.util=ALL-UNNAMED",
+        "--add-opens=java.base/java.io=ALL-UNNAMED",
+      )
+    }
+  )
+
+lazy val pluginspark4databricks = (project in file("pluginspark4databricks"))
+  .enablePlugins(AssemblyPlugin)
+  .settings(
+    name := "dataflint-spark4-databricks",
+    organization := "io.dataflint",
+    scalaVersion := scala213,
+    crossScalaVersions := List(scala213), // Only Scala 2.13 for Spark 4.x
+    version      := (if (git.gitCurrentTags.value.exists(_.startsWith("v"))) {
+      versionNum
+    } else {
+      versionNum + "-SNAPSHOT"
+    }),
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "4.0.1" % "provided",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % "4.0.1"  % "provided",
+    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
+    libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
+    libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0" % "provided",
+
+    // Source-share with pluginspark4 + plugin so we don't duplicate code.
+    Compile / unmanagedSourceDirectories += (pluginspark4 / Compile / sourceDirectory).value / "scala",
+    Compile / unmanagedSourceDirectories += (plugin / Compile / sourceDirectory).value / "scala",
+    Compile / unmanagedResourceDirectories += (plugin / Compile / resourceDirectory).value,
+
+    // Drop the upstream DataflintSparkUILoader so our local copy (which uses
+    // Spark4DatabricksPageFactory) is the one compiled.
+    Compile / unmanagedSources / excludeFilter := {
+      val upstreamLoader = (pluginspark4 / Compile / sourceDirectory).value /
+        "scala" / "org" / "apache" / "spark" / "dataflint" / "DataflintSparkUILoader.scala"
+      new sbt.io.SimpleFileFilter(_.getCanonicalPath == upstreamLoader.getCanonicalPath)
+    },
+
+    assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}.jar",
+    assembly / assemblyOption := (assembly / assemblyOption).value.withIncludeScala(false),
+    // Rewrite jakarta.servlet → javax.servlet in our bytecode so the artifact
+    // loads on Databricks Runtime 17.3, which ships javax instead of jakarta.
+    assembly / assemblyShadeRules := Seq(
+      ShadeRule.rename("jakarta.servlet.**" -> "javax.servlet.@1").inAll
+    ),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", "services", xs @ _*) => MergeStrategy.concat
+      case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+      case "application.conf" => MergeStrategy.concat
+      case "reference.conf" => MergeStrategy.concat
+      case _ => MergeStrategy.first
+    },
+
+    Compile / packageBin := assembly.value,
+    publishTo := {
+      if (isSnapshot.value)
+        Some("snapshots" at "https://central.sonatype.com/repository/maven-snapshots/")
+      else
+        sonatypePublishToBundle.value
+    }
   )
 
 lazy val example_3_1_3 = (project in file("example_3_1_3"))

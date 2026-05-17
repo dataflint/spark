@@ -79,4 +79,28 @@ describe("parseBatchEvalPython", () => {
         };
         expect(parseBatchEvalPython(input)).toEqual(expected);
     });
-}); 
+
+    it("should parse MapInPandas with bare function name", () => {
+        const input = "MapInPandas compute_discounted_totals_pandas(customer#1, category#2, quantity#3, price#4)#9, [customer#10, category#11], false";
+        expect(parseBatchEvalPython(input)).toEqual({
+            functionNames: ["compute_discounted_totals_pandas"],
+            udfNames: [],
+        });
+    });
+
+    it("should parse FlatMapGroupsInPandas with grouped function name", () => {
+        const input = "FlatMapGroupsInPandas [category#2], enrich_group(customer#1, category#2, quantity#3, price#4)#217, [customer#218, category#219]";
+        expect(parseBatchEvalPython(input)).toEqual({
+            functionNames: ["enrich_group"],
+            udfNames: [],
+        });
+    });
+
+    it("should parse FlatMapCoGroupsInPandas with cogroup function name", () => {
+        const input = "FlatMapCoGroupsInPandas [category#2], [category#247], apply_category_discount(customer#1, category#2)#257, [customer#258, category#259]";
+        expect(parseBatchEvalPython(input)).toEqual({
+            functionNames: ["apply_category_discount"],
+            udfNames: [],
+        });
+    });
+});

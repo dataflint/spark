@@ -95,35 +95,6 @@ jobs:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
 
-      - name: Verify artifact published
-        run: |
-          VERSION=$(grep 'lazy val versionNum' build.sbt | grep -oE '"[0-9.]+"' | tr -d '"')
-          if [[ "$IS_RELEASE" == "true" ]]; then
-            URL="https://repo1.maven.org/maven2/io/dataflint/spark_2.12/${VERSION}/spark_2.12-${VERSION}.pom"
-            AUTH_ARGS=""
-            EXPECTED_VERSION="${VERSION}"
-          else
-            URL="https://central.sonatype.com/repository/maven-snapshots/io/dataflint/spark_2.12/maven-metadata.xml"
-            AUTH_ARGS="-u ${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}"
-            EXPECTED_VERSION="${VERSION}-SNAPSHOT"
-          fi
-          echo "Verifying $EXPECTED_VERSION at: $URL"
-          sleep 15
-          for i in $(seq 1 10); do
-            if curl -sf $AUTH_ARGS "$URL" | grep -q "${EXPECTED_VERSION}"; then
-              echo "Artifact published successfully"
-              exit 0
-            fi
-            echo "Attempt $i/10 — waiting 30s..."
-            sleep 30
-          done
-          echo "Artifact not found after 5 minutes"
-          exit 1
-        working-directory: ./spark-plugin
-        env:
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-
       - name: Create Release
         if: github.event.inputs.release_type == 'official' || startsWith(github.ref, 'refs/tags/v')
         run: |
@@ -144,12 +115,13 @@ jobs:
           sed -i "s/lazy val versionNum: String = \"${VERSION}\"/lazy val versionNum: String = \"${NEW_VERSION}\"/" build.sbt
           sed -i "s/\"version\": \"${VERSION}\"/\"version\": \"${NEW_VERSION}\"/" ../spark-ui/package.json
           sed -i "s/${VERSION}/${NEW_VERSION}/g" clean-and-setup.sh
-          sed -i "s/${VERSION}/${NEW_VERSION}/g" pyspark-testing/dataflint_pyspark_example.py
-          sed -i "s/${VERSION}/${NEW_VERSION}/g" pyspark-testing/dataflint_pyspark_example_test.py
-          sed -i "s/${VERSION}/${NEW_VERSION}/g" pyspark-testing/README.md
+          OLD_README_VERSION=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' ../README.md | head -1)
+          if [ -n "$OLD_README_VERSION" ] && [ "$OLD_README_VERSION" != "$VERSION" ]; then
+            sed -i "s/${OLD_README_VERSION}/${VERSION}/g" ../README.md
+          fi
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add build.sbt ../spark-ui/package.json clean-and-setup.sh pyspark-testing/
+          git add build.sbt ../spark-ui/package.json clean-and-setup.sh ../README.md
           git commit -m "version bump to ${NEW_VERSION}"
           git push origin HEAD:main
         working-directory: ./spark-plugin

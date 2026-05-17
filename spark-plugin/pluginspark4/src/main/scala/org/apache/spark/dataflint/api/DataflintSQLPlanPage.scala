@@ -34,22 +34,26 @@ class DataflintSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListe
 
         val nodeIdToRddScopeIdList = dataflintStore.databricksAdditionalExecutionInfo(offset.toInt, length.toInt)
 
-        val sqlPlans = executionList.map { exec =>
-          val graph = if (isDatabricks) {
-            val planVersion = latestVersionReader.get.invoke(exec).asInstanceOf[Long]
-            planGraphReader.get.invoke(sqlStore, exec.executionId.asInstanceOf[Object], planVersion.asInstanceOf[Object]).asInstanceOf[SparkPlanGraph]
-          } else
-            sqlStore.planGraph(exec.executionId)
+        val sqlPlans = executionList.flatMap { exec =>
+          try {
+            val graph = if (isDatabricks) {
+              val planVersion = latestVersionReader.get.invoke(exec).asInstanceOf[Long]
+              planGraphReader.get.invoke(sqlStore, exec.executionId.asInstanceOf[Object], planVersion.asInstanceOf[Object]).asInstanceOf[SparkPlanGraph]
+            } else
+              sqlStore.planGraph(exec.executionId)
 
-          val rddScopesToStages = if (isDatabricks) Some(rddScopesToStagesReader.get.invoke(exec).asInstanceOf[Map[String, Set[Object]]]) else None
+            val rddScopesToStages = if (isDatabricks) Some(rddScopesToStagesReader.get.invoke(exec).asInstanceOf[Map[String, Set[Object]]]) else None
 
-          val nodeIdToRddScopeId = nodeIdToRddScopeIdList.find(_.executionId == exec.executionId).map(_.nodeIdToRddScopeId)
-          SqlEnrichedData(exec.executionId, graph.allNodes.length, rddScopesToStages,
-            graph.allNodes.map(node => {
-              val rddScopeId = nodeIdToRddScopeId.flatMap(_.get(node.id))
-              NodePlan(node.id, node.desc, rddScopeId)
-            }).toSeq
-          )
+            val nodeIdToRddScopeId = nodeIdToRddScopeIdList.find(_.executionId == exec.executionId).map(_.nodeIdToRddScopeId)
+            Some(SqlEnrichedData(exec.executionId, graph.allNodes.length, rddScopesToStages,
+              graph.allNodes.map(node => {
+                val rddScopeId = nodeIdToRddScopeId.flatMap(_.get(node.id))
+                NodePlan(node.id, node.desc, rddScopeId)
+              }).toSeq
+            ))
+          } catch {
+            case _: Throwable => None
+          }
         }
         val jsonValue = Extraction.decompose(sqlPlans)(org.json4s.DefaultFormats)
         jsonValue
@@ -58,7 +62,7 @@ class DataflintSQLPlanPage(ui: SparkUI, dataflintStore: DataflintStore, sqlListe
     catch {
       case e: Throwable => {
         logError("failed to serve dataflint SQL metrics", e)
-        JObject()
+        JArray(List())
       }
     }
   }

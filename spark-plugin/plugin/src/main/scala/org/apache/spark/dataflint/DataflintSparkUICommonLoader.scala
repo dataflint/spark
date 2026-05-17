@@ -112,6 +112,10 @@ class DataflintSparkUICommonInstaller extends Logging {
       logInfo("DataFlint UI is already installed, skipping installation...")
       return ui.webUrl
     }
+    if (!pageFactory.isUISupported(ui)) {
+      logWarning("DataFlint UI is not supported in this environment, skipping UI installation; listeners will still run")
+      return ui.webUrl
+    }
     pageFactory.addStaticHandler(ui, "io/dataflint/spark/static/ui", ui.basePath + "/dataflint")
     val dataflintStore = new DataflintStore(store = ui.store.store)
     val tab = pageFactory.createDataFlintTab(ui)
@@ -139,6 +143,7 @@ object DataflintSparkUICommonLoader extends Logging {
   val INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED = "spark.dataflint.instrument.spark.batchEvalPython.enabled"
   val INSTRUMENT_FLAT_MAP_GROUPS_PANDAS_ENABLED = "spark.dataflint.instrument.spark.flatMapGroupsInPandas.enabled"
   val INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED = "spark.dataflint.instrument.spark.flatMapCoGroupsInPandas.enabled"
+  val INSTRUMENT_SQL_NODES_ENABLED = "spark.dataflint.instrument.spark.sqlNodes.enabled"
 
   def install(context: SparkContext, pageFactory: DataflintPageFactory): String = {
     new DataflintSparkUICommonInstaller().install(context, pageFactory)

@@ -60,3 +60,4 @@ plugin/src/main/resources/io/
 
 # Downloaded Spark versions (large binaries, not for VCS)
 utils/.spark-versions/
+/.venv312

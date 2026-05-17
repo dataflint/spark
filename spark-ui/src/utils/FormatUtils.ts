@@ -91,7 +91,12 @@ export function timeStringToMilliseconds(
     case "h":
       return duration(value, "hours").asMilliseconds();
     default:
-      throw new Error(`Unsupported time unit: ${unit}`);
+      // Some Spark forks (e.g. Databricks) return certain duration-like metrics as
+      // bare numbers without a unit suffix, which slices to digit pairs. Return
+      // undefined instead of throwing — every caller already handles undefined
+      // with `?? 0` and the rest of the page keeps rendering.
+      console.warn(`timeStringToMilliseconds: unsupported time unit "${unit}" in "${timeString}"`);
+      return undefined;
   }
 }
 

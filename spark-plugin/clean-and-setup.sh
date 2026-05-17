@@ -31,6 +31,10 @@ sbt pluginspark3/assembly
 echo "Building Spark 4 fat JAR..."
 sbt ++2.13.16 pluginspark4/assembly
 
+# Build Spark 4 Databricks fat JAR (jakarta.servlet → javax.servlet shaded)
+echo "Building Spark 4 Databricks fat JAR..."
+sbt ++2.13.16 pluginspark4databricks/assembly
+
 echo "✅ Setup complete!"
 echo ""
 echo "📋 Next steps:"
@@ -38,6 +42,7 @@ echo "1. Refresh your IntelliJ IDEA project (File -> Reload Gradle Project or si
 echo "2. If you still get conflicts, try: File -> Invalidate Caches and Restart"
 echo ""
 echo "📦 Fat JARs created:"
-echo "- Spark 3.x: pluginspark3/target/scala-2.12/dataflint-spark3_2.12-0.8.6-SNAPSHOT.jar"
-echo "- Spark 4.x: pluginspark4/target/scala-2.13/dataflint-spark4_2.13-0.8.6-SNAPSHOT.jar"
+echo "- Spark 3.x: pluginspark3/target/scala-2.12/dataflint-spark3_2.12-0.9.9-SNAPSHOT.jar"
+echo "- Spark 4.x: pluginspark4/target/scala-2.13/dataflint-spark4_2.13-0.9.9-SNAPSHOT.jar"
+echo "- Spark 4 (Databricks): pluginspark4databricks/target/scala-2.13/dataflint-spark4-databricks_2.13-0.9.9-SNAPSHOT.jar"
 

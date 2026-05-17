@@ -189,28 +189,20 @@ export function parseNodePlan(
           plan: parseSort(plan.planDescription),
         };
       case "Window":
-      case "DataFlintWindow":
+      case "ArrowWindowPython":
       case "WindowInPandas":
-      case "DataFlintWindowInPandas":
-      case "DataFlintArrowWindowPython":
       case "WindowExecTransformer":
         return {
           type: "Window",
           plan: parseWindow(plan.planDescription),
         };
       case "BatchEvalPython":
-      case "DataFlintBatchEvalPython":
       case "ArrowEvalPython":
-      case "DataFlintArrowEvalPython":
       case "MapInPandas":
-      case "DataFlintMapInPandas":
       case "MapInArrow":
       case "PythonMapInArrow":
-      case "DataFlintMapInArrow":
       case "FlatMapGroupsInPandas":
-      case "DataFlintFlatMapGroupsInPandas":
       case "FlatMapCoGroupsInPandas":
-      case "DataFlintFlatMapCoGroupsInPandas":
         return {
           type: "BatchEvalPython",
           plan: parseBatchEvalPython(plan.planDescription),
@@ -328,7 +320,43 @@ function calculateSql(
   stages: SparkStagesStore,
 ): EnrichedSparkSQL {
   const enrichedSql = sql as EnrichedSparkSQL;
+
+  // Capture node count before merge so the incremental update path (case 3) doesn't
+  // see a mismatch between pre-merge API count and post-merge stored count.
   const originalNumOfNodes = enrichedSql.nodes.length;
+
+  // Merge duplicate nodes from non-transparent TimedExec wrapper (Spark 3.0/3.1).
+  // On legacy Spark, TimedExec uses children=Seq(child) which creates two nodes in the plan:
+  //   "DataFlintFilter" (wrapper with duration metric) ← "Filter" (actual child with plan info)
+  // Strategy: keep the CHILD node (has rich plan description, e.g. filter condition) and
+  // add the wrapper's extra metrics (duration, rddId) to it. Mark as instrumented via nodeName.
+  // Edges: fromId (child/input) → toId (parent/output).
+  const mergedWrapperIds = new Set<number>();
+  for (const node of enrichedSql.nodes) {
+    if (!node.nodeName.startsWith("DataFlint")) continue;
+    const strippedName = node.nodeName.slice("DataFlint".length);
+    // Find the wrapped child: edge where toId === wrapper
+    const childEdges = enrichedSql.edges.filter(e => e.toId === node.nodeId);
+    if (childEdges.length !== 1) continue;
+    const childNode = enrichedSql.nodes.find(n => n.nodeId === childEdges[0].fromId);
+    if (!childNode || childNode.nodeName.replace(/ /g, "") !== strippedName.replace(/ /g, "")) continue;
+    // Keep child, add wrapper's extra metrics, mark as instrumented with DataFlint prefix
+    const childMetricNames = new Set(childNode.metrics.map(m => m.name));
+    const extraMetrics = node.metrics.filter(m => !childMetricNames.has(m.name));
+    childNode.metrics = [...childNode.metrics, ...extraMetrics];
+    childNode.nodeName = "DataFlint" + childNode.nodeName;
+    // Remove wrapper: redirect edges that pointed to wrapper to point to child instead
+    mergedWrapperIds.add(node.nodeId);
+    for (const edge of enrichedSql.edges) {
+      if (edge.fromId === node.nodeId) {
+        edge.fromId = childNode.nodeId;
+      }
+    }
+  }
+  if (mergedWrapperIds.size > 0) {
+    enrichedSql.nodes = enrichedSql.nodes.filter(n => !mergedWrapperIds.has(n.nodeId));
+    enrichedSql.edges = enrichedSql.edges.filter(e => !mergedWrapperIds.has(e.toId));
+  }
 
   const hasPlanData = plan !== undefined && plan.nodesPlan.length > 0;
   const fallbackDescs = hasPlanData
@@ -336,21 +364,32 @@ function calculateSql(
     : buildFallbackPlanDescriptions(sql.planDescription, enrichedSql.nodes);
 
   const typeEnrichedNodes = enrichedSql.nodes.map((node) => {
-    const type = calcNodeType(node.nodeName);
-    const nodePlan = plan?.nodesPlan.find(
-      (planNode) => planNode.id === node.nodeId,
+    const isInstrumented = node.nodeName.startsWith("DataFlint");
+    const strippedNodeName = isInstrumented ? node.nodeName.slice("DataFlint".length) : node.nodeName;
+    // Replace nodeName with the stripped version so all downstream code sees the base name
+    const normalizedNode = { ...node, nodeName: strippedNodeName };
+    const type = calcNodeType(normalizedNode.nodeName);
+    const rawNodePlan = plan?.nodesPlan.find(
+      (planNode) => planNode.id === normalizedNode.nodeId,
     );
+    // Strip "DataFlint<NodeName> " prefix from planDescription so parsers see the original format.
+    // Description format: "DataFlint<NodeName> <OriginalNodeName> <rest>", e.g.:
+    //   "DataFlintFilter Filter (cond)" → "Filter (cond)"
+    //   "DataFlintExecute InsertInto... Execute InsertInto... file:..." → "Execute InsertInto... file:..."
+    const nodePlan = rawNodePlan && isInstrumented
+      ? { ...rawNodePlan, planDescription: rawNodePlan.planDescription.replace("DataFlint" + strippedNodeName + " ", "") }
+      : rawNodePlan;
     let parsedPlan =
-      nodePlan !== undefined ? parseNodePlan(node, nodePlan) : undefined;
+      nodePlan !== undefined ? parseNodePlan(normalizedNode, nodePlan) : undefined;
 
     if (parsedPlan === undefined) {
-      const fallbackDesc = fallbackDescs.get(node.nodeId);
+      const fallbackDesc = fallbackDescs.get(normalizedNode.nodeId);
       if (fallbackDesc) {
-        parsedPlan = parseNodePlan(node, { id: node.nodeId, planDescription: fallbackDesc, rddScopeId: undefined });
+        parsedPlan = parseNodePlan(normalizedNode, { id: normalizedNode.nodeId, planDescription: fallbackDesc, rddScopeId: undefined });
       }
     }
 
-    const isCodegenNode = node.nodeName.includes("WholeStageCodegen");
+    const isCodegenNode = normalizedNode.nodeName.includes("WholeStageCodegen");
 
     // Find the Delta Lake scan that matches this node's table location
     // We match by table path and find the scan with the minimum execution ID 
@@ -379,15 +418,16 @@ function calculateSql(
     }
 
     return {
-      ...node,
+      ...normalizedNode,
       rddScopeId: nodePlan?.rddScopeId,
       type: type,
       parsedPlan: parsedPlan,
-      enrichedName: capitalizeWords(nodeEnrichedNameBuilder(node.nodeName, parsedPlan)),
+      enrichedName: capitalizeWords(nodeEnrichedNameBuilder(normalizedNode.nodeName, parsedPlan)),
       isCodegenNode: isCodegenNode,
+      isInstrumented: isInstrumented,
       wholeStageCodegenId: isCodegenNode
         ? extractCodegenId()
-        : node.wholeStageCodegenId,
+        : normalizedNode.wholeStageCodegenId,
       icebergCommit:
         type === "output" || enrichedSql.nodes.length === 1
           ? icebergCommit
@@ -397,7 +437,7 @@ function calculateSql(
 
     function extractCodegenId(): number | undefined {
       return parseInt(
-        node.nodeName
+        normalizedNode.nodeName
           .replace("WholeStageCodegenTransformer (", "")
           .replace("WholeStageCodegen (", "")
           .replace(")", ""),
@@ -608,7 +648,21 @@ export function calculateSqlStore(
       newSql.status === SqlStatus.Completed.valueOf() ||
       newSql.status === SqlStatus.Failed.valueOf()
     ) {
-      updatedSqls.push(calculateSql(newSql, plan, icebergCommit, deltaLakeScans, stages));
+      // If plan data is unavailable (offset advanced past this SQL) but we already
+      // have a fully calculated SQL with parsedPlan, preserve it — just update status/duration.
+      // This prevents losing plan descriptions on repeated polls with the non-paginated SQL API.
+      if (plan === undefined && currentSql.nodes.length > 0 && currentSql.nodes.some(n => n.parsedPlan !== undefined)) {
+        updatedSqls.push({
+          ...currentSql,
+          status: newSql.status,
+          duration: newSql.duration,
+          failedJobIds: newSql.failedJobIds,
+          runningJobIds: newSql.runningJobIds,
+          successJobIds: newSql.successJobIds,
+        });
+      } else {
+        updatedSqls.push(calculateSql(newSql, plan, icebergCommit, deltaLakeScans, stages));
+      }
       // From here newSql.status must be RUNNING
       // case 3: running SQL structure, so we need to update the plan
     } else if (currentSql.originalNumOfNodes !== newSql.nodes.length) {
@@ -651,7 +705,8 @@ export function updateSqlNodeMetrics(
 
     // TODO: cache the graph
     const graph = generateGraph(runningSql.edges, runningSql.nodes);
-    const originalMetrics = matchedMetricsNodes[0].metrics;
+    const originalMetrics = matchedMetricsNodes[0].metrics
+      .filter((m): m is { name: string; value: string } => m.value != null); // Backend sends Option[String] → null in JSON for uninitialized metrics
     const nodeIdFromMetrics = findStageIdFromMetrics(originalMetrics);
     const metrics = updateNodeMetrics(node, originalMetrics, graph, runningSql.nodes);
     // Use original metrics for exchange - shuffle write time is filtered out by allowlist
@@ -674,8 +729,10 @@ export function updateSqlNodeMetrics(
       return node;
     }
 
-    const nodeIdFromMetrics = findStageIdFromMetrics(matchedMetricsNodes[0].metrics);
-    const metrics = calcNodeMetrics(node.type, matchedMetricsNodes[0].metrics);
+    const codegenMetrics = matchedMetricsNodes[0].metrics
+      .filter((m): m is { name: string; value: string } => m.value != null); // Backend sends Option[String] → null in JSON for uninitialized metrics
+    const nodeIdFromMetrics = findStageIdFromMetrics(codegenMetrics);
+    const metrics = calcNodeMetrics(node.type, codegenMetrics);
     const codegenDuration = calcCodegenDuration(metrics);
     return {
       ...node,
@@ -817,18 +874,12 @@ function updateNodeEnrichedName(
 
 const PYTHON_EVAL_NODE_NAMES = new Set([
   "BatchEvalPython",
-  "DataFlintBatchEvalPython",
   "ArrowEvalPython",
-  "DataFlintArrowEvalPython",
   "MapInPandas",
-  "DataFlintMapInPandas",
   "MapInArrow",
   "PythonMapInArrow",
-  "DataFlintMapInArrow",
   "FlatMapGroupsInPandas",
-  "DataFlintFlatMapGroupsInPandas",
   "FlatMapCoGroupsInPandas",
-  "DataFlintFlatMapCoGroupsInPandas",
 ]);
 
 function isPythonEvalNode(nodeName: string): boolean {

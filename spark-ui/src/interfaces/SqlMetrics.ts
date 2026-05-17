@@ -8,5 +8,5 @@ export interface NodeMetrics {
 
 export interface Metric {
   name: string;
-  value: string;
+  value: string | undefined;
 }
