@@ -27,9 +27,9 @@ COPY jars/*.jar /opt/spark/jars/
 # Copy test data
 COPY test_data/ /opt/spark/work-dir/test_data/
 
-# Configure Spark defaults for Comet
-# The --add-opens flags match what Apache Comet documents as required on Java 11+ for its
-# off-heap memory access path (sun.misc.Unsafe, DirectByteBuffer, jdk.internal.misc).
+# Configure Spark defaults for Comet.
+# JVM module-access flags live in the _JAVA_OPTIONS env at the bottom of this Dockerfile;
+# they apply to all JVMs spawned (driver + executors) on Java 11+.
 RUN mkdir -p /opt/spark/conf && \
     echo "spark.plugins=io.dataflint.spark.SparkDataflintPlugin,org.apache.spark.CometPlugin" >> /opt/spark/conf/spark-defaults.conf && \
     echo "spark.shuffle.manager=org.apache.spark.sql.comet.execution.shuffle.CometShuffleManager" >> /opt/spark/conf/spark-defaults.conf && \
@@ -41,9 +41,7 @@ RUN mkdir -p /opt/spark/conf && \
     echo "spark.ui.port=10000" >> /opt/spark/conf/spark-defaults.conf && \
     echo "spark.dataflint.telemetry.enabled=false" >> /opt/spark/conf/spark-defaults.conf && \
     echo "spark.sql.maxMetadataStringLength=10000" >> /opt/spark/conf/spark-defaults.conf && \
-    echo "spark.sql.adaptive.enabled=true" >> /opt/spark/conf/spark-defaults.conf && \
-    echo "spark.driver.extraJavaOptions=--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.misc=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED" >> /opt/spark/conf/spark-defaults.conf && \
-    echo "spark.executor.extraJavaOptions=--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.misc=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED" >> /opt/spark/conf/spark-defaults.conf
+    echo "spark.sql.adaptive.enabled=true" >> /opt/spark/conf/spark-defaults.conf
 
 USER spark
 
@@ -51,7 +49,7 @@ EXPOSE 10000
 
 WORKDIR /opt/spark/work-dir
 
-ENV _JAVA_OPTIONS="--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.misc=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/jdk.internal.misc=ALL-UNNAMED -Dio.netty.tryReflectionSetAccessible=true"
+ENV _JAVA_OPTIONS="--add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/jdk.internal.misc=ALL-UNNAMED -Dio.netty.tryReflectionSetAccessible=true"
 
 # Run the Comet example via spark-submit
 CMD ["/opt/spark/bin/spark-submit", \

@@ -112,16 +112,6 @@ describe("Gluten/Velox Stage Assignment - SQL 4 (Sort by line count)", () => {
 
     const result = calculateSqlStage(sql, stages, jobs as any);
 
-    // Debug: print all node stages
-    for (const node of result.nodes) {
-      const stageInfo = node.stage
-        ? node.stage.type === "onestage"
-          ? `onestage:${node.stage.stageId}`
-          : `exchange:w=${node.stage.writeStage},r=${node.stage.readStage}`
-        : "NONE";
-      console.log(`  Node ${node.nodeId}: ${node.nodeName.padEnd(45)} stage=${stageInfo} wcid=${node.wholeStageCodegenId}`);
-    }
-
     // Pre-shuffle nodes should be in stage 8
     const scanNode = result.nodes.find(n => n.nodeName === "Scan csv");
     expect(scanNode?.stage?.type).toBe("onestage");

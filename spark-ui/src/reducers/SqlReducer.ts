@@ -279,7 +279,9 @@ function buildFallbackPlanDescriptions(
   let currentBody: string[] = [];
 
   for (const line of lines) {
-    const headerMatch = line.match(/^\((\d+)\)\s+(\S+)/);
+    // Capture the rest of the header line, not just the first token, so node names
+    // with spaces match (e.g. "Scan csv", "WholeStageCodegenTransformer (1)").
+    const headerMatch = line.match(/^\((\d+)\)\s+(.+?)\s*$/);
     if (headerMatch) {
       if (currentName !== undefined && currentBody.length > 0) {
         sections.push({ name: currentName, body: currentBody.join(" ") });
@@ -818,8 +820,9 @@ function calcBroadcastExchangeDuration(
   metrics: EnrichedSqlMetric[],
 ): number | undefined {
   if (nodeName === "BroadcastExchange" || nodeName === "ColumnarBroadcastExchange") {
-    const duration = getMetricDuration("time to broadcast", metrics) ?? 0;
-    +(getMetricDuration("time to build", metrics) ?? 0) +
+    const duration =
+      (getMetricDuration("time to broadcast", metrics) ?? 0) +
+      (getMetricDuration("time to build", metrics) ?? 0) +
       (getMetricDuration("time to collect", metrics) ?? 0);
     return duration;
   }
