@@ -101,7 +101,7 @@ object CloudMetadataDetector {
     }
   }
 
-  private def parseJson(json: String): Option[CloudMetadata] = {
+  private[executor] def parseJson(json: String): Option[CloudMetadata] = {
     Try {
       val node = mapper.readTree(json)
       val cloudProvider = Option(node.get("cloudProvider")).map(_.asText()).filter(_.nonEmpty)

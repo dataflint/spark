@@ -23,7 +23,13 @@ class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
     this.sc = sc
     DataflintSparkUICommonLoader.registerInstrumentationExtension(sc)
     val executorMetadataEnabled = DriverMetadataHelper.isExecutorMetadataEnabled(sc)
-    Map("executor.metadata.enabled" -> executorMetadataEnabled.toString).asJava
+    val conf = scala.collection.mutable.Map[String, String](
+      "executor.metadata.enabled" -> executorMetadataEnabled.toString
+    )
+    DriverMetadataHelper.k8sInstanceTypeEnvVar(sc).foreach(v => conf("k8s.instanceType.envVar") = v)
+    DriverMetadataHelper.k8sLifecycleTypeEnvVar(sc).foreach(v => conf("k8s.lifecycleType.envVar") = v)
+    DriverMetadataHelper.k8sCloudProviderEnvVar(sc).foreach(v => conf("k8s.cloudProvider.envVar") = v)
+    conf.toMap.asJava
   }
 
   override def receive(message: Any): String = {

@@ -28,7 +28,12 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
       val totalMemoryBytes = Runtime.getRuntime.maxMemory()
 
       val cloudMetadata = try {
-        CloudMetadataDetector.detect()
+        if (K8sMetadataDetector.isRunningInK8s) {
+          logInfo("Detected Kubernetes environment, reading metadata from configured env vars")
+          K8sMetadataDetector.detect(extraConf)
+        } else {
+          CloudMetadataDetector.detect()
+        }
       } catch {
         case e: Throwable =>
           logWarning("Failed to detect cloud metadata", e)
