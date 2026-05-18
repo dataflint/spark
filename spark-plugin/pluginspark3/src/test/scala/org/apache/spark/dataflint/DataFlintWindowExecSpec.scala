@@ -51,7 +51,7 @@ class DataFlintWindowExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
   }
 
   // With AQE, executedPlan is AdaptiveSparkPlanExec. After collect(), finalPhysicalPlan holds
-  // the fully optimised plan. TimedExec is injected by the ColumnarRule (preColumnarTransitions),
+  // the fully optimised plan. TimedExec is injected by the ColumnarRule (postColumnarTransitions),
   // so it only appears after execution (in finalPhysicalPlan), not in sparkPlan.
   private def finalPlan(df: DataFrame) = df.queryExecution.executedPlan match {
     case aqe: AdaptiveSparkPlanExec => aqe.finalPhysicalPlan

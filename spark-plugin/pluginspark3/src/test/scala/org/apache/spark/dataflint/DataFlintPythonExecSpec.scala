@@ -54,7 +54,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_MAP_PANDAS_ITER_UDF)
     val original = MapInPandasExec(udf, Seq.empty, emptyChild, false)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original)
+    val result = rule.postColumnarTransitions(original)
     result shouldBe a[TimedExec]
     result.asInstanceOf[TimedExec].child shouldBe a[MapInPandasExec]
   }
@@ -63,7 +63,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_MAP_PANDAS_ITER_UDF)
     val original = MapInPandasExec(udf, Seq.empty, emptyChild, false)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
+    val result = rule.postColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 
@@ -73,7 +73,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_MAP_ARROW_ITER_UDF)
     val original = PythonMapInArrowExec(udf, Seq.empty, emptyChild, false)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original)
+    val result = rule.postColumnarTransitions(original)
     result shouldBe a[TimedExec]
     result.asInstanceOf[TimedExec].child shouldBe a[PythonMapInArrowExec]
   }
@@ -82,7 +82,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_MAP_ARROW_ITER_UDF)
     val original = PythonMapInArrowExec(udf, Seq.empty, emptyChild, false)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
+    val result = rule.postColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 
@@ -92,7 +92,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_SCALAR_PANDAS_UDF)
     val original = ArrowEvalPythonExec(Seq(udf), Seq.empty, emptyChild, PythonEvalType.SQL_SCALAR_PANDAS_UDF)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original)
+    val result = rule.postColumnarTransitions(original)
     result shouldBe a[TimedExec]
     result.asInstanceOf[TimedExec].child shouldBe a[ArrowEvalPythonExec]
   }
@@ -101,7 +101,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_SCALAR_PANDAS_UDF)
     val original = ArrowEvalPythonExec(Seq(udf), Seq.empty, emptyChild, PythonEvalType.SQL_SCALAR_PANDAS_UDF)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
+    val result = rule.postColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 
@@ -111,7 +111,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_GROUPED_MAP_PANDAS_UDF)
     val original = FlatMapGroupsInPandasExec(Seq.empty, udf, Seq.empty, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original)
+    val result = rule.postColumnarTransitions(original)
     result shouldBe a[TimedExec]
     result.asInstanceOf[TimedExec].child shouldBe a[FlatMapGroupsInPandasExec]
   }
@@ -120,7 +120,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_GROUPED_MAP_PANDAS_UDF)
     val original = FlatMapGroupsInPandasExec(Seq.empty, udf, Seq.empty, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
+    val result = rule.postColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 
@@ -130,7 +130,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_BATCHED_UDF)
     val original = BatchEvalPythonExec(Seq(udf), Seq.empty, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original)
+    val result = rule.postColumnarTransitions(original)
     result shouldBe a[TimedExec]
     result.asInstanceOf[TimedExec].child shouldBe a[BatchEvalPythonExec]
   }
@@ -139,7 +139,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_BATCHED_UDF)
     val original = BatchEvalPythonExec(Seq(udf), Seq.empty, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
+    val result = rule.postColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 
@@ -149,7 +149,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_COGROUPED_MAP_PANDAS_UDF)
     val original = FlatMapCoGroupsInPandasExec(Seq.empty, Seq.empty, udf, Seq.empty, emptyChild, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original)
+    val result = rule.postColumnarTransitions(original)
     result shouldBe a[TimedExec]
     result.asInstanceOf[TimedExec].child shouldBe a[FlatMapCoGroupsInPandasExec]
   }
@@ -158,7 +158,7 @@ class DataFlintPythonExecSpec extends AnyFunSuite with Matchers with BeforeAndAf
     val udf = fakePythonUDF(PythonEvalType.SQL_COGROUPED_MAP_PANDAS_UDF)
     val original = FlatMapCoGroupsInPandasExec(Seq.empty, Seq.empty, udf, Seq.empty, emptyChild, emptyChild)
     val rule = DataFlintInstrumentationColumnarRule(spark)
-    val result = rule.preColumnarTransitions(original).asInstanceOf[TimedExec]
+    val result = rule.postColumnarTransitions(original).asInstanceOf[TimedExec]
     result.metrics should contain key "duration"
   }
 }
