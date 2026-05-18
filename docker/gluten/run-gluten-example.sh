@@ -110,7 +110,7 @@ cp "$PLUGIN_JAR" "$JARS_DIR/dataflint-plugin.jar"
 echo "Copied DataFlint plugin: $(basename "$PLUGIN_JAR")"
 
 # Example jar
-EXAMPLE_JAR=$(find "$PROJECT_ROOT/spark-plugin/example_3_5_1/target/scala-${SCALA_VERSION}" -iname "dataflintsparkexample351_${SCALA_VERSION}-*.jar" -type f | head -1)
+EXAMPLE_JAR=$(ls -t "$PROJECT_ROOT/spark-plugin/example_3_5_1/target/scala-${SCALA_VERSION}"/dataflintsparkexample351_${SCALA_VERSION}-*.jar 2>/dev/null | head -1)
 if [ -z "$EXAMPLE_JAR" ]; then
   echo "ERROR: Example jar not found. Run without --skip-build first."
   exit 1
