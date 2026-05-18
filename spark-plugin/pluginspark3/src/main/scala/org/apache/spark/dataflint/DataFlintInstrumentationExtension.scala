@@ -56,7 +56,7 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
       "WindowExec",
       "WindowInPandasExec"
     ) ++ sqlNodes
-    if (globalEnabled) all
+    val base = if (globalEnabled) all
     else {
       (if (conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_SQL_NODES_ENABLED, false))         sqlNodes                                          else Set.empty[String]) ++
       (if (conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED, false))     Set("BatchEvalPythonExec")                    else Set.empty[String]) ++
@@ -67,6 +67,25 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
       (if (conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED, false)) Set("FlatMapCoGroupsInPandasExec")         else Set.empty[String]) ++
       (if (conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_WINDOW_ENABLED, false))                Set("WindowExec", "WindowInPandasExec")       else Set.empty[String])
     }
+    // Native-acceleration compatibility: TimedExec uses transparent children on Spark 3.2+
+    // (children = child.children) so the wrapped operator is hidden from any other rule's
+    // plan-transform traversal. Each native accelerator (Gluten/Velox, Comet/DataFusion,
+    // RAPIDS GPU, Photon) replaces Spark physical operators with its own variants; wrapping
+    // those operators with TimedExec hides them and the accelerator silently falls back to
+    // the JVM path. For every active accelerator, drop its transformable operators from
+    // the wrap set. Python UDFs and DataWritingCommandExec are never claimed by these
+    // accelerators, so they stay wrappable.
+    val active = Accelerator.active
+    if (active.nonEmpty) {
+      val transformable: Set[String] = active.flatMap(_.transformableExecs).toSet
+      val dropped = base intersect transformable
+      if (dropped.nonEmpty) {
+        logInfo(
+          s"DataFlint: ${active.map(_.name).mkString(", ")} detected — skipping instrumentation " +
+            s"for nodes the accelerator will transform: ${dropped.toSeq.sorted.mkString(", ")}")
+      }
+      base -- transformable
+    } else base
   }
 
   override def preColumnarTransitions: Rule[SparkPlan] = { plan =>
@@ -79,3 +98,4 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
     }
   }
 }
+

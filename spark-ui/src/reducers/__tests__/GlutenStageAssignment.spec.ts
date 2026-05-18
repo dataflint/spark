@@ -115,9 +115,9 @@ describe("Gluten/Velox Stage Assignment - SQL 4 (Sort by line count)", () => {
     // Debug: print all node stages
     for (const node of result.nodes) {
       const stageInfo = node.stage
-        ? node.stage.type === "onestage" ? `onestage:${(node.stage as any).stageId}` 
-          : node.stage.type === "exchange" ? `exchange:w=${(node.stage as any).writeStage},r=${(node.stage as any).readStage}` 
-          : `${node.stage.type}`
+        ? node.stage.type === "onestage"
+          ? `onestage:${node.stage.stageId}`
+          : `exchange:w=${node.stage.writeStage},r=${node.stage.readStage}`
         : "NONE";
       console.log(`  Node ${node.nodeId}: ${node.nodeName.padEnd(45)} stage=${stageInfo} wcid=${node.wholeStageCodegenId}`);
     }
