@@ -21,21 +21,47 @@ class DataFlintInstrumentationExtension extends (SparkSessionExtensions => Unit)
 
 /**
  * A ColumnarRule that wraps instrumented physical plan nodes with TimedExec to add a `duration`
- * metric. Runs in preColumnarTransitions so it sees the fully-planned physical tree.
+ * metric.
  *
- * Exchange nodes (ShuffleExchangeExec, BroadcastExchangeExec) are never wrapped.
+ * ## Why postColumnarTransitions, not pre
  *
- * Version-specific class names (e.g. PythonMapInArrowExec, added in Spark 3.3) are matched by
- * simple class name string to avoid NoClassDefFoundError on Spark 3.0/3.1 at load time.
+ * Native accelerators (Gluten/Velox, Comet, RAPIDS, Photon) replace Spark operators with their
+ * own variants via `injectColumnar`. TimedExec is transparent on Spark 3.2+
+ * (`children = child.children`), which hides the wrapped operator from any other rule's plan
+ * traversal — so wrapping `FilterExec` in `preColumnarTransitions` makes the accelerator's
+ * transformation rule walk past it and the plan silently falls back to the Spark JVM path.
  *
- * The !isInstanceOf[TimedExec] guard on the child makes the rule idempotent — safe to re-run
- * under AQE prepareForExecution.
+ * `ApplyColumnarRulesAndInsertTransitions.apply` (Spark `Columnar.scala`) applies `pre` rules
+ * in registration order then `post` rules in **reverse** registration order:
+ *
+ * {{{
+ *   columnarRules.foreach(r => plan = r.preColumnarTransitions(plan))
+ *   plan = insertTransitions(plan)
+ *   columnarRules.reverse.foreach(r => plan = r.postColumnarTransitions(plan))
+ * }}}
+ *
+ * Since the DataFlint plugin's `init()` runs first (it auto-registers this extension before
+ * the accelerator's plugin appends its own), DataFlint sits at index 0 in `columnarRules` and
+ * therefore runs **last** in post. By that point every accelerator has already substituted
+ * its `*ExecTransformer` / `Comet*` / `Gpu*` / `Photon*` variants in `pre`, so the Spark
+ * class names in `enabledNodeNames` only match operators no accelerator claimed (writes,
+ * Python UDFs, fallback ops) — exactly what we want to instrument.
+ *
+ * ## Idempotence
+ *
+ * AQE re-runs `prepareForExecution` for each new query stage, so this rule may run more than
+ * once over the same subtree. The `!isInstanceOf[TimedExec]` guard makes re-application a
+ * no-op.
+ *
+ * ## Spark 3.0/3.1
+ *
+ * Version-specific class names (e.g. `PythonMapInArrowExec`, added in Spark 3.3) are matched
+ * by simple class name string to avoid NoClassDefFoundError at load time.
  */
 case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends ColumnarRule with Logging {
 
-  // Eagerly compute the set of node simple-class-names to wrap, respecting per-type flags.
-  // When the global flag is on everything is enabled; otherwise only nodes whose specific
-  // flag is enabled are included.
+  // Set of physical operator simple class names this rule will wrap with TimedExec.
+  // Respects the per-feature flags; the global INSTRUMENT_SPARK_ENABLED implies all.
   private val enabledNodeNames: Set[String] = {
     val conf = session.sparkContext.conf
     val globalEnabled = conf.getBoolean(DataflintSparkUICommonLoader.INSTRUMENT_SPARK_ENABLED, defaultValue = false)
@@ -69,7 +95,17 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
     }
   }
 
-  override def preColumnarTransitions: Rule[SparkPlan] = { plan =>
+  // Surface detected accelerators in logs so users know the coexistence path is engaged.
+  if (enabledNodeNames.nonEmpty) {
+    val active = Accelerator.active
+    if (active.nonEmpty) {
+      logInfo(
+        s"DataFlint: native accelerator(s) detected — ${active.map(_.name).mkString(", ")}. " +
+          "DataFlint runs in postColumnarTransitions and only wraps operators no accelerator transformed.")
+    }
+  }
+
+  override def postColumnarTransitions: Rule[SparkPlan] = { plan =>
     if (enabledNodeNames.isEmpty) plan
     else plan.transformUp {
       case node if enabledNodeNames.contains(node.getClass.getSimpleName)
@@ -79,3 +115,4 @@ case class DataFlintInstrumentationColumnarRule(session: SparkSession) extends C
     }
   }
 }
+

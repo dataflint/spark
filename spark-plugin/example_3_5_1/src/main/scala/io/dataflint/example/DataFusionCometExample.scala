@@ -19,9 +19,12 @@ object DataFusionCometExample extends App {
     .config("spark.shuffle.manager", "org.apache.spark.sql.comet.execution.shuffle.CometShuffleManager")
     .config("spark.comet.explainFallback.enabled", "true")
     .config("spark.memory.offHeap.enabled", "true")
-    .config("spark.memory.offHeap.size", "16g")
+    .config("spark.memory.offHeap.size", "4g")
     .config("spark.ui.port", "10000")
+    .config("spark.eventLog.enabled", "true")
+    .config("spark.eventLog.dir", "/tmp/spark-events")
     .config("spark.dataflint.telemetry.enabled", value = false)
+    .config("spark.dataflint.instrument.spark.enabled", value = true)
     .config("spark.sql.maxMetadataStringLength", "10000")
     .master("local[*]")
     .getOrCreate()
@@ -43,8 +46,9 @@ object DataFusionCometExample extends App {
   println(s"number of unique words : $uniqueWords")
 
 
-  spark.read.load("/Users/menishmueli/Documents/GitHub/spark-sql-perf/data/store_sales").filter($"ss_quantity" > 1).count()
+//  spark.read.load("/Users/menishmueli/Documents/GitHub/spark-sql-perf/data/store_sales").filter($"ss_quantity" > 1).count()
 
-  scala.io.StdIn.readLine()
-  spark.stop()
+  println("DataFusionCometExample completed. Spark UI available at http://localhost:10000")
+  println("Press Ctrl+C to stop.")
+  Thread.sleep(Long.MaxValue)
 }

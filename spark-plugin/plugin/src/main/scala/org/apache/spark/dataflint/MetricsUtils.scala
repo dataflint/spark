@@ -39,7 +39,11 @@ object MetricsUtils {
   def getSizeMetric(name: String)(implicit sparkContext: SparkContext): (String, SQLMetric) = {
     name -> {
       try {
-        SQLMetrics.createSizeMetric(sparkContext, name)
+        // Pass initValue explicitly to avoid emitting a `createSizeMetric$default$3()`
+        // bytecode call. Databricks Runtime 17.x rewrites SQLMetrics with explicit
+        // overloads instead of Scala default args, so the $default$3 helper is missing
+        // and the call would NoSuchMethodError before ever reaching createSizeMetric.
+        SQLMetrics.createSizeMetric(sparkContext, name, -1L)
       } catch {
         case _: NoSuchMethodError =>
           try {
@@ -77,6 +81,14 @@ object MetricsUtils {
   }
 
   /**
+   * Create a plain sum metric (displayed as a raw number in Spark UI). Useful for
+   * non-byte numeric values like the RDD id, where "size" formatting (B/KB/MB) would
+   * mis-display the value.
+   */
+  def getSumMetric(name: String)(implicit sparkContext: SparkContext): (String, SQLMetric) =
+    name -> SQLMetrics.createMetric(sparkContext, name)
+
+  /**
    * Create a "timing" metric (displayed as milliseconds with total/min/med/max in Spark UI).
    * Used by TimedExec for the "duration" metric.
    * Same fallback chain as getSizeMetric for cross-version compatibility.
@@ -84,7 +96,9 @@ object MetricsUtils {
   def getTimingMetric(name: String)(implicit sparkContext: SparkContext): (String, SQLMetric) = {
     name -> {
       try {
-        SQLMetrics.createTimingMetric(sparkContext, name)
+        // See note on getSizeMetric: pass initValue explicitly so the bytecode skips
+        // the missing `createTimingMetric$default$3()` helper on Databricks runtimes.
+        SQLMetrics.createTimingMetric(sparkContext, name, -1L)
       } catch {
         case _: NoSuchMethodError =>
           try {

@@ -3,8 +3,8 @@ import { bracedSplit, hashNumbersRemover, onlyUnique } from "./PlanParserUtils";
 
 export function parseHashAggregate(input: string): ParsedHashAggregatePlan {
   const cleanInput = hashNumbersRemover(input);
-  const keysMatch = cleanInput.match(/keys=\[([^\]]+)\]/);
-  const functionsMatch = cleanInput.match(/functions=\[([^\]]+)\]/);
+  const keysMatch = cleanInput.match(/keys=\[([^\]]+)\]/) ?? cleanInput.match(/Keys:\s*\[([^\]]+)\]/);
+  const functionsMatch = cleanInput.match(/functions=\[([^\]]+)\]/) ?? cleanInput.match(/Functions\s*\[\d+\]:\s*\[([^\]]+)\]/);
 
   let keys: string[] = [];
   let functions: string[] = [];

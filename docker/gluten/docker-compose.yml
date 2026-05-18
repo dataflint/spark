@@ -1,0 +1,16 @@
+services:
+  spark-gluten-example:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SPARK_VERSION: ${SPARK_VERSION:-3.5.7}
+    image: dataflint-gluten-example:${SPARK_VERSION:-3.5.7}
+    container_name: dataflint-gluten-example
+    ports:
+      - "${SPARK_UI_PORT:-10000}:10000"
+    volumes:
+      - ${SPARK_EVENTS_DIR:-./spark-events}:/tmp/spark-events
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+    restart: "no"

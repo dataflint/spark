@@ -11,6 +11,7 @@ export function parseFilter(input: string): ParseFilterPlan {
   filterStr = removeFromStart(filterStr, "PhotonFilter ");
   filterStr = removeFromStart(filterStr, "GpuFilter ");
   filterStr = removeFromStart(filterStr, "CometFilter ");
+  filterStr = removeFromStart(filterStr, "FilterExecTransformer ");
 
   if (filterStr.startsWith("(")) {
     filterStr = removeFromStart(filterStr, "(");

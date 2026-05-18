@@ -50,11 +50,32 @@ const BLOCKING_NODES = new Set([
   "MapInPandas", "MapInArrow", "PythonMapInArrow",
   "FlatMapGroupsInPandas", "FlatMapCoGroupsInPandas",
   "WindowInPandas", "ArrowWindowPython",
+  // Gluten/Velox native operators
+  "SortExecTransformer",
+  "FlushableHashAggregateExecTransformer", "RegularHashAggregateExecTransformer",
+  "SortMergeJoinExecTransformer", "ShuffledHashJoinExecTransformer",
+  "BroadcastHashJoinExecTransformer", "CartesianProductExecTransformer",
+  // Comet (DataFusion)
+  "CometSort", "CometHashAggregate",
+  "CometSortMergeJoin", "CometHashJoin", "CometBroadcastHashJoin",
+  // RAPIDS (GPU)
+  "GpuSort", "GpuHashAggregate",
+  "GpuShuffledSymmetricHashJoin", "GpuBroadcastHashJoin", "GpuBroadcastNestedLoopJoin",
+  // Photon (Databricks)
+  "PhotonGroupingAgg",
 ]);
 
 const EXCHANGE_NAMES = new Set([
   "Exchange", "BroadcastExchange",
   "ShuffleQueryStage", "BroadcastQueryStage", "ResultQueryStage",
+  // Gluten/Velox
+  "ColumnarExchange", "ColumnarBroadcastExchange",
+  // Comet (DataFusion)
+  "CometExchange", "CometColumnarExchange",
+  // RAPIDS (GPU)
+  "GpuColumnarExchange", "GpuBroadcastExchange",
+  // Photon (Databricks)
+  "PhotonShuffleExchangeSink", "PhotonShuffleExchangeSource", "PhotonBroadcastExchange",
 ]);
 
 const NATIVE_EXCLUSIVE_METRICS: Record<string, string> = {

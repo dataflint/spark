@@ -47,7 +47,7 @@ function parseDeltaOptimizeWrite(input: string): DeltaOptimizeWrite | undefined 
 }
 
 export function parseExchange(input: string): ParsedExchangePlan {
-  const typeRegex = /Exchange (\w+)/;
+  const typeRegex = /(?:Columnar)?(?:Broadcast)?Exchange (\w+)/;
   const typeMatch = input.match(typeRegex);
   const type = typeMatch ? typeMatch[1] : "";
 
