@@ -25,19 +25,20 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
       val osArch = System.getProperty("os.arch", "unknown")
       val jvmVersion = System.getProperty("java.version", "unknown")
       val availableProcessors = Runtime.getRuntime.availableProcessors()
-      val totalMemoryBytes = Runtime.getRuntime.maxMemory()
+      val executorJvmMaxHeapBytes = Runtime.getRuntime.maxMemory()
 
-      val cloudMetadata = try {
-        if (K8sMetadataDetector.isRunningInK8s) {
+      val (cloudMetadata, cloudError) = try {
+        val md = if (K8sMetadataDetector.isRunningInK8s) {
           logInfo("Detected Kubernetes environment, reading metadata from configured env vars")
           K8sMetadataDetector.detect(extraConf)
         } else {
           CloudMetadataDetector.detect()
         }
+        (md, None)
       } catch {
         case e: Throwable =>
           logWarning("Failed to detect cloud metadata", e)
-          CloudMetadataDetector.CloudMetadata(None, None, None)
+          (CloudMetadataDetector.CloudMetadata(None, None, None), Some(s"cloud metadata detection failed: ${e.getMessage}"))
       }
 
       val message = ExecutorMetadataMessage(
@@ -50,8 +51,8 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
         osArch = osArch,
         jvmVersion = jvmVersion,
         availableProcessors = availableProcessors,
-        totalMemoryBytes = totalMemoryBytes,
-        collectionError = None
+        executorJvmMaxHeapBytes = executorJvmMaxHeapBytes,
+        collectionError = cloudError
       )
       ctx.send(message)
       logInfo(s"Sent executor metadata: provider=${cloudMetadata.cloudProvider}, " +
@@ -70,7 +71,7 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
             osArch = System.getProperty("os.arch", "unknown"),
             jvmVersion = System.getProperty("java.version", "unknown"),
             availableProcessors = Runtime.getRuntime.availableProcessors(),
-            totalMemoryBytes = Runtime.getRuntime.maxMemory(),
+            executorJvmMaxHeapBytes = Runtime.getRuntime.maxMemory(),
             collectionError = Some(e.getMessage)
           ))
         } catch {

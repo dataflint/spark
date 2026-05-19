@@ -16,7 +16,9 @@ object CloudMetadataDetector {
     lifecycleType: Option[String]
   )
 
-  private val COMMAND_TIMEOUT_MS = 5000L
+  // AWS detection makes up to 3 curl calls (token + instance-type + lifecycle), each with --max-time 2s,
+  // so worst case is ~6s. Keep a safety margin above that.
+  private val COMMAND_TIMEOUT_MS = 10000L
 
   private val SYS_VENDOR_PATH = "/sys/class/dmi/id/sys_vendor"
 

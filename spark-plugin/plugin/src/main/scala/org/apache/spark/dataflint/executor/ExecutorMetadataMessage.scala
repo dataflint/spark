@@ -10,6 +10,6 @@ case class ExecutorMetadataMessage(
   osArch: String,
   jvmVersion: String,
   availableProcessors: Int,
-  totalMemoryBytes: Long,
+  executorJvmMaxHeapBytes: Long,
   collectionError: Option[String]
 ) extends java.io.Serializable

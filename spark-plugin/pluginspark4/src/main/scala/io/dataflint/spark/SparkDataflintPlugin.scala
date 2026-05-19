@@ -46,7 +46,7 @@ class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
             osArch = msg.osArch,
             jvmVersion = msg.jvmVersion,
             availableProcessors = msg.availableProcessors,
-            totalMemoryBytes = msg.totalMemoryBytes,
+            executorJvmMaxHeapBytes = msg.executorJvmMaxHeapBytes,
             collectionError = msg.collectionError
           )
           DriverMetadataHelper.postExecutorMetadataEvent(sc, info)

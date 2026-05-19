@@ -102,7 +102,7 @@ case class DataflintExecutorMetadataInfo(
   osArch: String,
   jvmVersion: String,
   availableProcessors: Int,
-  totalMemoryBytes: Long,
+  executorJvmMaxHeapBytes: Long,
   collectionError: Option[String]
 )
 
