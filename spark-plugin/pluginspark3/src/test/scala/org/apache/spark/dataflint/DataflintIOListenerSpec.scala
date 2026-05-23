@@ -6,10 +6,8 @@ import org.apache.spark.dataflint.listener.{DataflintIOEvent, DataflintIOInfo, D
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
 import org.apache.spark.sql.SparkSession
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.concurrent.Eventually
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{Seconds, Span}
 
 /**
  * Integration test: enable DataflintIOListener via spark.sql.queryExecutionListeners,
@@ -17,7 +15,7 @@ import org.scalatest.time.{Seconds, Span}
  * captured the FULL path — i.e. nothing got cut by Spark's maxToStringFields-driven
  * plan description truncation.
  */
-class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll with Eventually {
+class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll {
 
   private var spark: SparkSession = _
   private val captured = new CopyOnWriteArrayList[DataflintIOInfo]()
@@ -55,6 +53,14 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
     f.delete()
   }
 
+  /** Drain the async listener bus so any pending DataflintIOEvent is delivered to the collector. */
+  private def drain(): Unit = {
+    spark.sparkContext.listenerBus.waitUntilEmpty(10000)
+  }
+
+  private def find(op: String): Option[DataflintIOInfo] =
+    (0 until captured.size()).map(captured.get).find(_.targets.exists(_.operation == op))
+
   test("captures full write path through InsertIntoHadoopFsRelationCommand without truncation") {
     val baseDir = java.nio.file.Files.createTempDirectory("dataflint-io").toFile
     // Deliberately deep+long path so it would be truncated in plan descriptions.
@@ -71,10 +77,9 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
       Seq(("a", 1), ("b", 2)).toDF("key", "value")
         .write.mode("overwrite").parquet(deepPath.getAbsolutePath)
 
-      val writeInfo = eventually(timeout(Span(10, Seconds))) {
-        val w = (0 until captured.size()).map(captured.get).find(_.targets.exists(_.operation == "write"))
-        w.getOrElse(fail(s"No write event captured. Got ${captured.size()} events."))
-      }
+      drain()
+      val writeInfo = find("write")
+        .getOrElse(fail(s"No write event captured. Got ${captured.size()} events."))
 
       val writeTarget = writeInfo.targets.find(_.operation == "write").get
       writeTarget.paths should have size 1
@@ -86,10 +91,8 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
       // Now read it back and verify the read target carries the full path too.
       spark.read.parquet(deepPath.getAbsolutePath).collect()
 
-      val readInfo = eventually(timeout(Span(10, Seconds))) {
-        val r = (0 until captured.size()).map(captured.get).find(_.targets.exists(_.operation == "read"))
-        r.getOrElse(fail("No read event captured."))
-      }
+      drain()
+      val readInfo = find("read").getOrElse(fail("No read event captured."))
       val readTarget = readInfo.targets.find(_.operation == "read").get
       readTarget.paths.exists(p => p.contains(deepPath.getName) && !p.endsWith("...")) shouldBe true
     } finally {
