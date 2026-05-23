@@ -79,10 +79,10 @@ class DataflintPlanTranslationListenerSpec extends AnyFunSuite with Matchers wit
     // At least one translation should cover the Project carrying our columns:
     // the full form contains the last column name; the truncated one does not.
     val lastCol = columnNames.last
-    val projection = info.translations.find { t =>
+    val projectionTranslation = info.translations.find { t =>
       t.fullDescription.contains(lastCol) && !t.truncatedDescription.contains(lastCol)
     }
-    projection.getOrElse(
+    projectionTranslation.getOrElse(
       fail(s"No translation contains the last column name '$lastCol' only in the full form.\n" +
         info.translations.map(t => s"  ${t.nodeName}: trunc=${t.truncatedDescription.take(80)}... full=${t.fullDescription.take(80)}...").mkString("\n"))
     )
