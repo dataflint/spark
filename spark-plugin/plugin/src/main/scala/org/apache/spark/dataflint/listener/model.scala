@@ -119,3 +119,27 @@ class DataflintIOInfoWrapper(val info: DataflintIOInfo) {
   @JsonIgnore
   def id: String = info.executionId.toString
 }
+
+// Per-node "untruncated rendering" for plan nodes whose simpleString got cut
+// by SQLConf.maxToStringFields. The truncatedDescription matches the string
+// SparkPlanGraph carries on its node, so a consumer can look up the translation
+// by description equality and/or by nodeIndex (pre-order position).
+case class DataflintPlanNodeTranslation(
+                                         nodeIndex: Int,
+                                         nodeName: String,
+                                         truncatedDescription: String,
+                                         fullDescription: String
+                                       )
+
+case class DataflintPlanTranslationsInfo(
+                                          executionId: Long,
+                                          translations: Seq[DataflintPlanNodeTranslation]
+                                        )
+
+case class DataflintPlanTranslationsEvent(info: DataflintPlanTranslationsInfo) extends SparkListenerEvent
+
+class DataflintPlanTranslationsInfoWrapper(val info: DataflintPlanTranslationsInfo) {
+  @KVIndex
+  @JsonIgnore
+  def id: String = info.executionId.toString
+}

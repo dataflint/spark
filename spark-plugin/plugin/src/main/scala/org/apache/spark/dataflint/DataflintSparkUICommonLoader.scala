@@ -57,6 +57,10 @@ class DataflintSparkUICommonInstaller extends Logging {
     if (ioTrackingEnabled) {
       DataflintSparkUICommonLoader.registerIOListener(context)
     }
+    val planTranslationEnabled = context.conf.getBoolean(DataflintSparkUICommonLoader.PLAN_TRANSLATION_ENABLED, defaultValue = false)
+    if (planTranslationEnabled) {
+      DataflintSparkUICommonLoader.registerPlanTranslationListener(context)
+    }
     if(icebergInstalled && icebergEnabled) {
       if(icebergAuthCatalogDiscovery && isMetricLoaderInRightClassLoader()) {
         context.conf.getAll.filter(_._1.startsWith("spark.sql.catalog")).filter(keyValue => keyValue._2 == "org.apache.iceberg.spark.SparkCatalog" || keyValue._2 == "org.apache.iceberg.spark.SparkSessionCatalog").foreach(keyValue => {
@@ -140,7 +144,9 @@ object DataflintSparkUICommonLoader extends Logging {
 
   private val DATAFLINT_EXTENSION_CLASS = "org.apache.spark.dataflint.DataFlintInstrumentationExtension"
   private val DATAFLINT_IO_LISTENER_CLASS = "org.apache.spark.dataflint.listener.DataflintIOListener"
+  private val DATAFLINT_PLAN_TRANSLATION_LISTENER_CLASS = "org.apache.spark.dataflint.listener.DataflintPlanTranslationListener"
   val IO_TRACKING_ENABLED = "spark.dataflint.io.tracking.enabled"
+  val PLAN_TRANSLATION_ENABLED = "spark.dataflint.plan.translation.enabled"
   val INSTRUMENT_SPARK_ENABLED = "spark.dataflint.instrument.spark.enabled"
   val INSTRUMENT_MAP_IN_PANDAS_ENABLED = "spark.dataflint.instrument.spark.mapInPandas.enabled"
   val INSTRUMENT_MAP_IN_ARROW_ENABLED = "spark.dataflint.instrument.spark.mapInArrow.enabled"
@@ -222,20 +228,30 @@ object DataflintSparkUICommonLoader extends Logging {
    * This is in the org.apache.spark.dataflint package to access SparkContext.conf
    * (which is private[spark]).
    */
-  def registerIOListener(sc: SparkContext): Unit = {
+  def registerIOListener(sc: SparkContext): Unit =
+    appendQueryExecutionListener(sc, DATAFLINT_IO_LISTENER_CLASS, "DataflintIOListener")
+
+  /**
+   * Append [[org.apache.spark.dataflint.listener.DataflintPlanTranslationListener]]
+   * to `spark.sql.queryExecutionListeners`. Captures full simpleString rendering
+   * for any plan node whose description got cut by SQLConf.maxToStringFields.
+   */
+  def registerPlanTranslationListener(sc: SparkContext): Unit =
+    appendQueryExecutionListener(sc, DATAFLINT_PLAN_TRANSLATION_LISTENER_CLASS, "DataflintPlanTranslationListener")
+
+  private def appendQueryExecutionListener(sc: SparkContext, className: String, displayName: String): Unit = {
     try {
       val current = sc.conf.get("spark.sql.queryExecutionListeners", "")
-      if (current.contains(DATAFLINT_IO_LISTENER_CLASS)) {
-        logInfo("DataflintIOListener already registered in spark.sql.queryExecutionListeners")
+      if (current.contains(className)) {
+        logInfo(s"$displayName already registered in spark.sql.queryExecutionListeners")
       } else {
-        val updated = if (current.isEmpty) DATAFLINT_IO_LISTENER_CLASS
-                      else s"$current,$DATAFLINT_IO_LISTENER_CLASS"
+        val updated = if (current.isEmpty) className else s"$current,$className"
         sc.conf.set("spark.sql.queryExecutionListeners", updated)
-        logInfo("Registered DataflintIOListener in spark.sql.queryExecutionListeners")
+        logInfo(s"Registered $displayName in spark.sql.queryExecutionListeners")
       }
     } catch {
       case e: Throwable =>
-        logWarning("Could not register DataflintIOListener", e)
+        logWarning(s"Could not register $displayName", e)
     }
   }
 }
