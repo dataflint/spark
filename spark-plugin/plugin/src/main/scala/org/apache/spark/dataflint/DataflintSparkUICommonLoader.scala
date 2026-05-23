@@ -53,6 +53,10 @@ class DataflintSparkUICommonInstaller extends Logging {
     val deltaLakeCacheZindexFieldsToProperties = context.conf.getBoolean("spark.dataflint.instrument.deltalake.cacheZindexFieldsToProperties", defaultValue = true)
     val deltaLakeHistoryLimit = context.conf.getInt("spark.dataflint.instrument.deltalake.historyLimit", defaultValue = 1000)
     val icebergAuthCatalogDiscovery = context.conf.getBoolean("spark.dataflint.iceberg.autoCatalogDiscovery", defaultValue = false)
+    val ioTrackingEnabled = context.conf.getBoolean(DataflintSparkUICommonLoader.IO_TRACKING_ENABLED, defaultValue = false)
+    if (ioTrackingEnabled) {
+      DataflintSparkUICommonLoader.registerIOListener(context)
+    }
     if(icebergInstalled && icebergEnabled) {
       if(icebergAuthCatalogDiscovery && isMetricLoaderInRightClassLoader()) {
         context.conf.getAll.filter(_._1.startsWith("spark.sql.catalog")).filter(keyValue => keyValue._2 == "org.apache.iceberg.spark.SparkCatalog" || keyValue._2 == "org.apache.iceberg.spark.SparkSessionCatalog").foreach(keyValue => {
@@ -135,6 +139,8 @@ class DataflintSparkUICommonInstaller extends Logging {
 object DataflintSparkUICommonLoader extends Logging {
 
   private val DATAFLINT_EXTENSION_CLASS = "org.apache.spark.dataflint.DataFlintInstrumentationExtension"
+  private val DATAFLINT_IO_LISTENER_CLASS = "org.apache.spark.dataflint.listener.DataflintIOListener"
+  val IO_TRACKING_ENABLED = "spark.dataflint.io.tracking.enabled"
   val INSTRUMENT_SPARK_ENABLED = "spark.dataflint.instrument.spark.enabled"
   val INSTRUMENT_MAP_IN_PANDAS_ENABLED = "spark.dataflint.instrument.spark.mapInPandas.enabled"
   val INSTRUMENT_MAP_IN_ARROW_ENABLED = "spark.dataflint.instrument.spark.mapInArrow.enabled"
@@ -203,6 +209,33 @@ object DataflintSparkUICommonLoader extends Logging {
     } catch {
       case e: Throwable =>
         logWarning("Could not register DataFlint instrumentation extension", e)
+    }
+  }
+
+  /**
+   * Append [[org.apache.spark.dataflint.listener.DataflintIOListener]] to
+   * `spark.sql.queryExecutionListeners` so Spark instantiates it when the
+   * SparkSession is built. The listener captures full read/write/save paths
+   * and table identifiers from the typed analyzed plan (bypassing
+   * SQLConf.maxToStringFields truncation of plan descriptions).
+   *
+   * This is in the org.apache.spark.dataflint package to access SparkContext.conf
+   * (which is private[spark]).
+   */
+  def registerIOListener(sc: SparkContext): Unit = {
+    try {
+      val current = sc.conf.get("spark.sql.queryExecutionListeners", "")
+      if (current.contains(DATAFLINT_IO_LISTENER_CLASS)) {
+        logInfo("DataflintIOListener already registered in spark.sql.queryExecutionListeners")
+      } else {
+        val updated = if (current.isEmpty) DATAFLINT_IO_LISTENER_CLASS
+                      else s"$current,$DATAFLINT_IO_LISTENER_CLASS"
+        sc.conf.set("spark.sql.queryExecutionListeners", updated)
+        logInfo("Registered DataflintIOListener in spark.sql.queryExecutionListeners")
+      }
+    } catch {
+      case e: Throwable =>
+        logWarning("Could not register DataflintIOListener", e)
     }
   }
 }

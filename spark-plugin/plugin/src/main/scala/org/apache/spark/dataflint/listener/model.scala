@@ -91,3 +91,31 @@ class DataflintDeltaLakeScanInfoWrapper(val info: DataflintDeltaLakeScanInfo) {
   @JsonIgnore
   def id: String = s"${info.minExecutionId}_${info.tablePath.replaceAll(" ", "")}"
 }
+
+// Captured from the typed logical plan via QueryExecutionListener so paths/table
+// identifiers are the full untruncated values (not the simpleString form Spark uses
+// in plan descriptions, which gets cut at SQLConf.maxToStringFields).
+case class DataflintIOTarget(
+                              operation: String,           // "read" | "write"
+                              format: String,              // "parquet", "delta", "iceberg", "kafka", ...
+                              paths: Seq[String],
+                              tableName: Option[String],
+                              saveMode: Option[String],    // SaveMode.toString for writes
+                              partitionColumns: Seq[String],
+                              options: Map[String, String]
+                            )
+
+case class DataflintIOInfo(
+                            executionId: Long,
+                            sqlFuncName: String,
+                            durationMs: Long,
+                            targets: Seq[DataflintIOTarget]
+                          )
+
+case class DataflintIOEvent(ioInfo: DataflintIOInfo) extends SparkListenerEvent
+
+class DataflintIOInfoWrapper(val info: DataflintIOInfo) {
+  @KVIndex
+  @JsonIgnore
+  def id: String = info.executionId.toString
+}
