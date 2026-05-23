@@ -45,6 +45,8 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
     if (spark != null) {
       spark.sparkContext.removeSparkListener(collector)
       spark.stop()
+      SparkSession.clearActiveSession()
+      SparkSession.clearDefaultSession()
     }
   }
 

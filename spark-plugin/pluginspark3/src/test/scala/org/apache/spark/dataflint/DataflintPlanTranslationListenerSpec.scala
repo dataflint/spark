@@ -45,6 +45,8 @@ class DataflintPlanTranslationListenerSpec extends AnyFunSuite with Matchers wit
     if (spark != null) {
       spark.sparkContext.removeSparkListener(collector)
       spark.stop()
+      SparkSession.clearActiveSession()
+      SparkSession.clearDefaultSession()
     }
   }
 
