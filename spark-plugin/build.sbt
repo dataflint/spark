@@ -184,7 +184,7 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
       val pluginspark3Tests = (pluginspark3 / Test / sourceDirectory).value / "scala"
       Seq(
         pluginspark3Tests / "org" / "apache" / "spark" / "dataflint" / "DataFlintCodegenFallbackSpec.scala",
-        pluginspark3Tests / "org" / "apache" / "spark" / "dataflint" / "DataflintIOListenerSpec.scala"
+        pluginspark3Tests / "org" / "apache" / "spark" / "dataflint" / "ZDataflintIOListenerSpec.scala"
       )
     },
 

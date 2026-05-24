@@ -15,7 +15,7 @@ import org.scalatest.matchers.should.Matchers
  * captured the FULL path — i.e. nothing got cut by Spark's maxToStringFields-driven
  * plan description truncation.
  */
-class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll {
+class ZDataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAfterAll {
 
   private var spark: SparkSession = _
   private val captured = new CopyOnWriteArrayList[DataflintIOInfo]()
