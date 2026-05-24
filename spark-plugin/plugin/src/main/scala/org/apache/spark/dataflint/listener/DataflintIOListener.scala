@@ -30,7 +30,7 @@ class DataflintIOListener extends QueryExecutionListener with Logging {
 
   private def process(funcName: String, qe: QueryExecution, durationNs: Long): Unit = {
     Try {
-      val targets = DataflintIOExtractor.extract(qe.analyzed)
+      val targets = DataflintIOExtractor.extract(qe)
       if (targets.nonEmpty) {
         val info = DataflintIOInfo(
           executionId = qe.id,

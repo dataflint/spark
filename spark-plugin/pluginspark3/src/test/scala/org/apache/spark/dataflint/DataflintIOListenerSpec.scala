@@ -89,6 +89,9 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
       writeTarget.paths.head should include (deepPath.getName)
       writeTarget.paths.head should not include "..."
       writeTarget.saveMode shouldBe Some("Overwrite")
+      // nodeId is the pre-order index in qe.executedPlan; the write command exec
+      // is the root or near-root, so it should be a small non-negative integer.
+      writeTarget.nodeId should be >= 0
 
       // Now read it back and verify the read target carries the full path too.
       spark.read.parquet(deepPath.getAbsolutePath).collect()
@@ -97,6 +100,7 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
       val readInfo = find("read").getOrElse(fail("No read event captured."))
       val readTarget = readInfo.targets.find(_.operation == "read").get
       readTarget.paths.exists(p => p.contains(deepPath.getName) && !p.endsWith("...")) shouldBe true
+      readTarget.nodeId should be >= 0
     } finally {
       deleteRecursively(baseDir)
     }

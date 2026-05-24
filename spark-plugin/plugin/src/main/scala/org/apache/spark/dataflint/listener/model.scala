@@ -92,10 +92,13 @@ class DataflintDeltaLakeScanInfoWrapper(val info: DataflintDeltaLakeScanInfo) {
   def id: String = s"${info.minExecutionId}_${info.tablePath.replaceAll(" ", "")}"
 }
 
-// Captured from the typed logical plan via QueryExecutionListener so paths/table
+// Captured from the typed physical plan via QueryExecutionListener so paths/table
 // identifiers are the full untruncated values (not the simpleString form Spark uses
 // in plan descriptions, which gets cut at SQLConf.maxToStringFields).
+// nodeId is the pre-order index in qe.executedPlan, matching SparkPlanGraph node IDs;
+// -1 if extracted from a logical-plan node that has no direct physical correspondence.
 case class DataflintIOTarget(
+                              nodeId: Int,
                               operation: String,           // "read" | "write"
                               format: String,              // "parquet", "delta", "iceberg", "kafka", ...
                               paths: Seq[String],
