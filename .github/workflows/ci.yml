@@ -21,6 +21,9 @@ jobs:
         os: [ubuntu-latest]
         java: [temurin@17]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout current branch (full)
         uses: actions/checkout@v4
@@ -98,4 +101,30 @@ jobs:
           path: spark-plugin/sbt-test.log
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Post failure block as PR comment
+        if: failure() && steps.sbt-test.conclusion == 'failure' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          LOG=spark-plugin/sbt-test.log
+          {
+            echo "## sbt test failure — \`${SHA:0:7}\`"
+            echo ""
+            echo "### \`[error]\` / failed test lines"
+            echo '```'
+            grep -nE '\*\*\* (FAILED|ABORTED) \*\*\*|^\[error\]|^\[info\] [A-Z][^:]*:$' "$LOG" \
+              | tail -200 || true
+            echo '```'
+            echo ""
+            echo "<details><summary>Last 300 lines of sbt output</summary>"
+            echo ""
+            echo '```'
+            tail -300 "$LOG"
+            echo '```'
+            echo "</details>"
+          } > /tmp/ci-failure-comment.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/ci-failure-comment.md
 
