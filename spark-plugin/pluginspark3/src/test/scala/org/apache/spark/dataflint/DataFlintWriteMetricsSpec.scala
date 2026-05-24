@@ -71,6 +71,10 @@ class DataFlintWriteMetricsSpec extends AnyFunSuite with Matchers with BeforeAnd
       Seq(("a", 1), ("b", 2), ("c", 3), ("d", 4)).toDF("key", "value")
         .write.mode("overwrite").parquet(tempDir.getAbsolutePath)
 
+      // QueryExecutionListener delivery is async via the listener bus — drain
+      // it so the test's onSuccess hook has set capturedQE before we read it.
+      spark.sparkContext.listenerBus.waitUntilEmpty(10000)
+
       val qe = capturedQE.get()
       qe should not be null
 
