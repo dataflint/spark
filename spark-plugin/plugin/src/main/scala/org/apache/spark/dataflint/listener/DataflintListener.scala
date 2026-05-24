@@ -30,10 +30,6 @@ class DataflintListener(store: ElementTrackingStore) extends SparkListener with 
           val wrapper = new DataflintIOInfoWrapper(e.ioInfo)
           store.write(wrapper)
         }
-        case e: DataflintPlanTranslationsEvent => {
-          val wrapper = new DataflintPlanTranslationsInfoWrapper(e.info)
-          store.write(wrapper)
-        }
         case _ => {}
       }
     } catch {
