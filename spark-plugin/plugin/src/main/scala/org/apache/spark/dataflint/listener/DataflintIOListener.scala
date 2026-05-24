@@ -32,13 +32,20 @@ class DataflintIOListener extends QueryExecutionListener with Logging {
     Try {
       val targets = DataflintIOExtractor.extract(qe)
       if (targets.nonEmpty) {
-        val info = DataflintIOInfo(
-          executionId = qe.id,
-          sqlFuncName = funcName,
-          durationMs = durationNs / 1000000L,
-          targets = targets
-        )
-        qe.sparkSession.sparkContext.listenerBus.post(DataflintIOEvent(info))
+        val durationMs = durationNs / 1000000L
+        val bus = qe.sparkSession.sparkContext.listenerBus
+        // One event per target — keeps each event small enough to stay well under
+        // Databricks' 2 MB per-SparkListenerEvent cap and ensures we never drop a
+        // path because the whole batch was too large.
+        targets.foreach { target =>
+          val info = DataflintIOInfo(
+            executionId = qe.id,
+            sqlFuncName = funcName,
+            durationMs = durationMs,
+            target = target
+          )
+          bus.post(DataflintIOEvent(info))
+        }
       }
     }.recover {
       case t: Throwable => logWarning("DataflintIOListener: failed to process query", t)

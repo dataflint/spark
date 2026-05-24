@@ -61,7 +61,7 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
   }
 
   private def find(op: String): Option[DataflintIOInfo] =
-    (0 until captured.size()).map(captured.get).find(_.targets.exists(_.operation == op))
+    (0 until captured.size()).map(captured.get).find(_.target.operation == op)
 
   test("captures full write path through InsertIntoHadoopFsRelationCommand without truncation") {
     val baseDir = java.nio.file.Files.createTempDirectory("dataflint-io").toFile
@@ -80,10 +80,10 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
         .write.mode("overwrite").parquet(deepPath.getAbsolutePath)
 
       drain()
-      val writeInfo = find("write")
+      val writeTarget = find("write")
         .getOrElse(fail(s"No write event captured. Got ${captured.size()} events."))
+        .target
 
-      val writeTarget = writeInfo.targets.find(_.operation == "write").get
       writeTarget.paths should have size 1
       // Crucial assertion: full path, no truncation marker.
       writeTarget.paths.head should include (deepPath.getName)
@@ -97,8 +97,7 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
       spark.read.parquet(deepPath.getAbsolutePath).collect()
 
       drain()
-      val readInfo = find("read").getOrElse(fail("No read event captured."))
-      val readTarget = readInfo.targets.find(_.operation == "read").get
+      val readTarget = find("read").getOrElse(fail("No read event captured.")).target
       readTarget.paths.exists(p => p.contains(deepPath.getName) && !p.endsWith("...")) shouldBe true
       readTarget.nodeId should be >= 0
     } finally {

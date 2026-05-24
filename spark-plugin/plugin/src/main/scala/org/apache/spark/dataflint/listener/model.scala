@@ -112,13 +112,20 @@ case class DataflintIOInfo(
                             executionId: Long,
                             sqlFuncName: String,
                             durationMs: Long,
-                            targets: Seq[DataflintIOTarget]
+                            target: DataflintIOTarget
                           )
 
 case class DataflintIOEvent(ioInfo: DataflintIOInfo) extends SparkListenerEvent
 
 class DataflintIOInfoWrapper(val info: DataflintIOInfo) {
+  // Composite key so multiple targets per execution / per node coexist in the store.
+  // (executionId, nodeId, fingerprint of the resource it represents)
   @KVIndex
   @JsonIgnore
-  def id: String = info.executionId.toString
+  def id: String = {
+    val fingerprint = info.target.paths.headOption
+      .orElse(info.target.tableName)
+      .getOrElse(info.target.operation + ":" + info.target.format)
+    s"${info.executionId}_${info.target.nodeId}_${fingerprint.hashCode.toHexString}"
+  }
 }

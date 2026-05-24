@@ -22,13 +22,18 @@ import scala.util.Try
  */
 object DataflintIOExtractor extends Logging {
 
-  /** Walk the physical plan, attaching the pre-order nodeId to every captured target. */
+  /**
+   * Walk the physical plan, attaching the pre-order nodeId to every captured target.
+   * A single node can yield multiple targets (e.g. a FileSourceScanExec with multiple
+   * rootPaths emits one target per path) — keeps each target small enough that one
+   * Spark event per target stays well under Databricks' 2 MB per-event cap.
+   */
   def extract(qe: QueryExecution): Seq[DataflintIOTarget] = {
     val out = collection.mutable.ArrayBuffer.empty[DataflintIOTarget]
     Try {
       var idx = 0
       qe.executedPlan.foreach { node =>
-        Try(extractFromPhysical(node, idx)).toOption.flatten.foreach(out += _)
+        Try(extractFromPhysical(node, idx)).toOption.foreach(out ++= _)
         idx += 1
       }
     }.recover {
@@ -37,36 +42,38 @@ object DataflintIOExtractor extends Logging {
     out.toSeq
   }
 
-  private def extractFromPhysical(node: SparkPlan, nodeId: Int): Option[DataflintIOTarget] = node match {
+  private def extractFromPhysical(node: SparkPlan, nodeId: Int): Seq[DataflintIOTarget] = node match {
 
     // --- PHYSICAL READS ------------------------------------------------------
     case fsse: FileSourceScanExec =>
-      Some(DataflintIOTarget(
+      val rootPaths = fsse.relation.location.rootPaths.map(_.toString)
+      val base = DataflintIOTarget(
         nodeId = nodeId,
         operation = "read",
         format = fsse.relation.fileFormat.getClass.getSimpleName,
-        paths = fsse.relation.location.rootPaths.map(_.toString),
+        paths = Seq.empty,
         tableName = fsse.tableIdentifier.map(_.unquotedString),
         saveMode = None,
         partitionColumns = fsse.relation.partitionSchema.fieldNames.toSeq,
         options = fsse.relation.options
-      ))
+      )
+      if (rootPaths.isEmpty) Seq(base)
+      else rootPaths.map(p => base.copy(paths = Seq(p)))
 
     case bse: BatchScanExec =>
-      val tableName = Option(bse.table).map(_.name)
-      Some(DataflintIOTarget(
+      Seq(DataflintIOTarget(
         nodeId = nodeId,
         operation = "read",
         format = Option(bse.table).map(_.getClass.getSimpleName).getOrElse("DataSourceV2"),
         paths = Seq.empty,
-        tableName = tableName,
+        tableName = Option(bse.table).map(_.name),
         saveMode = None,
         partitionColumns = Seq.empty,
         options = Map.empty
       ))
 
     case rdse: RowDataSourceScanExec =>
-      Some(DataflintIOTarget(
+      Seq(DataflintIOTarget(
         nodeId = nodeId,
         operation = "read",
         format = Try(rdse.relation.getClass.getSimpleName).getOrElse("RowDataSource"),
@@ -79,9 +86,9 @@ object DataflintIOExtractor extends Logging {
 
     // --- PHYSICAL WRITES (V1) — delegate to logical matcher, overlay nodeId --
     case dwce: DataWritingCommandExec =>
-      extractFromLogical(dwce.cmd).map(_.copy(nodeId = nodeId))
+      extractFromLogical(dwce.cmd).map(_.copy(nodeId = nodeId)).toSeq
 
-    case _ => None
+    case _ => Seq.empty
   }
 
   /**
