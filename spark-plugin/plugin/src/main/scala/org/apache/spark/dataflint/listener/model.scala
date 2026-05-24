@@ -112,20 +112,16 @@ case class DataflintIOInfo(
                             executionId: Long,
                             sqlFuncName: String,
                             durationMs: Long,
-                            target: DataflintIOTarget
+                            chunkIndex: Int,
+                            targets: Seq[DataflintIOTarget]
                           )
 
 case class DataflintIOEvent(ioInfo: DataflintIOInfo) extends SparkListenerEvent
 
 class DataflintIOInfoWrapper(val info: DataflintIOInfo) {
-  // Composite key so multiple targets per execution / per node coexist in the store.
-  // (executionId, nodeId, fingerprint of the resource it represents)
+  // (executionId, chunkIndex) — one wrapper per emitted event. Chunks are sized
+  // by the listener to stay under Databricks' 2 MB per-event cap.
   @KVIndex
   @JsonIgnore
-  def id: String = {
-    val fingerprint = info.target.paths.headOption
-      .orElse(info.target.tableName)
-      .getOrElse(info.target.operation + ":" + info.target.format)
-    s"${info.executionId}_${info.target.nodeId}_${fingerprint.hashCode.toHexString}"
-  }
+  def id: String = s"${info.executionId}_${info.chunkIndex}"
 }

@@ -2,7 +2,7 @@ package org.apache.spark.dataflint
 
 import java.util.concurrent.CopyOnWriteArrayList
 
-import org.apache.spark.dataflint.listener.{DataflintIOEvent, DataflintIOInfo, DataflintIOListener}
+import org.apache.spark.dataflint.listener.{DataflintIOEvent, DataflintIOInfo, DataflintIOListener, DataflintIOTarget}
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
 import org.apache.spark.sql.SparkSession
 import org.scalatest.BeforeAndAfterAll
@@ -60,8 +60,10 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
     spark.sparkContext.listenerBus.waitUntilEmpty(10000)
   }
 
-  private def find(op: String): Option[DataflintIOInfo] =
-    (0 until captured.size()).map(captured.get).find(_.target.operation == op)
+  private def find(op: String): Option[DataflintIOTarget] = {
+    val all = (0 until captured.size()).map(captured.get).flatMap(_.targets)
+    all.find(_.operation == op)
+  }
 
   test("captures full write path through InsertIntoHadoopFsRelationCommand without truncation") {
     val baseDir = java.nio.file.Files.createTempDirectory("dataflint-io").toFile
@@ -81,8 +83,7 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
 
       drain()
       val writeTarget = find("write")
-        .getOrElse(fail(s"No write event captured. Got ${captured.size()} events."))
-        .target
+        .getOrElse(fail(s"No write target captured. Got ${captured.size()} events."))
 
       writeTarget.paths should have size 1
       // Crucial assertion: full path, no truncation marker.
@@ -97,7 +98,7 @@ class DataflintIOListenerSpec extends AnyFunSuite with Matchers with BeforeAndAf
       spark.read.parquet(deepPath.getAbsolutePath).collect()
 
       drain()
-      val readTarget = find("read").getOrElse(fail("No read event captured.")).target
+      val readTarget = find("read").getOrElse(fail("No read target captured."))
       readTarget.paths.exists(p => p.contains(deepPath.getName) && !p.endsWith("...")) shouldBe true
       readTarget.nodeId should be >= 0
     } finally {
