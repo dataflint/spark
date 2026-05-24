@@ -71,15 +71,17 @@ class DataflintIOListener extends QueryExecutionListener with Logging {
     targets.foreach { t =>
       val s = estimateBytes(t)
       if (current.nonEmpty && currentBytes + s > maxChunkBytes) {
-        out += current.toSeq
+        // toList — eager immutable copy. ArrayBuffer.toSeq in Scala 2.12 returns
+        // `this`, so a later current.clear() would empty the seq we just stored.
+        out += current.toList
         current.clear()
         currentBytes = 0
       }
       current += t
       currentBytes += s
     }
-    if (current.nonEmpty) out += current.toSeq
-    out.toSeq
+    if (current.nonEmpty) out += current.toList
+    out.toList
   }
 
   /** Rough upper bound for the JSON-serialized size of one target. */
