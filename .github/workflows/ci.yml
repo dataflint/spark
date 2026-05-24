@@ -64,6 +64,38 @@ jobs:
         working-directory: ./spark-ui
 
       - name: Build and test plugin
-        run: sbt +test
+        id: sbt-test
+        run: |
+          set -o pipefail
+          sbt +test 2>&1 | tee sbt-test.log
         working-directory: ./spark-plugin
+
+      - name: Surface failing test output
+        if: failure() && steps.sbt-test.conclusion == 'failure'
+        run: |
+          LOG=spark-plugin/sbt-test.log
+          {
+            echo "## sbt test failure"
+            echo ""
+            echo "### \`[error]\` / failed test lines"
+            echo '```'
+            # Grab failure markers plus 3 lines of trailing context.
+            grep -nE '\*\*\* (FAILED|ABORTED) \*\*\*|^\[error\]|^\[info\] [A-Z][^:]*:$' "$LOG" \
+              | tail -200 || true
+            echo '```'
+            echo ""
+            echo "### Last 200 log lines"
+            echo '```'
+            tail -200 "$LOG"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload sbt test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbt-test-log
+          path: spark-plugin/sbt-test.log
+          if-no-files-found: ignore
+          retention-days: 14
 
