@@ -162,6 +162,22 @@ object DataflintSparkUICommonLoader extends Logging {
     throw new UnsupportedOperationException("This method requires a version-specific implementation. Use pluginspark3 or pluginspark4.")
   }
 
+
+  /**
+   * Exposes the plugin version on the SparkConf as `spark.dataflint.version`, reading it from
+   * the JAR's manifest (Implementation-Version). Falls back to "unknown" when no manifest is
+   * present (e.g. classes loaded from a target/ directory during tests).
+   *
+   * Lives here so it can call SparkContext.conf, which is private[spark].
+   */
+  def recordPluginVersion(sc: SparkContext, pluginClass: Class[_]): Unit = {
+    val pluginVersion = Option(pluginClass.getPackage)
+      .flatMap(p => Option(p.getImplementationVersion))
+      .getOrElse("unknown")
+    sc.conf.set("spark.dataflint.version", pluginVersion)
+    logInfo(s"DataFlint plugin version: $pluginVersion")
+  }
+
   /**
    * Registers the DataFlint instrumentation extension in spark.sql.extensions if not already present.
    * This must be called during plugin init() because spark.sql.extensions is read when SparkSession

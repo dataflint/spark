@@ -21,6 +21,7 @@ class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
 
   override def init(sc: SparkContext, pluginContext: PluginContext): util.Map[String, String] = {
     this.sc = sc
+    DataflintSparkUICommonLoader.recordPluginVersion(sc, classOf[SparkDataflintPlugin])
     DataflintSparkUICommonLoader.registerInstrumentationExtension(sc)
     val executorMetadataEnabled = DriverMetadataHelper.isExecutorMetadataEnabled(sc)
     val conf = scala.collection.mutable.Map[String, String](
