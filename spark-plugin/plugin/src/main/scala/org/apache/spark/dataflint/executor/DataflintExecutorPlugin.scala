@@ -8,7 +8,10 @@ import java.util
 class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
 
   override def init(ctx: PluginContext, extraConf: util.Map[String, String]): Unit = {
-    val enabled = Option(extraConf.get("executor.metadata.enabled")).exists(_.toBoolean)
+    // java.lang.Boolean.parseBoolean returns false for any non-"true" input (including bad
+    // values) — String#toBoolean throws on those and would crash executor plugin init
+    // before the main try/catch below could fire.
+    val enabled = Option(extraConf.get("executor.metadata.enabled")).exists(java.lang.Boolean.parseBoolean)
     if (!enabled) {
       return
     }
@@ -55,8 +58,9 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
         collectionError = cloudError
       )
       ctx.send(message)
-      logInfo(s"Sent executor metadata: provider=${cloudMetadata.cloudProvider}, " +
-        s"instance=${cloudMetadata.instanceType}, lifecycle=${cloudMetadata.lifecycleType}")
+      logInfo(s"Sent executor metadata: provider=${cloudMetadata.cloudProvider.getOrElse("unknown")}, " +
+        s"instance=${cloudMetadata.instanceType.getOrElse("unknown")}, " +
+        s"lifecycle=${cloudMetadata.lifecycleType.getOrElse("unknown")}")
     } catch {
       case e: Throwable =>
         logWarning("Failed to collect/send executor metadata", e)
@@ -72,7 +76,7 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
             jvmVersion = System.getProperty("java.version", "unknown"),
             availableProcessors = Runtime.getRuntime.availableProcessors(),
             executorJvmMaxHeapBytes = Runtime.getRuntime.maxMemory(),
-            collectionError = Some(e.getMessage)
+            collectionError = Some(Option(e.getMessage).getOrElse(e.getClass.getSimpleName))
           ))
         } catch {
           case inner: Throwable =>

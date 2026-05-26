@@ -56,9 +56,9 @@ object CloudMetadataDetector {
 
   def detect(): CloudMetadata = {
     detectCloudProvider() match {
-      case Some("aws") => runCloudCommand(AWS_COMMAND)
-      case Some("gcp") => runCloudCommand(GCP_COMMAND)
-      case Some("azure") => runCloudCommand(AZURE_COMMAND)
+      case provider @ Some("aws") => runCloudCommand(AWS_COMMAND, provider)
+      case provider @ Some("gcp") => runCloudCommand(GCP_COMMAND, provider)
+      case provider @ Some("azure") => runCloudCommand(AZURE_COMMAND, provider)
       case _ => CloudMetadata(None, None, None)
     }
   }
@@ -73,10 +73,13 @@ object CloudMetadataDetector {
     }.getOrElse(None)
   }
 
-  private def runCloudCommand(command: String): CloudMetadata = {
+  // When the metadata command fails, preserve the DMI-detected provider so consumers can
+  // distinguish "detected provider but metadata endpoint blocked/timed out" from "not on cloud".
+  private def runCloudCommand(command: String, detectedProvider: Option[String]): CloudMetadata = {
+    val fallback = CloudMetadata(detectedProvider, None, None)
     Try {
       runBashCommand(command).flatMap(parseJson)
-    }.getOrElse(None).getOrElse(CloudMetadata(None, None, None))
+    }.getOrElse(None).getOrElse(fallback)
   }
 
   private def runBashCommand(command: String): Option[String] = {
@@ -104,11 +107,16 @@ object CloudMetadataDetector {
   }
 
   private[executor] def parseJson(json: String): Option[CloudMetadata] = {
+    // Skip JSON null values — Jackson NullNode.asText() returns the literal string "null",
+    // which would otherwise show up as instanceType="null" downstream.
+    def fieldText(node: com.fasterxml.jackson.databind.JsonNode, field: String): Option[String] =
+      Option(node.get(field)).filterNot(_.isNull).map(_.asText()).filter(_.nonEmpty)
+
     Try {
       val node = mapper.readTree(json)
-      val cloudProvider = Option(node.get("cloudProvider")).map(_.asText()).filter(_.nonEmpty)
-      val instanceType = Option(node.get("instanceType")).map(_.asText()).filter(_.nonEmpty)
-      val lifecycleType = Option(node.get("lifecycleType")).map(_.asText()).filter(_.nonEmpty)
+      val cloudProvider = fieldText(node, "cloudProvider")
+      val instanceType = fieldText(node, "instanceType")
+      val lifecycleType = fieldText(node, "lifecycleType")
       if (instanceType.isDefined || cloudProvider.isDefined) {
         Some(CloudMetadata(cloudProvider, instanceType, lifecycleType))
       } else {

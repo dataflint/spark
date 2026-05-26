@@ -18,6 +18,12 @@ class GraphDurationAttributionSpec extends AnyFunSuite with Matchers with Before
   }
 
   override def beforeAll(): Unit = {
+    // Sbt runs all specs in a single forked JVM. If an earlier spec left an active/default
+    // SparkSession behind, getOrCreate() picks it up — config + withExtensions on the builder
+    // are silently ignored, so the instrumentation extension and codegen-sleep don't apply
+    // and all durations report 0ms.
+    SparkSession.clearActiveSession()
+    SparkSession.clearDefaultSession()
     spark = SparkSession.builder()
       .master("local[2]")
       .appName("GraphDurationAttributionSpec")
@@ -33,10 +39,15 @@ class GraphDurationAttributionSpec extends AnyFunSuite with Matchers with Before
 
   override def afterAll(): Unit = {
     SparkSession.getActiveSession.foreach(_.stop())
+    SparkSession.clearActiveSession()
+    SparkSession.clearDefaultSession()
   }
 
   private def graphForQuery(df: DataFrame): (SparkPlanGraph, Map[Long, String]) = {
     df.collect()
+    // SQLAppStatusListener publishes the execution asynchronously via the listener bus —
+    // drain it so executionsList() / planGraph() see the freshly-completed query.
+    spark.sparkContext.listenerBus.waitUntilEmpty(10000)
     val lastExec = sqlStore.executionsList().last
     (sqlStore.planGraph(lastExec.executionId), sqlStore.executionMetrics(lastExec.executionId))
   }
