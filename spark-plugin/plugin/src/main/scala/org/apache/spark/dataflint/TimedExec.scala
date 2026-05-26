@@ -93,44 +93,18 @@ class TimedExec(val child: SparkPlan) extends SparkPlan with Logging {
     DataFlintRDDUtils.withDurationMetricColumnar(childRdd, longMetric("duration"))
   }
 
-  // Write path: DataWritingCommandExec does work eagerly in sideEffectResult (a lazy val),
-  // triggered by executeCollect(). doExecute()/withDurationMetric only wraps the trivial
-  // result RDD and misses the actual I/O.
+  // executeCollect is intentionally NOT overridden here. Per-partition timing for the
+  // executeCollect path is achieved via doExecute (above): both vanilla Spark and Databricks
+  // route executeCollect through execute() → doExecute() eventually, which wraps the child
+  // RDD with the duration metric.
   //
-  // To get per-partition timing (consistent with codegen/RDD paths), we reconstruct
-  // DataWritingCommandExec with the data-producing plan wrapped in an RDDTimingWrapper.
-  // The write command consumes this timed RDD via sparkContext.runJob, so the wall-clock-
-  // per-partition timing captures both data production AND write I/O (writes happen between
-  // next() calls on the timed iterator).
-  //
-  // Spark 3.4+ inserts WriteFilesExec between DataWritingCommandExec and the data plan.
-  // cmd.run() type-checks for WriteFilesExec, so we wrap the data plan INSIDE WriteFilesExec
-  // (one level deeper), preserving the type check. On older Spark we wrap the child directly.
-  override def executeCollect(): Array[InternalRow] = {
-    if (child.getClass.getSimpleName == "DataWritingCommandExec") {
-      val durationMetric = longMetric("duration")
-      // child.children may be empty on unusual DataWritingCommandExec shapes (vendor
-      // forks, future Spark versions). Fall through to super.executeCollect() in that
-      // case — duration will be zero on the rebuild path, but the write still runs.
-      val maybeRebuilt: Option[SparkPlan] = child.children.headOption.flatMap { innerChild =>
-        if (innerChild.getClass.getSimpleName == "WriteFilesExec") {
-          // Spark 3.4+: wrap the data plan inside WriteFilesExec
-          innerChild.children.headOption.map { dataPlan =>
-            val timedDataPlan = new TimedExec.RDDTimingWrapper(dataPlan, durationMetric)
-            val wrappedWriteFiles = innerChild.withNewChildren(IndexedSeq(timedDataPlan))
-            child.withNewChildren(IndexedSeq(wrappedWriteFiles))
-          }
-        } else {
-          // Older Spark: wrap the data plan directly
-          val timedDataPlan = new TimedExec.RDDTimingWrapper(innerChild, durationMetric)
-          Some(child.withNewChildren(IndexedSeq(timedDataPlan)))
-        }
-      }
-      maybeRebuilt.fold(super.executeCollect())(_.executeCollect())
-    } else {
-      super.executeCollect()
-    }
-  }
+  // Overriding executeCollect and calling super.executeCollect() causes infinite recursion on
+  // Databricks Runtime, whose SparkPlan.executeCollect goes through ResultCacheManager →
+  // Collector.collect(this), and Collector re-invokes plan.executeCollect via virtual dispatch.
+  // Without an override, dispatch resolves to Databricks' own implementation, which has the
+  // necessary re-entry guard. The DataWritingCommandExec case — which DOES need a custom
+  // executeCollect to wrap the eager write I/O with RDDTimingWrapper — is handled by the
+  // TimedDataWritingCommandExec subclass below, selected by `TimedExec.apply`.
 
   // Match the runtime class so TimedExec(x) and TimedWithCodegenExec(x) don't compare
   // equal — they have different execution semantics (codegen vs RDD path), and TreeNode
@@ -222,6 +196,46 @@ class TimedWithCodegenExec(override val child: SparkPlan) extends TimedExec(chil
     else TimedExec(child.withNewChildren(newChildren))
 }
 
+/**
+ * TimedExec variant for DataWritingCommandExec.
+ *
+ * DataWritingCommandExec does its I/O eagerly in `lazy val sideEffectResult`, triggered by
+ * `executeCollect()`. The base TimedExec's `doExecute` only wraps the trivial result RDD and
+ * misses the actual write. To get per-partition timing (consistent with codegen/RDD paths),
+ * we reconstruct DataWritingCommandExec with the data-producing plan wrapped in an
+ * `RDDTimingWrapper`. The write command consumes this timed RDD via `sparkContext.runJob`,
+ * so the wall-clock-per-partition timing captures both data production AND write I/O (writes
+ * happen between `next()` calls on the timed iterator).
+ *
+ * Spark 3.4+ inserts WriteFilesExec between DataWritingCommandExec and the data plan.
+ * cmd.run() type-checks for WriteFilesExec, so we wrap the data plan INSIDE WriteFilesExec
+ * (one level deeper), preserving the type check. On older Spark we wrap the child directly.
+ */
+class TimedDataWritingCommandExec(override val child: SparkPlan) extends TimedExec(child) {
+  override def executeCollect(): Array[InternalRow] = {
+    val durationMetric = longMetric("duration")
+    // child.children may be empty on unusual DataWritingCommandExec shapes (vendor forks,
+    // future Spark versions). Fall through to child.executeCollect() in that case — we lose
+    // duration timing, but the write still runs and we don't recurse into Databricks'
+    // Collector path.
+    val maybeRebuilt: Option[SparkPlan] = child.children.headOption.flatMap { innerChild =>
+      if (innerChild.getClass.getSimpleName == "WriteFilesExec") {
+        // Spark 3.4+: wrap the data plan inside WriteFilesExec
+        innerChild.children.headOption.map { dataPlan =>
+          val timedDataPlan = new TimedExec.RDDTimingWrapper(dataPlan, durationMetric)
+          val wrappedWriteFiles = innerChild.withNewChildren(IndexedSeq(timedDataPlan))
+          child.withNewChildren(IndexedSeq(wrappedWriteFiles))
+        }
+      } else {
+        // Older Spark: wrap the data plan directly
+        val timedDataPlan = new TimedExec.RDDTimingWrapper(innerChild, durationMetric)
+        Some(child.withNewChildren(IndexedSeq(timedDataPlan)))
+      }
+    }
+    maybeRebuilt.fold(child.executeCollect())(_.executeCollect())
+  }
+}
+
 object TimedExec {
   // Spark 3.0/3.1's withNewChildren uses mapProductIterator + containsChild which is
   // incompatible with the transparent wrapper (children = child.children). Detected by
@@ -237,10 +251,12 @@ object TimedExec {
     }.getOrElse(false)
   }
 
-  def apply(child: SparkPlan): TimedExec = child match {
-    case _: CodegenSupport => new TimedWithCodegenExec(child)
-    case _                 => new TimedExec(child)
-  }
+  def apply(child: SparkPlan): TimedExec =
+    if (child.getClass.getSimpleName == "DataWritingCommandExec") new TimedDataWritingCommandExec(child)
+    else child match {
+      case _: CodegenSupport => new TimedWithCodegenExec(child)
+      case _                 => new TimedExec(child)
+    }
 
   /**
    * A minimal SparkPlan that wraps execute() with per-partition duration timing.
