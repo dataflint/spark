@@ -82,14 +82,19 @@ object CloudMetadataDetector {
     }.getOrElse(None).getOrElse(fallback)
   }
 
+  // Use `sh` rather than `bash` — the scripts above are POSIX-only and minimal / distroless
+  // container images often ship without bash.
   private def runBashCommand(command: String): Option[String] = {
-    val process = new ProcessBuilder("bash", "-c", command)
+    val process = new ProcessBuilder("sh", "-c", command)
       .redirectErrorStream(false)
       .start()
 
     val completed = process.waitFor(COMMAND_TIMEOUT_MS, TimeUnit.MILLISECONDS)
     if (!completed) {
       process.destroyForcibly()
+      // Brief blocking wait so a forcibly-killed shell can reap before we move on; without
+      // this the process can linger as a zombie under some JVM/OS combinations.
+      process.waitFor(500, TimeUnit.MILLISECONDS)
       return None
     }
 

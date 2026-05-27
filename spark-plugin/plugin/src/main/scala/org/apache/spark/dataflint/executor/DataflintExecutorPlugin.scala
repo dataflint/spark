@@ -41,7 +41,8 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
       } catch {
         case e: Throwable =>
           logWarning("Failed to detect cloud metadata", e)
-          (CloudMetadataDetector.CloudMetadata(None, None, None), Some(s"cloud metadata detection failed: ${e.getMessage}"))
+          val reason = Option(e.getMessage).getOrElse(e.getClass.getSimpleName)
+          (CloudMetadataDetector.CloudMetadata(None, None, None), Some(s"cloud metadata detection failed: $reason"))
       }
 
       val message = ExecutorMetadataMessage(

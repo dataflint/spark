@@ -21,16 +21,24 @@ class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
 
   override def init(sc: SparkContext, pluginContext: PluginContext): util.Map[String, String] = {
     this.sc = sc
-    DataflintSparkUICommonLoader.recordPluginVersion(sc, classOf[SparkDataflintPlugin])
-    DataflintSparkUICommonLoader.registerInstrumentationExtension(sc)
-    val executorMetadataEnabled = DriverMetadataHelper.isExecutorMetadataEnabled(sc)
-    val conf = scala.collection.mutable.Map[String, String](
-      "executor.metadata.enabled" -> executorMetadataEnabled.toString
-    )
-    DriverMetadataHelper.k8sInstanceTypeEnvVar(sc).foreach(v => conf("k8s.instanceType.envVar") = v)
-    DriverMetadataHelper.k8sLifecycleTypeEnvVar(sc).foreach(v => conf("k8s.lifecycleType.envVar") = v)
-    DriverMetadataHelper.k8sCloudProviderEnvVar(sc).foreach(v => conf("k8s.cloudProvider.envVar") = v)
-    conf.toMap.asJava
+    // DriverPlugin.init failures abort SparkContext start, so any bug in our setup would
+    // crash the user's Spark job. Swallow + log so DataFlint can never take down Spark.
+    try {
+      DataflintSparkUICommonLoader.recordPluginVersion(sc, classOf[SparkDataflintPlugin])
+      DataflintSparkUICommonLoader.registerInstrumentationExtension(sc)
+      val executorMetadataEnabled = DriverMetadataHelper.isExecutorMetadataEnabled(sc)
+      val conf = scala.collection.mutable.Map[String, String](
+        "executor.metadata.enabled" -> executorMetadataEnabled.toString
+      )
+      DriverMetadataHelper.k8sInstanceTypeEnvVar(sc).foreach(v => conf("k8s.instanceType.envVar") = v)
+      DriverMetadataHelper.k8sLifecycleTypeEnvVar(sc).foreach(v => conf("k8s.lifecycleType.envVar") = v)
+      DriverMetadataHelper.k8sCloudProviderEnvVar(sc).foreach(v => conf("k8s.cloudProvider.envVar") = v)
+      conf.toMap.asJava
+    } catch {
+      case e: Throwable =>
+        logWarning("DataFlint driver plugin init failed; continuing without DataFlint instrumentation", e)
+        java.util.Collections.emptyMap[String, String]()
+    }
   }
 
   override def receive(message: Any): String = {
