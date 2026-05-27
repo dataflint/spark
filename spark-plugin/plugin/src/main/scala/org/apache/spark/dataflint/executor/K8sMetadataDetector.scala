@@ -16,7 +16,8 @@ object K8sMetadataDetector {
     val instanceType = readFromEnvVar(extraConf, "k8s.instanceType.envVar", envLookup)
     val lifecycleType = readFromEnvVar(extraConf, "k8s.lifecycleType.envVar", envLookup)
     val cloudProvider = readFromEnvVar(extraConf, "k8s.cloudProvider.envVar", envLookup)
-    CloudMetadataDetector.CloudMetadata(cloudProvider, instanceType, lifecycleType)
+    val region = readFromEnvVar(extraConf, "k8s.region.envVar", envLookup)
+    CloudMetadataDetector.CloudMetadata(cloudProvider, instanceType, lifecycleType, region)
   }
 
   private def readFromEnvVar(

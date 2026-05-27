@@ -6,6 +6,7 @@ case class ExecutorMetadataMessage(
   instanceType: Option[String],
   lifecycleType: Option[String],
   cloudProvider: Option[String],
+  region: Option[String],
   osName: String,
   osArch: String,
   jvmVersion: String,

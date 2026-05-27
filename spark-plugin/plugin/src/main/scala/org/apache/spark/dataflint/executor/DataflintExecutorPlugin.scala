@@ -42,7 +42,7 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
         case e: Throwable =>
           logWarning("Failed to detect cloud metadata", e)
           val reason = Option(e.getMessage).getOrElse(e.getClass.getSimpleName)
-          (CloudMetadataDetector.CloudMetadata(None, None, None), Some(s"cloud metadata detection failed: $reason"))
+          (CloudMetadataDetector.CloudMetadata(None, None, None, None), Some(s"cloud metadata detection failed: $reason"))
       }
 
       val message = ExecutorMetadataMessage(
@@ -51,6 +51,7 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
         instanceType = cloudMetadata.instanceType,
         lifecycleType = cloudMetadata.lifecycleType,
         cloudProvider = cloudMetadata.cloudProvider,
+        region = cloudMetadata.region,
         osName = osName,
         osArch = osArch,
         jvmVersion = jvmVersion,
@@ -61,7 +62,8 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
       ctx.send(message)
       logInfo(s"Sent executor metadata: provider=${cloudMetadata.cloudProvider.getOrElse("unknown")}, " +
         s"instance=${cloudMetadata.instanceType.getOrElse("unknown")}, " +
-        s"lifecycle=${cloudMetadata.lifecycleType.getOrElse("unknown")}")
+        s"lifecycle=${cloudMetadata.lifecycleType.getOrElse("unknown")}, " +
+        s"region=${cloudMetadata.region.getOrElse("unknown")}")
     } catch {
       case e: Throwable =>
         logWarning("Failed to collect/send executor metadata", e)
@@ -72,6 +74,7 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
             instanceType = None,
             lifecycleType = None,
             cloudProvider = None,
+            region = None,
             osName = System.getProperty("os.name", "unknown"),
             osArch = System.getProperty("os.arch", "unknown"),
             jvmVersion = System.getProperty("java.version", "unknown"),

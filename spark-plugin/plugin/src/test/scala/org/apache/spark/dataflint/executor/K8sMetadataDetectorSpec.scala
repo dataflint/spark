@@ -17,17 +17,20 @@ class K8sMetadataDetectorSpec extends AnyFunSuite with Matchers {
     val conf = confMap(
       "k8s.instanceType.envVar" -> "NODE_INSTANCE_TYPE",
       "k8s.lifecycleType.envVar" -> "NODE_LIFECYCLE",
-      "k8s.cloudProvider.envVar" -> "NODE_CLOUD"
+      "k8s.cloudProvider.envVar" -> "NODE_CLOUD",
+      "k8s.region.envVar" -> "NODE_REGION"
     )
     val env = Map(
       "NODE_INSTANCE_TYPE" -> "m5.xlarge",
       "NODE_LIFECYCLE" -> "spot",
-      "NODE_CLOUD" -> "aws"
+      "NODE_CLOUD" -> "aws",
+      "NODE_REGION" -> "us-east-1"
     )
     val result = K8sMetadataDetector.detectWithEnv(conf, env.get)
     result.instanceType shouldBe Some("m5.xlarge")
     result.lifecycleType shouldBe Some("spot")
     result.cloudProvider shouldBe Some("aws")
+    result.region shouldBe Some("us-east-1")
   }
 
   test("detectWithEnv - returns None for fields when env var is configured but not set") {
@@ -36,6 +39,7 @@ class K8sMetadataDetectorSpec extends AnyFunSuite with Matchers {
     result.instanceType shouldBe None
     result.lifecycleType shouldBe None
     result.cloudProvider shouldBe None
+    result.region shouldBe None
   }
 
   test("detectWithEnv - returns None for fields when config key is not set") {
@@ -45,6 +49,7 @@ class K8sMetadataDetectorSpec extends AnyFunSuite with Matchers {
     result.instanceType shouldBe None
     result.lifecycleType shouldBe None
     result.cloudProvider shouldBe None
+    result.region shouldBe None
   }
 
   test("detectWithEnv - filters empty env var values") {

@@ -33,6 +33,7 @@ class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
       DriverMetadataHelper.k8sInstanceTypeEnvVar(sc).foreach(v => conf("k8s.instanceType.envVar") = v)
       DriverMetadataHelper.k8sLifecycleTypeEnvVar(sc).foreach(v => conf("k8s.lifecycleType.envVar") = v)
       DriverMetadataHelper.k8sCloudProviderEnvVar(sc).foreach(v => conf("k8s.cloudProvider.envVar") = v)
+      DriverMetadataHelper.k8sRegionEnvVar(sc).foreach(v => conf("k8s.region.envVar") = v)
       conf.toMap.asJava
     } catch {
       case e: Throwable =>
@@ -51,6 +52,7 @@ class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
             instanceType = msg.instanceType,
             lifecycleType = msg.lifecycleType,
             cloudProvider = msg.cloudProvider,
+            region = msg.region,
             osName = msg.osName,
             osArch = msg.osArch,
             jvmVersion = msg.jvmVersion,
@@ -62,7 +64,8 @@ class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
           logInfo(s"Received executor metadata from executor ${msg.executorId}: " +
             s"provider=${msg.cloudProvider.getOrElse("unknown")}, " +
             s"instance=${msg.instanceType.getOrElse("unknown")}, " +
-            s"lifecycle=${msg.lifecycleType.getOrElse("unknown")}")
+            s"lifecycle=${msg.lifecycleType.getOrElse("unknown")}, " +
+            s"region=${msg.region.getOrElse("unknown")}")
           null
         } catch {
           case e: Throwable =>

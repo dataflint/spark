@@ -18,6 +18,9 @@ object DriverMetadataHelper {
   def k8sCloudProviderEnvVar(sc: SparkContext): Option[String] =
     sc.conf.getOption("spark.dataflint.executor.metadata.k8s.cloudProvider.envVar")
 
+  def k8sRegionEnvVar(sc: SparkContext): Option[String] =
+    sc.conf.getOption("spark.dataflint.executor.metadata.k8s.region.envVar")
+
   def postExecutorMetadataEvent(sc: SparkContext, info: DataflintExecutorMetadataInfo): Unit = {
     sc.listenerBus.post(DataflintExecutorMetadataEvent(info))
   }
