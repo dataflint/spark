@@ -34,6 +34,7 @@ class SparkDataflintDriverPlugin extends DriverPlugin with Logging {
       DriverMetadataHelper.k8sLifecycleTypeEnvVar(sc).foreach(v => conf("k8s.lifecycleType.envVar") = v)
       DriverMetadataHelper.k8sCloudProviderEnvVar(sc).foreach(v => conf("k8s.cloudProvider.envVar") = v)
       DriverMetadataHelper.k8sRegionEnvVar(sc).foreach(v => conf("k8s.region.envVar") = v)
+      DriverMetadataHelper.k8sPropsFile(sc).foreach(v => conf("k8s.file") = v)
       conf.toMap.asJava
     } catch {
       case e: Throwable =>
