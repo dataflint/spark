@@ -33,7 +33,15 @@ class DataflintExecutorPlugin extends ExecutorPlugin with Logging {
       val (cloudMetadata, cloudError) = try {
         val md = if (K8sMetadataDetector.isRunningInK8s) {
           logInfo("Detected Kubernetes environment, reading metadata from configured env vars")
-          K8sMetadataDetector.detect(extraConf)
+          val envMd = K8sMetadataDetector.detect(extraConf)
+          // Fall back to IMDS when env vars didn't yield anything — covers K8s setups where
+          // the pod can reach the host metadata endpoint (e.g. IMDSv2 hop limit ≥ 2 or
+          // hostNetwork pods). Cheap no-op when the metadata endpoint isn't reachable.
+          if (envMd.instanceType.isDefined) envMd
+          else {
+            logInfo("K8s env-var detection returned no instanceType; falling back to cloud metadata endpoint")
+            CloudMetadataDetector.detect()
+          }
         } else {
           CloudMetadataDetector.detect()
         }
