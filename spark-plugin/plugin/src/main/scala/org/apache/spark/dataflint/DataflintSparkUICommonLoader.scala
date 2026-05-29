@@ -134,6 +134,11 @@ class DataflintSparkUICommonInstaller extends Logging {
 
 object DataflintSparkUICommonLoader extends Logging {
 
+  // The SQL-plan instrumentation extension lives in a separate artifact
+  // (dataflint/spark-instrumentation, io.dataflint:dataflint-instrumentation-sparkN).
+  // It is loaded BY NAME via spark.sql.extensions, so there is no compile-time
+  // dependency on it here. The INSTRUMENT_* keys below are the config contract
+  // that artifact reads; keep them in sync across both repos.
   private val DATAFLINT_EXTENSION_CLASS = "org.apache.spark.dataflint.DataFlintInstrumentationExtension"
   val INSTRUMENT_SPARK_ENABLED = "spark.dataflint.instrument.spark.enabled"
   val INSTRUMENT_MAP_IN_PANDAS_ENABLED = "spark.dataflint.instrument.spark.mapInPandas.enabled"

@@ -175,17 +175,9 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
     libraryDependencies += "org.apache.spark" %% "spark-core" % "4.0.1" % Test,
     libraryDependencies += "org.apache.spark" %% "spark-sql"  % "4.0.1" % Test,
 
-    // Share version-portable test sources with pluginspark3. Most pluginspark3 specs
-    // depend on Spark-3-only internals (Dataset constructor, PythonMapInArrowExec, etc.)
-    // and don't compile against Spark 4, so we explicitly include only the suites that
-    // exercise version-stable surface area.
+    // Test sources can see the shared plugin (common) sources.
+    // (Instrumentation specs were moved to dataflint/spark-instrumentation.)
     Test / unmanagedSourceDirectories += (plugin / Compile / sourceDirectory).value / "scala",
-    Test / unmanagedSources ++= {
-      val pluginspark3Tests = (pluginspark3 / Test / sourceDirectory).value / "scala"
-      Seq(
-        pluginspark3Tests / "org" / "apache" / "spark" / "dataflint" / "DataFlintCodegenFallbackSpec.scala"
-      )
-    },
 
     // Fork JVM for tests; Spark on Java 9+ requires the same --add-opens as pluginspark3.
     Test / fork := true,
