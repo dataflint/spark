@@ -134,22 +134,6 @@ class DataflintSparkUICommonInstaller extends Logging {
 
 object DataflintSparkUICommonLoader extends Logging {
 
-  // The SQL-plan instrumentation extension lives in a separate artifact
-  // (dataflint/spark-instrumentation, io.dataflint:dataflint-instrumentation-sparkN).
-  // It is loaded BY NAME via spark.sql.extensions, so there is no compile-time
-  // dependency on it here. The INSTRUMENT_* keys below are the config contract
-  // that artifact reads; keep them in sync across both repos.
-  private val DATAFLINT_EXTENSION_CLASS = "org.apache.spark.dataflint.DataFlintInstrumentationExtension"
-  val INSTRUMENT_SPARK_ENABLED = "spark.dataflint.instrument.spark.enabled"
-  val INSTRUMENT_MAP_IN_PANDAS_ENABLED = "spark.dataflint.instrument.spark.mapInPandas.enabled"
-  val INSTRUMENT_MAP_IN_ARROW_ENABLED = "spark.dataflint.instrument.spark.mapInArrow.enabled"
-  val INSTRUMENT_WINDOW_ENABLED = "spark.dataflint.instrument.spark.window.enabled"
-  val INSTRUMENT_ARROW_EVAL_PYTHON_ENABLED = "spark.dataflint.instrument.spark.arrowEvalPython.enabled"
-  val INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED = "spark.dataflint.instrument.spark.batchEvalPython.enabled"
-  val INSTRUMENT_FLAT_MAP_GROUPS_PANDAS_ENABLED = "spark.dataflint.instrument.spark.flatMapGroupsInPandas.enabled"
-  val INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED = "spark.dataflint.instrument.spark.flatMapCoGroupsInPandas.enabled"
-  val INSTRUMENT_SQL_NODES_ENABLED = "spark.dataflint.instrument.spark.sqlNodes.enabled"
-
   def install(context: SparkContext, pageFactory: DataflintPageFactory): String = {
     new DataflintSparkUICommonInstaller().install(context, pageFactory)
   }
@@ -165,49 +149,5 @@ object DataflintSparkUICommonLoader extends Logging {
 
   def loadUI(ui: SparkUI): String = {
     throw new UnsupportedOperationException("This method requires a version-specific implementation. Use pluginspark3 or pluginspark4.")
-  }
-
-  /**
-   * Registers the DataFlint instrumentation extension in spark.sql.extensions if not already present.
-   * This must be called during plugin init() because spark.sql.extensions is read when SparkSession
-   * is created, which occurs after plugin initialization.
-   *
-   * This method is in the org.apache.spark.dataflint package to access SparkContext.conf
-   * (which is private[spark]).
-   */
-  def registerInstrumentationExtension(sc: SparkContext): Unit = {
-    val instrumentEnabled = sc.conf.getBoolean(INSTRUMENT_SPARK_ENABLED, defaultValue = false)
-    val mapInPandasEnabled = sc.conf.getBoolean(INSTRUMENT_MAP_IN_PANDAS_ENABLED, defaultValue = false)
-    val mapInArrowEnabled = sc.conf.getBoolean(INSTRUMENT_MAP_IN_ARROW_ENABLED, defaultValue = false)
-    val windowEnabled = sc.conf.getBoolean(INSTRUMENT_WINDOW_ENABLED, defaultValue = false)
-    val arrowEvalPythonEnabled = sc.conf.getBoolean(INSTRUMENT_ARROW_EVAL_PYTHON_ENABLED, defaultValue = false)
-    val batchEvalPythonEnabled = sc.conf.getBoolean(INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED, defaultValue = false)
-    val flatMapGroupsPandasEnabled = sc.conf.getBoolean(INSTRUMENT_FLAT_MAP_GROUPS_PANDAS_ENABLED, defaultValue = false)
-    val flatMapCogroupsPandasEnabled = sc.conf.getBoolean(INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED, defaultValue = false)
-    val anyInstrumentationEnabled = instrumentEnabled || mapInPandasEnabled || mapInArrowEnabled ||
-      windowEnabled || arrowEvalPythonEnabled || batchEvalPythonEnabled ||
-      flatMapGroupsPandasEnabled || flatMapCogroupsPandasEnabled
-    if (!anyInstrumentationEnabled) {
-      logInfo("DataFlint instrumentation extension is disabled (no instrumentation flags enabled)")
-      return
-    }
-
-    try {
-      val currentExtensions = sc.conf.get("spark.sql.extensions", "")
-      if (currentExtensions.contains(DATAFLINT_EXTENSION_CLASS)) {
-        logInfo("DataFlint instrumentation extension is already registered in spark.sql.extensions")
-      } else {
-        val newExtensions = if (currentExtensions.isEmpty) {
-          DATAFLINT_EXTENSION_CLASS
-        } else {
-          s"$currentExtensions,$DATAFLINT_EXTENSION_CLASS"
-        }
-        sc.conf.set("spark.sql.extensions", newExtensions)
-        logInfo(s"Registered DataFlint instrumentation extension in spark.sql.extensions")
-      }
-    } catch {
-      case e: Throwable =>
-        logWarning("Could not register DataFlint instrumentation extension", e)
-    }
   }
 }

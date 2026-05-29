@@ -40,14 +40,27 @@ Moved (entire `pluginspark3/src/test` — all of it was instrumentation tests):
   `SqlMetricTestHelper`, and the `org/apache/spark/sql/execution/ExplicitRepartition.scala`
   test helper.
 
+Also removed (this repo no longer knows anything about the SQL-plan
+instrumentation extension):
+* `DataflintSparkUICommonLoader`: the `INSTRUMENT_*` config constants, the
+  `DATAFLINT_EXTENSION_CLASS` name, and `registerInstrumentationExtension`.
+* The `registerInstrumentationExtension(sc)` call in `SparkDataflintPlugin`
+  (pluginspark3 + pluginspark4) and its now-unused import.
+
 Build change:
 * Removed the `pluginspark4` `Test / unmanagedSources` block that pulled in the
   now-moved `DataFlintCodegenFallbackSpec`.
 
-## Deliberately kept here (the contract)
+## Registration is now the new repo's responsibility
 
-* `DataflintSparkUICommonLoader`: the `INSTRUMENT_*` constants and
-  `registerInstrumentationExtension` (loads the extension by name).
-* `api/DurationTypes.scala` (`ResolvedStageGroup`).
+Because `dataflint-common` no longer adds the extension to `spark.sql.extensions`,
+the instrumentation jar must register itself (e.g. via its own `SparkPlugin` or
+a `spark.sql.extensions` entry the user sets). The `org.apache.spark.dataflint`
+package + `api.ResolvedStageGroup` remain here as ordinary classes — they are no
+longer an instrumentation "contract", just shared Spark-side types.
+
+## Kept here (unrelated to the SQL-plan extension)
+
 * The Delta Lake instrumentation listener (`DeltaLakeInstrumentationListener` &
-  friends) — out of scope for this split; it is compile-coupled to the loader.
+  friends), driven by the separate `spark.dataflint.instrument.deltalake.*`
+  config keys read directly in `install()` — a distinct feature, left in place.
