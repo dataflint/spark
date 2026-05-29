@@ -1,14 +1,10 @@
 # Instrumentation extraction
 
 The SQL-plan **instrumentation** feature (per-operator `TimedExec` timing) has
-been extracted out of this repo into a standalone project that depends on the
-published `io.dataflint:dataflint-common` artifact and publishes its own
-artifacts to GitHub Packages.
-
-The new project's seed lives at [`instrumentation-repo/`](instrumentation-repo/)
-on this branch — see [`instrumentation-repo/NEW-REPO-SETUP.md`](instrumentation-repo/NEW-REPO-SETUP.md)
-for how to lift it into `dataflint/spark-instrumentation`. Once that repo is
-live, delete `instrumentation-repo/` from this branch.
+been extracted out of this repo into the standalone
+[`dataflint/spark-instrumentation`](https://github.com/dataflint/spark-instrumentation)
+project, which depends on the published `io.dataflint:dataflint-common`
+artifact and publishes its own artifacts to GitHub Packages.
 
 ## Why it splits cleanly
 
