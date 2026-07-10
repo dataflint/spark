@@ -35,6 +35,16 @@ const metricAllowlist: Record<NodeType, Array<string>> = {
     "total number of files merged by ZOrderBy",
     "total bytes in files merged by ZOrderBy",
     "duration",
+    // ClickHouse connector write metrics
+    "total batch writes to ClickHouse",
+    "failed write attempts to ClickHouse",
+    "total time of writing",
+    "min batch size written (rows)",
+    "max batch size written (rows)",
+    "batches 0-25% of configured batch size",
+    "batches 25-50% of configured batch size",
+    "batches 50-75% of configured batch size",
+    "batches 75-100% of configured batch size",
   ],
   join: [
     "number of output rows",
@@ -194,6 +204,16 @@ const metricsRenamer: Record<string, string> = {
   "time of hash probe": "hash probe time",
   "number of spilled bytes": "spill",
   "peak memory bytes": "peak memory",
+  // ClickHouse connector write metrics
+  "total batch writes to ClickHouse": "batch writes",
+  "failed write attempts to ClickHouse": "failed writes",
+  "total time of writing": "write time",
+  "min batch size written (rows)": "min batch size",
+  "max batch size written (rows)": "max batch size",
+  "batches 0-25% of configured batch size": "batches 0-25% full",
+  "batches 25-50% of configured batch size": "batches 25-50% full",
+  "batches 50-75% of configured batch size": "batches 50-75% full",
+  "batches 75-100% of configured batch size": "batches 75-100% full",
 };
 
 const nodeTypeDict: Record<string, NodeType> = {
@@ -470,6 +490,7 @@ export function nodeEnrichedNameBuilder(
     switch (plan.type) {
       case "FileScan":
         if (plan.plan.isBigQueryRead) return "BigQuery Read";
+        if (plan.plan.isClickHouseRead) return "ClickHouse Read";
         break;
       case "WriteToIceberg":
         if (name === "OverwriteByExpression") return "Iceberg - Overwrite by Expression";
@@ -478,6 +499,8 @@ export function nodeEnrichedNameBuilder(
         if (name === "WriteDelta") return "Iceberg - Write Delta";
         if (name === "DeleteFromTable") return "Iceberg - Delete from table";
         return "Iceberg - Append data";
+      case "WriteToClickHouse":
+        return "ClickHouse Write";
       case "JDBCScan":
         return "Read JDBC";
       case "HashAggregate":

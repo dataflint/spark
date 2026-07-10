@@ -63,6 +63,51 @@ describe("nodeEnrichedNameBuilder - Iceberg write", () => {
   });
 });
 
+describe("nodeEnrichedNameBuilder - ClickHouse write", () => {
+  it("should return 'ClickHouse Write' for AppendData with a WriteToClickHouse plan", () => {
+    const plan: ParsedNodePlan = {
+      type: "WriteToClickHouse",
+      plan: { database: "default", tableName: "sales_by_store" },
+    };
+    expect(nodeEnrichedNameBuilder("AppendData", plan)).toBe("ClickHouse Write");
+  });
+
+  it("should fall back to the generic name without a WriteToClickHouse plan", () => {
+    expect(nodeEnrichedNameBuilder("AppendData", undefined)).toBe("Append data");
+  });
+});
+
+describe("calcNodeMetrics - ClickHouse write metrics", () => {
+  it("should keep and rename ClickHouse write metrics for output nodes", () => {
+    const metrics: EnrichedSqlMetric[] = [
+      { name: "number of output rows", value: "50" },
+      { name: "written output", value: "0.0 B" },
+      { name: "total batch writes to ClickHouse", value: "1" },
+      { name: "clients connected to ClickHouse", value: "1" },
+      { name: "failed write attempts to ClickHouse", value: "0" },
+      { name: "total time of writing", value: "0 ms" },
+      { name: "total time of serialization", value: "0 ms" },
+      { name: "max batch size written (rows)", value: "50" },
+      { name: "some unknown metric", value: "xyz" },
+    ];
+    const result = calcNodeMetrics("output", metrics);
+    const names = result.map((m) => m.name);
+
+    expect(names).toContain("rows");
+    expect(names).toContain("bytes written");
+    expect(names).toContain("batch writes");
+    expect(names).toContain("failed writes");
+    expect(names).toContain("write time");
+    expect(names).toContain("max batch size");
+    // removed from the node face
+    expect(names).not.toContain("ClickHouse clients");
+    expect(names).not.toContain("serialization time");
+    expect(names).not.toContain("some unknown metric");
+
+    expect(result.find((m) => m.name === "batch writes")?.value).toBe("1");
+  });
+});
+
 describe("nodeEnrichedNameBuilder - BigQuery", () => {
   it("should return 'BigQuery Read' for a FileScan plan with isBigQueryRead", () => {
     const plan: ParsedNodePlan = {
@@ -73,6 +118,16 @@ describe("nodeEnrichedNameBuilder - BigQuery", () => {
       },
     };
     expect(nodeEnrichedNameBuilder("BatchScan myproject.mydataset.mytable", plan)).toBe("BigQuery Read");
+  });
+
+  it("should return 'ClickHouse Read' for a FileScan plan with isClickHouseRead", () => {
+    const plan: ParsedNodePlan = {
+      type: "FileScan",
+      plan: { tableName: "`dataflint_demo`.`t`", isClickHouseRead: true },
+    };
+    expect(nodeEnrichedNameBuilder("BatchScan `dataflint_demo`.`t`", plan)).toBe(
+      "ClickHouse Read",
+    );
   });
 
   it("should NOT return 'BigQuery Read' for a FileScan plan without isBigQueryRead", () => {

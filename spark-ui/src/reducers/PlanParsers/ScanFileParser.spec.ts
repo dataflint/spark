@@ -116,6 +116,20 @@ describe("parseFileScan", () => {
         },
       },
     },
+    {
+      // A ClickHouse read looks like an Iceberg BatchScan by node name; the connector's
+      // scan class in the plan description disambiguates it (and avoids the Iceberg default).
+      input:
+        "BatchScan[id#16] class com.clickhouse.spark.read.ClickHouseBatchScan ReadSchema: struct<id:int>",
+      nodeName: "BatchScan `dataflint_demo`.`t`",
+      expected: {
+        tableName: "`dataflint_demo`.`t`",
+        isClickHouseRead: true,
+        ReadSchema: {
+          id: "int",
+        },
+      },
+    },
   ];
 
   testCases.forEach((testCase, idx) => {

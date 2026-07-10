@@ -80,7 +80,15 @@ export function parseFileScan(
       result.isIcebergRead = true;
     }
   } else if (nodeName.startsWith("BatchScan ")) {
-    if (readingTableMatch) {
+    if (input.includes("ClickHouseBatchScan")) {
+      // A ClickHouse read looks like an Iceberg scan by node name ("BatchScan `db`.`t`");
+      // the connector's scan class in the plan description is what disambiguates it.
+      const parts = nodeName.split(" ");
+      if (parts.length === 2) {
+        result.tableName = parts[1];
+      }
+      result.isClickHouseRead = true;
+    } else if (readingTableMatch) {
       result.tableName = readingTableMatch[1];
       result.isBigQueryRead = true;
     } else {
