@@ -335,6 +335,80 @@ export const processOutputNodeMetrics = (node: EnrichedSqlNode): MetricWithToolt
     return metrics;
 };
 
+// Renamed (pre-capitalization) ClickHouse write metric names that are collapsed into
+// the compact array rows below, so they can be filtered out of the raw metric list.
+const clickHouseBatchFillMetrics = [
+    "batches 0-25% full",
+    "batches 25-50% full",
+    "batches 50-75% full",
+    "batches 75-100% full",
+];
+const clickHouseBatchSizeMetrics = ["min batch size", "max batch size"];
+const clickHouseWriteCountMetrics = ["batch writes", "failed writes"];
+const clickHouseCollapsedMetrics = new Set([
+    ...clickHouseBatchFillMetrics,
+    ...clickHouseBatchSizeMetrics,
+    ...clickHouseWriteCountMetrics,
+]);
+
+// The verbose ClickHouse write metrics collapsed into compact array-style rows.
+// avg batch size is derived as rows / batch writes. Empty for non-ClickHouse nodes.
+const buildClickHouseWriteMetrics = (node: EnrichedSqlNode): MetricWithTooltip[] => {
+    const value = (name: string) => node.metrics.find((m) => m.name === name)?.value;
+    const num = (v: string | undefined) =>
+        v === undefined ? undefined : parseFloat(v.replaceAll(",", "").trim());
+    const cell = (v: string | number | undefined) =>
+        v === undefined ? "—" : v.toString().replaceAll(",", "").trim();
+    const array = (cells: (string | number | undefined)[]) =>
+        `[${cells.map(cell).join(", ")}]`;
+    const present = (cells: (string | undefined)[]) => cells.some((v) => v !== undefined);
+
+    const fill = clickHouseBatchFillMetrics.map(value);
+    const [minBatchSize, maxBatchSize] = clickHouseBatchSizeMetrics.map(value);
+    const [okWrites, failedWrites] = clickHouseWriteCountMetrics.map(value);
+
+    const rows = num(value("rows"));
+    const batchWrites = num(okWrites);
+    const avgBatchSize =
+        rows !== undefined && batchWrites ? Math.round(rows / batchWrites) : undefined;
+
+    const candidates: (MetricWithTooltip | false)[] = [
+        present(fill) && {
+            name: "Batch Fill (0-25/25-50/50-75/75-100%)",
+            value: array(fill),
+            tooltip:
+                "Number of write batches by how full they were, as a fraction of the configured batch size: 0-25%, 25-50%, 50-75%, 75-100%.",
+        },
+        present([minBatchSize, maxBatchSize]) && {
+            name: "Batch Size (min/avg/max)",
+            value: array([minBatchSize, avgBatchSize, maxBatchSize]),
+            tooltip:
+                "Rows per write batch: minimum, average (rows / batch writes), and maximum.",
+        },
+        present([okWrites, failedWrites]) && {
+            name: "Batch Writes (ok/failed)",
+            value: array([okWrites, failedWrites]),
+            tooltip: "Write batches sent to ClickHouse: successful and failed attempts.",
+        },
+    ];
+
+    return candidates.filter((m): m is MetricWithTooltip => m !== false);
+};
+
+// Replaces the individual ClickHouse write metric rows with the collapsed array rows.
+// Non-ClickHouse nodes are returned unchanged.
+export const collapseClickHouseWriteMetrics = (
+    node: EnrichedSqlNode,
+    baseMetrics: MetricWithTooltip[],
+): MetricWithTooltip[] => {
+    const collapsed = buildClickHouseWriteMetrics(node);
+    if (collapsed.length === 0) return baseMetrics;
+    return [
+        ...baseMetrics.filter((m) => !clickHouseCollapsedMetrics.has(m.name.toLowerCase())),
+        ...collapsed,
+    ];
+};
+
 export const processOptimizeTableMetrics = (node: EnrichedSqlNode): MetricWithTooltip[] => {
     const metrics: MetricWithTooltip[] = [];
 

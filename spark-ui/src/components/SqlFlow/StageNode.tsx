@@ -13,6 +13,7 @@ import { TransperantTooltip } from "../AlertBadge/AlertBadge";
 import MetricDisplay, { MetricWithTooltip } from "./MetricDisplay";
 import {
   addTruncatedCodeTooltip,
+  collapseClickHouseWriteMetrics,
   processBaseMetrics,
   processCachedStorageMetrics,
   processDeltaLakeScanMetrics,
@@ -154,6 +155,10 @@ const StageNodeComponent: FC<StageNodeProps> = ({ data }) => {
       }
 
       const inputMetrics = processInputNodeMetrics(data.node);
+
+      // ClickHouse writes: collapse the verbose per-batch metrics into compact array rows.
+      allBaseMetrics = collapseClickHouseWriteMetrics(data.node, allBaseMetrics);
+
       metrics = [
         ...inputMetrics,
         ...allBaseMetrics,

@@ -14,7 +14,15 @@ export function humanFileSize(bytes: number): string {
 export function capitalizeWords(text: string): string {
   return text
     .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .map(word => {
+      // Preserve words that already carry internal casing (acronyms and
+      // camelCase brand names like "HDFS", "BigQuery", "ClickHouse") instead
+      // of lower-casing them into "Hdfs" / "Bigquery" / "Clickhouse".
+      if (/[A-Z]/.test(word.slice(1))) {
+        return word;
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
     .join(' ');
 }
 

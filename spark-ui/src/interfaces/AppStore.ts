@@ -201,11 +201,17 @@ export type ParsedIcebergWritePlan = {
   tableType: string;
 };
 
+export type ParsedClickHouseWritePlan = {
+  database: string;
+  tableName: string;
+};
+
 export type ParseFileScanPlan = {
   Location?: string;
   tableName?: string;
   isIcebergRead?: boolean;
   isBigQueryRead?: boolean;
+  isClickHouseRead?: boolean;
   orderBy?: string[];
   PartitionFilters?: string[];
   PushedFilters?: string[];
@@ -322,7 +328,8 @@ export type ParsedNodePlan =
   | { type: "BatchEvalPython"; plan: ParsedBatchEvalPythonPlan }
   | { type: "Generate"; plan: ParsedGeneratePlan }
   | { type: "Expand"; plan: ParsedExpandPlan }
-  | { type: "WriteToIceberg"; plan: ParsedIcebergWritePlan };
+  | { type: "WriteToIceberg"; plan: ParsedIcebergWritePlan }
+  | { type: "WriteToClickHouse"; plan: ParsedClickHouseWritePlan };
 
 
 export interface ExchangeMetrics {

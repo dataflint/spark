@@ -38,6 +38,7 @@ import { parseSort } from "./PlanParsers/SortParser";
 import { parseTakeOrderedAndProject } from "./PlanParsers/TakeOrderedAndProjectParser";
 import { parseWindow } from "./PlanParsers/WindowParser";
 import { parseWriteToIceberg } from "./PlanParsers/WriteToIcebergParser";
+import { parseWriteToClickHouse } from "./PlanParsers/WriteToClickHouseParser";
 import { parseWriteToDelta } from "./PlanParsers/WriteToDeltaParser";
 import { parseWriteToHDFS } from "./PlanParsers/WriteToHDFSParser";
 import { parseBatchEvalPython } from "./PlanParsers/batchEvalPythonParser";
@@ -139,6 +140,12 @@ export function parseNodePlan(
           return {
             type: "WriteToIceberg",
             plan: parseWriteToIceberg(plan.planDescription),
+          };
+        }
+        if (plan.planDescription.includes("ClickHouseWrite")) {
+          return {
+            type: "WriteToClickHouse",
+            plan: parseWriteToClickHouse(plan.planDescription),
           };
         }
         break;
