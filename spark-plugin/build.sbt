@@ -3,7 +3,7 @@ import sbtassembly.AssemblyPlugin.autoImport._
 
 lazy val versionNum: String = "0.9.10"
 lazy val scala212 = "2.12.20"
-lazy val scala213 = "2.13.16"
+lazy val scala213 = "2.13.18"
 lazy val supportedScalaVersions = List(scala212, scala213)
 
 lazy val dataflint = project
@@ -20,7 +20,8 @@ lazy val dataflint = project
     example_3_5_1,
     example_3_4_1_remote,
     example_4_0_1,
-    example_4_1_0
+    example_4_1_0,
+    example_4_2_0
   ).settings(
     crossScalaVersions := Nil, // Aggregate project version must be Nil, see docs: https://www.scala-sbt.org/1.x/docs/Cross-Build.html
     publish / skip := true
@@ -167,13 +168,14 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
     // Include resources from plugin directory for static UI files
     Compile / unmanagedResourceDirectories += (plugin / Compile / resourceDirectory).value,
 
-    // Test dependencies — Spark 4.0.1 + scalatest. Mirrors pluginspark3 so we can run the
+    // Test dependencies — Spark 4.2.0 + scalatest. Mirrors pluginspark3 so we can run the
     // same regression suites against the Spark 4 surface (cross-version validation).
+    // 4.2.0 ships Jetty 12 (ee10); DataflintJettyUtilsSpec covers that path.
     // Requires the launching JVM to be Java 17+ since Spark 4 won't run on Java 8/11.
     libraryDependencies += "org.scalatest" %% "scalatest-funsuite"       % "3.2.17" % Test,
     libraryDependencies += "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.17" % Test,
-    libraryDependencies += "org.apache.spark" %% "spark-core" % "4.0.1" % Test,
-    libraryDependencies += "org.apache.spark" %% "spark-sql"  % "4.0.1" % Test,
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "4.2.0" % Test,
+    libraryDependencies += "org.apache.spark" %% "spark-sql"  % "4.2.0" % Test,
 
     // Share version-portable test sources with pluginspark3. Most pluginspark3 specs
     // depend on Spark-3-only internals (Dataset constructor, PythonMapInArrowExec, etc.)
@@ -354,5 +356,21 @@ lazy val example_4_1_0 = (project in file("example_4_1_0"))
     // there is no scala 2.12 version so we need to force 2.13 to make it compile
     libraryDependencies += "org.apache.spark" % "spark-core_2.13" % "4.1.0",
     libraryDependencies += "org.apache.spark" % "spark-sql_2.13" % "4.1.0",
+    publish / skip := true
+  ).dependsOn(pluginspark4)
+
+lazy val example_4_2_0 = (project in file("example_4_2_0"))
+  .settings(
+    name := "DataflintSparkExample420",
+    organization := "io.dataflint",
+    scalaVersion := scala213,
+    crossScalaVersions := List(scala213), // Only Scala 2.13 for Spark 4.x
+    // Spark 4.2.0 requires Scala 2.13.18+ (MurmurHash3.caseClassHash)
+    libraryDependencies += "org.apache.spark" % "spark-core_2.13" % "4.2.0",
+    libraryDependencies += "org.apache.spark" % "spark-sql_2.13" % "4.2.0",
+    // Fork so the run classpath uses this project's Scala, not sbt's.
+    // Keep CWD at the build root so ./test_data/... resolves like the other examples.
+    run / fork := true,
+    run / baseDirectory := (LocalRootProject / baseDirectory).value,
     publish / skip := true
   ).dependsOn(pluginspark4)

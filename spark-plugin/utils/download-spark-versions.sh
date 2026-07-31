@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Downloads Apache Spark distributions for all supported versions (3.0.x – 4.1.x).
+# Downloads Apache Spark distributions for all supported versions (3.0.x – 4.2.x).
 # Each version is extracted into .spark-versions/<version>/ under this directory.
 #
 # Usage:
@@ -26,6 +26,7 @@ ALL_VERSIONS="
 3.5.8:hadoop3
 4.0.2:hadoop3
 4.1.0:hadoop3
+4.2.0:hadoop3
 "
 
 get_hadoop_suffix() {
