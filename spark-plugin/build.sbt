@@ -356,3 +356,15 @@ lazy val example_4_1_0 = (project in file("example_4_1_0"))
     libraryDependencies += "org.apache.spark" % "spark-sql_2.13" % "4.1.0",
     publish / skip := true
   ).dependsOn(pluginspark4)
+
+lazy val example_4_2_0 = (project in file("example_4_2_0"))
+  .settings(
+    name := "DataflintSparkExample420",
+    organization := "io.dataflint",
+    scalaVersion := scala213,
+    crossScalaVersions := List(scala213), // Only Scala 2.13 for Spark 4.x
+    // there is no scala 2.12 version so we need to force 2.13 to make it compile
+    libraryDependencies += "org.apache.spark" % "spark-core_2.13" % "4.2.0",
+    libraryDependencies += "org.apache.spark" % "spark-sql_2.13" % "4.2.0",
+    publish / skip := true
+  ).dependsOn(pluginspark4)

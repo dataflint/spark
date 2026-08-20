@@ -20,11 +20,21 @@ object DataflintJettyUtils {
   private def createStaticHandler(resourceBase: String, path: String): Any = {
     // Try to load classes from both packages
     def getClassForName(className: String): Class[_] = {
-      try {
-        Class.forName(s"org.sparkproject.jetty.servlet.$className")
-      } catch {
-        case _: ClassNotFoundException => Class.forName(s"org.eclipse.jetty.servlet.$className")
-      }
+      // Spark 4.2 upgraded to Jetty 12, which relocated the servlet classes into
+      // the EE10 package (org.sparkproject.jetty.ee10.servlet.*). Spark 4.0/4.1
+      // and 3.x use the older org.sparkproject.jetty.servlet.*, and an unshaded
+      // Spark build uses org.eclipse.jetty.*. Probe all of them, newest first.
+      val candidates = Seq(
+        s"org.sparkproject.jetty.ee10.servlet.$className",
+        s"org.sparkproject.jetty.servlet.$className",
+        s"org.eclipse.jetty.ee10.servlet.$className",
+        s"org.eclipse.jetty.servlet.$className"
+      )
+      candidates.iterator
+        .map(n => try Some(Class.forName(n)) catch { case _: ClassNotFoundException => None })
+        .collectFirst { case Some(c) => c }
+        .getOrElse(throw new ClassNotFoundException(
+          s"Could not locate Jetty class $className in any known package: ${candidates.mkString(", ")}"))
     }
 
     val servletContextHandlerClass = getClassForName("ServletContextHandler")
