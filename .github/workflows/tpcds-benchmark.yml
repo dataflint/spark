@@ -117,7 +117,6 @@ jobs:
             --master "local[*]" \
             --conf spark.plugins=io.dataflint.spark.SparkDataflintPlugin \
             --conf spark.dataflint.telemetry.enabled=false \
-            --conf spark.dataflint.instrument.spark.enabled=true \
             --conf spark.dataflint.cacheObservability.enabled=true \
             --conf spark.eventLog.enabled=true \
             --conf spark.eventLog.dir=file:///tmp/spark-events \

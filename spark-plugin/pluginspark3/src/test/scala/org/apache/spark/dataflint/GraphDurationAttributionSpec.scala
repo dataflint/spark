@@ -21,13 +21,10 @@ class GraphDurationAttributionSpec extends AnyFunSuite with Matchers with Before
     spark = SparkSession.builder()
       .master("local[2]")
       .appName("GraphDurationAttributionSpec")
-      .config(DataflintSparkUICommonLoader.INSTRUMENT_SQL_NODES_ENABLED, "true")
       .config("spark.sql.codegen.wholeStage", "true")
       .config("spark.sql.adaptive.enabled", "false")
       .config("spark.ui.enabled", "true")
       .config("spark.sql.shuffle.partitions", "2")
-      .config("spark.dataflint.test.codegenSleepMs", "2")
-      .withExtensions(new DataFlintInstrumentationExtension)
       .getOrCreate()
   }
 
@@ -55,16 +52,13 @@ class GraphDurationAttributionSpec extends AnyFunSuite with Matchers with Before
 
   // --- Duration attribution ---
 
-  test("durations: all non-negative, instrumented nodes have measurable timing") {
+  test("durations: every node gets a non-negative duration from native metrics alone") {
     val df = spark.range(0, 1000, 1, 1).toDF().filter("id > 50")
     val (graph, metrics) = graphForQuery(df)
     val durations = GraphDurationAttribution.computeAuto(graph, metrics)
 
+    durations should not be empty
     durations.foreach(d => d.durationMs should be >= 0L)
-    val nonZero = durations.filter(_.durationMs > 0)
-    withClue(s"Durations: ${durations.map(d => s"${d.nodeName}:${d.durationMs}ms").mkString(", ")}") {
-      nonZero should not be empty
-    }
   }
 
   // --- Exchange durations ---

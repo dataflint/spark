@@ -38,7 +38,6 @@ lazy val plugin = (project in file("plugin"))
     }),
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.5.1" % "provided",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.1"  % "provided",
-    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0" % "provided",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % Test,
@@ -64,7 +63,6 @@ lazy val pluginspark3 = (project in file("pluginspark3"))
     }),
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.5.1" % "provided",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.1"  % "provided",
-    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0" % "provided",
     
@@ -135,7 +133,6 @@ lazy val pluginspark4 = (project in file("pluginspark4"))
     }),
     libraryDependencies += "org.apache.spark" %% "spark-core" % "4.0.1" % "provided",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "4.0.1"  % "provided",
-    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0" % "provided",
 
@@ -216,7 +213,6 @@ lazy val pluginspark4databricks = (project in file("pluginspark4databricks"))
     }),
     libraryDependencies += "org.apache.spark" %% "spark-core" % "4.0.1" % "provided",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "4.0.1"  % "provided",
-    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470" % "provided",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0" % "provided",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0" % "provided",
 
@@ -274,7 +270,6 @@ lazy val example_3_2_4 = (project in file("example_3_2_4"))
     crossScalaVersions := supportedScalaVersions,
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.2.4",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.2.4",
-    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
     publish / skip := true
   ).dependsOn(pluginspark3)
 
@@ -285,7 +280,6 @@ lazy val example_3_3_3 = (project in file("example_3_3_3"))
     crossScalaVersions := List(scala212),
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.3.3",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.3.3",
-    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.3" % "1.5.0",
     libraryDependencies += "org.scala-lang.modules" %% "scala-collection-compat" % "2.11.0",
     publish / skip := true
@@ -298,7 +292,6 @@ lazy val example_3_4_1 = (project in file("example_3_4_1"))
     crossScalaVersions := supportedScalaVersions,
     libraryDependencies += "org.apache.spark" %% "spark-core" % "3.4.1",
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.4.1",
-    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.4" % "1.5.0",
     publish / skip := true
   ).dependsOn(pluginspark3)
@@ -312,7 +305,6 @@ lazy val example_3_5_1 = (project in file("example_3_5_1"))
     libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.7",
     libraryDependencies += "org.apache.spark" %% "spark-streaming" % "3.5.1",
     libraryDependencies += "org.apache.spark" %% "spark-sql-kafka-0-10" % "3.5.1",
-    libraryDependencies +=  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.470",
     libraryDependencies += "io.delta" %% "delta-spark" % "3.2.0",
     libraryDependencies += "org.apache.iceberg" %% "iceberg-spark-runtime-3.5" % "1.5.0",
     libraryDependencies += "org.scala-lang.modules" %% "scala-collection-compat" % "2.11.0",

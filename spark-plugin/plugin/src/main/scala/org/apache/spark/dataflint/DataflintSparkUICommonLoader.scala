@@ -5,7 +5,6 @@ import org.apache.spark.dataflint.api.DataflintPageFactory
 import org.apache.spark.dataflint.listener.{DataflintDatabricksLiveListener, DataflintEnvironmentInfo, DataflintEnvironmentInfoEvent, DataflintListener, DataflintStore, DeltaLakeInstrumentationListener}
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker
 import org.apache.spark.dataflint.iceberg.ClassLoaderChecker.isMetricLoaderInRightClassLoader
-import org.apache.spark.dataflint.saas.DataflintRunExporterListener
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.SparkListenerInterface
 import org.apache.spark.sql.SparkSession
@@ -27,20 +26,6 @@ class DataflintSparkUICommonInstaller extends Logging {
 
     val sqlListener = () => context.listenerBus.listeners.toArray().find(_.isInstanceOf[SQLAppStatusListener]).asInstanceOf[Option[SQLAppStatusListener]]
     val dataflintListener = new DataflintListener(context.statusStore.store.asInstanceOf[ElementTrackingStore])
-    val tokenConf = context.conf.getOption("spark.dataflint.token")
-    val dataflintEnabled = context.conf.getBoolean("spark.dataflint.enabled", true)
-    if(tokenConf.isDefined) {
-      if (!tokenConf.get.contains("-")) {
-        logWarning("Dataflint token is not valid, please check your configuration")
-      } else if (!dataflintEnabled) {
-        logWarning("Dataflint is explicitly disabled although token is defined, if you wish to re-enable it please set spark.dataflint.enabled to true")
-      }
-      else {
-        context.listenerBus.addToQueue(new DataflintRunExporterListener(context), "dataflint")
-        logInfo("Added DataflintRunExporterListener to the listener bus")
-      }
-    }
-
     val runtime = Runtime.getRuntime
     val driverXmxBytes = runtime.maxMemory()
     val environmentInfo = DataflintEnvironmentInfo(driverXmxBytes)
@@ -134,17 +119,6 @@ class DataflintSparkUICommonInstaller extends Logging {
 
 object DataflintSparkUICommonLoader extends Logging {
 
-  private val DATAFLINT_EXTENSION_CLASS = "org.apache.spark.dataflint.DataFlintInstrumentationExtension"
-  val INSTRUMENT_SPARK_ENABLED = "spark.dataflint.instrument.spark.enabled"
-  val INSTRUMENT_MAP_IN_PANDAS_ENABLED = "spark.dataflint.instrument.spark.mapInPandas.enabled"
-  val INSTRUMENT_MAP_IN_ARROW_ENABLED = "spark.dataflint.instrument.spark.mapInArrow.enabled"
-  val INSTRUMENT_WINDOW_ENABLED = "spark.dataflint.instrument.spark.window.enabled"
-  val INSTRUMENT_ARROW_EVAL_PYTHON_ENABLED = "spark.dataflint.instrument.spark.arrowEvalPython.enabled"
-  val INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED = "spark.dataflint.instrument.spark.batchEvalPython.enabled"
-  val INSTRUMENT_FLAT_MAP_GROUPS_PANDAS_ENABLED = "spark.dataflint.instrument.spark.flatMapGroupsInPandas.enabled"
-  val INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED = "spark.dataflint.instrument.spark.flatMapCoGroupsInPandas.enabled"
-  val INSTRUMENT_SQL_NODES_ENABLED = "spark.dataflint.instrument.spark.sqlNodes.enabled"
-
   def install(context: SparkContext, pageFactory: DataflintPageFactory): String = {
     new DataflintSparkUICommonInstaller().install(context, pageFactory)
   }
@@ -160,49 +134,5 @@ object DataflintSparkUICommonLoader extends Logging {
 
   def loadUI(ui: SparkUI): String = {
     throw new UnsupportedOperationException("This method requires a version-specific implementation. Use pluginspark3 or pluginspark4.")
-  }
-
-  /**
-   * Registers the DataFlint instrumentation extension in spark.sql.extensions if not already present.
-   * This must be called during plugin init() because spark.sql.extensions is read when SparkSession
-   * is created, which occurs after plugin initialization.
-   *
-   * This method is in the org.apache.spark.dataflint package to access SparkContext.conf
-   * (which is private[spark]).
-   */
-  def registerInstrumentationExtension(sc: SparkContext): Unit = {
-    val instrumentEnabled = sc.conf.getBoolean(INSTRUMENT_SPARK_ENABLED, defaultValue = false)
-    val mapInPandasEnabled = sc.conf.getBoolean(INSTRUMENT_MAP_IN_PANDAS_ENABLED, defaultValue = false)
-    val mapInArrowEnabled = sc.conf.getBoolean(INSTRUMENT_MAP_IN_ARROW_ENABLED, defaultValue = false)
-    val windowEnabled = sc.conf.getBoolean(INSTRUMENT_WINDOW_ENABLED, defaultValue = false)
-    val arrowEvalPythonEnabled = sc.conf.getBoolean(INSTRUMENT_ARROW_EVAL_PYTHON_ENABLED, defaultValue = false)
-    val batchEvalPythonEnabled = sc.conf.getBoolean(INSTRUMENT_BATCH_EVAL_PYTHON_ENABLED, defaultValue = false)
-    val flatMapGroupsPandasEnabled = sc.conf.getBoolean(INSTRUMENT_FLAT_MAP_GROUPS_PANDAS_ENABLED, defaultValue = false)
-    val flatMapCogroupsPandasEnabled = sc.conf.getBoolean(INSTRUMENT_FLAT_MAP_COGROUPS_PANDAS_ENABLED, defaultValue = false)
-    val anyInstrumentationEnabled = instrumentEnabled || mapInPandasEnabled || mapInArrowEnabled ||
-      windowEnabled || arrowEvalPythonEnabled || batchEvalPythonEnabled ||
-      flatMapGroupsPandasEnabled || flatMapCogroupsPandasEnabled
-    if (!anyInstrumentationEnabled) {
-      logInfo("DataFlint instrumentation extension is disabled (no instrumentation flags enabled)")
-      return
-    }
-
-    try {
-      val currentExtensions = sc.conf.get("spark.sql.extensions", "")
-      if (currentExtensions.contains(DATAFLINT_EXTENSION_CLASS)) {
-        logInfo("DataFlint instrumentation extension is already registered in spark.sql.extensions")
-      } else {
-        val newExtensions = if (currentExtensions.isEmpty) {
-          DATAFLINT_EXTENSION_CLASS
-        } else {
-          s"$currentExtensions,$DATAFLINT_EXTENSION_CLASS"
-        }
-        sc.conf.set("spark.sql.extensions", newExtensions)
-        logInfo(s"Registered DataFlint instrumentation extension in spark.sql.extensions")
-      }
-    } catch {
-      case e: Throwable =>
-        logWarning("Could not register DataFlint instrumentation extension", e)
-    }
   }
 }
