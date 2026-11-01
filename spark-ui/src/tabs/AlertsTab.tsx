@@ -4,7 +4,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LaunchIcon from "@mui/icons-material/Launch";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CodeIcon from "@mui/icons-material/Code";
 import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 import {
   Alert,
@@ -26,6 +26,7 @@ import {
   openBookDemo,
   SAVINGS_BUTTON_SX,
   SAVINGS_CHIP_SX,
+  SAVINGS_CTA_LABEL,
   shouldShowSavingsCta,
 } from "../utils/BookDemo";
 
@@ -345,14 +346,14 @@ export const AlertsTab: FC<{}> = (): JSX.Element => {
                             <Button
                               variant="contained"
                               size="small"
-                              startIcon={<AutoAwesomeIcon />}
+                              startIcon={<CodeIcon />}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 openBookDemo(`alert-${alert.name}`, alert.savingsPercentage ?? 0);
                               }}
                               sx={{ ml: 1, ...SAVINGS_BUTTON_SX }}
                             >
-                              Fix it with AI · Book a demo
+                              {SAVINGS_CTA_LABEL}
                             </Button>
                           )}
                         </Alert>

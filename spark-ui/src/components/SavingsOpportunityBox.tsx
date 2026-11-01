@@ -1,4 +1,4 @@
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CodeIcon from "@mui/icons-material/Code";
 import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 import { Box, Grid, Paper, Tooltip, Typography } from "@mui/material";
 import React, { FC } from "react";
@@ -29,8 +29,10 @@ const SavingsOpportunityBox: FC<{ savings: SavingsOpportunity }> = ({
         {formatSavingsPercentage(savings.memoryPercentage)}%
       </Typography>
       <Typography variant="subtitle2" sx={{ mt: 1 }}>
-        A rough estimate of this app's compute cost (DCU) you could save. Click
-        to book a demo and have DataFlint fix it with AI.
+        A rough estimate of this app's compute cost (DCU) that is recoverable.
+        DataFlint's agent pinpoints the code changes in your repo and opens the
+        PR. Works in Cursor, Claude Code and VS Code via MCP. Click to book a
+        demo.
       </Typography>
     </React.Fragment>
   );
@@ -91,9 +93,9 @@ const SavingsOpportunityBox: FC<{ savings: SavingsOpportunity }> = ({
             gap={0.5}
             color={SAVINGS_TEXT_COLOR}
           >
-            <AutoAwesomeIcon sx={{ fontSize: 12 }} />
+            <CodeIcon sx={{ fontSize: 12 }} />
             <Typography variant="caption" fontSize={11} fontWeight={600} noWrap>
-              Fix it with AI →
+              Get the fix →
             </Typography>
           </Box>
         </Paper>

@@ -7,6 +7,11 @@ const BOOK_DEMO_URL = "https://www.dataflint.io/book-demo";
 export const SAVINGS_COLOR = "#2e7d32";
 export const SAVINGS_TEXT_COLOR = "#66bb6a";
 
+// shared copy of the savings CTAs: lead with the outcome, MCP as the "how", and say where the click goes
+export const SAVINGS_CTA_LABEL = "Get the code fix · Book a demo";
+export const SAVINGS_AGENT_PITCH =
+  "DataFlint's agent finds the code changes and opens the PR, right from your IDE via MCP.";
+
 // shared look of the savings CTAs, so the tile, banner and alerts read as one feature
 export const SAVINGS_BUTTON_SX = {
   textTransform: "none",

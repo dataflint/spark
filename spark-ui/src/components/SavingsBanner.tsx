@@ -1,4 +1,4 @@
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CodeIcon from "@mui/icons-material/Code";
 import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 import { Box, Button, Typography } from "@mui/material";
 import React, { FC } from "react";
@@ -6,8 +6,10 @@ import { useAppSelector } from "../Hooks";
 import {
   formatSavingsPercentage,
   openBookDemo,
+  SAVINGS_AGENT_PITCH,
   SAVINGS_BUTTON_SX,
   SAVINGS_COLOR,
+  SAVINGS_CTA_LABEL,
   SAVINGS_TEXT_COLOR,
   shouldShowSavingsCta,
 } from "../utils/BookDemo";
@@ -22,8 +24,8 @@ const SavingsBanner: FC = (): JSX.Element | null => {
   const issuesCount = alerts?.alerts.length ?? 0;
   const issuesText =
     issuesCount === 0
-      ? "mostly from idle cores"
-      : `across ${issuesCount} issue${issuesCount === 1 ? "" : "s"} found`;
+      ? ", mostly from idle cores"
+      : ` across ${issuesCount} issue${issuesCount === 1 ? "" : "s"}`;
 
   return (
     <Box
@@ -49,20 +51,24 @@ const SavingsBanner: FC = (): JSX.Element | null => {
       }}
     >
       <PaidOutlinedIcon sx={{ color: SAVINGS_TEXT_COLOR }} />
-      <Typography variant="body1">
-        You could save{" "}
-        <b style={{ color: SAVINGS_TEXT_COLOR }}>
-          ~{formatSavingsPercentage(savings.totalPercentage)}%
-        </b>{" "}
-        of this app's compute cost, {issuesText}
-      </Typography>
+      <Box>
+        <Typography variant="body1">
+          <b style={{ color: SAVINGS_TEXT_COLOR }}>
+            ~{formatSavingsPercentage(savings.totalPercentage)}%
+          </b>{" "}
+          of this app's compute is recoverable{issuesText}.
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {SAVINGS_AGENT_PITCH}
+        </Typography>
+      </Box>
       <Button
         size="small"
         variant="contained"
-        startIcon={<AutoAwesomeIcon />}
+        startIcon={<CodeIcon />}
         sx={SAVINGS_BUTTON_SX}
       >
-        Fix it with AI · Book a demo
+        {SAVINGS_CTA_LABEL}
       </Button>
     </Box>
   );
