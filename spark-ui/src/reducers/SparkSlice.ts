@@ -140,6 +140,7 @@ const sparkSlice = createSlice({
       const executorsStatus = calculateSparkExecutorsStatus(
         executorsStore,
         state.config,
+        state.status.stages?.totalTaskTimeMs,
       );
 
       const executorsTimeline = calculateSparkExecutorsTimeline(
