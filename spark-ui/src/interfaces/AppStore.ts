@@ -32,6 +32,7 @@ export type AppStore = {
 
 export interface AlertsStore {
   alerts: Alerts;
+  savingsOpportunity?: SavingsOpportunity;
 }
 
 export type Alerts = Alert[];
@@ -63,6 +64,15 @@ export interface Alert {
   suggestion: string;
   type: AlertType;
   source: StatusAlertSourceData | SQLAlertSourceData | StageAlertSourceData;
+  // estimated share of the app's compute cost (DCU) that fixing this alert could save
+  savingsPercentage?: number;
+}
+
+export interface SavingsOpportunity {
+  totalPercentage: number;
+  idleCoresPercentage: number;
+  queriesPercentage: number;
+  memoryPercentage: number;
 }
 
 export type AlertType = "error" | "warning";

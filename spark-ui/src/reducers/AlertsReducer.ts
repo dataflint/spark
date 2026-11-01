@@ -22,6 +22,7 @@ import { reduceSQLInputOutputAlerts } from "./Alerts/MemorySQLInputOutputAlerts"
 import { reducePartitionSkewAlert } from "./Alerts/PartitionSkewAlert";
 import { reduceSmallTasksAlert } from "./Alerts/SmallTasksAlert";
 import { reduceWastedCoresAlerts } from "./Alerts/WastedCoresAlertsReducer";
+import { reduceSavingsOpportunity } from "./SavingsOpportunityReducer";
 
 function buildStageMap(stages: SparkStagesStore): StageMap {
   const map = new Map<number, SparkStageStore>();
@@ -58,7 +59,9 @@ export function reduceAlerts(
   reduceFullScanAlert(sqlStore, alerts);
   const disabledAlerts = parseAlertDisabledConfig(config.alertDisabled);
   const filteredAlerts = alerts.filter(alert => !disabledAlerts.has(alert.name));
+  const savingsOpportunity = reduceSavingsOpportunity(sqlStore, statusStore, filteredAlerts);
   return {
     alerts: filteredAlerts,
+    savingsOpportunity,
   };
 }

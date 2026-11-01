@@ -1,5 +1,6 @@
 import * as React from "react";
 import NoQuery from "../components/NoQuery/NoQuery";
+import SavingsBanner from "../components/SavingsBanner";
 import SqlContainer from "../components/SqlContainer";
 import StatusBar from "../components/StatusBar";
 import { useAppSelector } from "../Hooks";
@@ -17,6 +18,7 @@ export default function StatusTab() {
   return (
     <div style={{ display: "flex", height: "100%", flexDirection: "column" }}>
       <StatusBar />
+      <SavingsBanner />
       {sql === undefined || sql.sqls.length === 0 || isIdle ? (
         <div
           style={{
