@@ -18,6 +18,7 @@ import MuiDrawer from "@mui/material/Drawer";
 import React, { FC } from "react";
 import { renderTabIcon, Tab } from "../../services/TabsService";
 import DrawerFooter from "./DrawerFooter";
+import DrawerSavingsCard from "./DrawerSavingsCard";
 
 const drawerWidth = 230;
 
@@ -173,7 +174,10 @@ export const AppDrawer: FC<{
             </List>
           </Box>
         </div>
-        {open && <DrawerFooter version={process.env.REACT_APP_VERSION} />}
+        <div>
+          <DrawerSavingsCard open={open} />
+          {open && <DrawerFooter version={process.env.REACT_APP_VERSION} />}
+        </div>
       </div>
     </Drawer>
   );

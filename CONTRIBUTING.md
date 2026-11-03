@@ -43,9 +43,26 @@ Requirements:
    brew install lcp
    ```
 
+### Quick Local Dev Loop (`dev.sh`)
+
+`dev.sh` at the repo root wraps the common workflows (macOS; uses Java 11 via `/usr/libexec/java_home`,
+override with `DEV_JAVA_HOME`). Run each in its own terminal:
+
+| Command | What it does | URL |
+|---|---|---|
+| `./dev.sh deploy-ui` | Build the UI into the plugin resources (run after UI changes you want to see on :10000 / :18080) | |
+| `./dev.sh job [MainClass] [args]` | Run a Spark 3.5 example from `example_3_5_1` (default `DevPlayground`); it waits for Enter before stopping | http://localhost:10000/dataflint/ |
+| `./dev.sh cluster-job <MainClass> [args]` | Run an example on a local standalone cluster (1 worker, 4 executors x 2 cores), starting the cluster if needed; stop it with `./dev.sh cluster-stop` | http://localhost:8080 (master) |
+| `./dev.sh ui` | Hot-reload UI dev server proxied to the running job | http://localhost:4000 |
+| `./dev.sh shs` | Spark history server (`SPARK_HOME`, default `/opt/spark-3.5.1`) with the plugin jar, reading `/tmp/spark-events` | http://localhost:18080 |
+| `./dev.sh shs-ui` | Hot-reload UI dev server proxied to the history server | http://localhost:3000 |
+
+`DevPlayground` runs a mix of scans, aggregations, joins, cache and skew so most views and alerts have data,
+and writes event logs to `/tmp/spark-events` so every run also shows up in the history server.
+
 ### Running the Project
 
-1. Run one of the examples in the `spark-examples-351` project using IntelliJ
+1. Run one of the examples in the `example_3_5_1` project using IntelliJ (or `./dev.sh job <ExampleName>`)
 
 2. Access the Spark UI:
    - Browse to `http://localhost:10000`

@@ -17,9 +17,11 @@ import {
   humanFileSize,
   humanizeTimeDiff,
 } from "../utils/FormatUtils";
+import { shouldShowSavingsCta } from "../utils/BookDemo";
 import { IS_HISTORY_SERVER_MODE } from "../utils/UrlConsts";
 import InfoBox from "./InfoBox/InfoBox";
 import Progress from "./Progress";
+import SavingsOpportunityBox from "./SavingsOpportunityBox";
 
 const SummaryBar: FC = (): JSX.Element => {
   const status = useAppSelector((state) => state.spark.status);
@@ -38,6 +40,7 @@ const SummaryBar: FC = (): JSX.Element => {
     (alert) =>
       alert.source.type === "status" && alert.source.metric === "idleCores",
   );
+  const savingsOpportunity = alerts?.savingsOpportunity;
   const executorMemoryBytesString = useAppSelector(
     (state) => state.spark.config?.executorMemoryBytesString,
   );
@@ -82,6 +85,9 @@ const SummaryBar: FC = (): JSX.Element => {
         justifyContent="center"
         alignItems="center"
       >
+        {savingsOpportunity !== undefined && shouldShowSavingsCta() && (
+          <SavingsOpportunityBox savings={savingsOpportunity} />
+        )}
         <InfoBox
           title="Duration"
           text={durationText}

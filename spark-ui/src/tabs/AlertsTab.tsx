@@ -4,6 +4,8 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LaunchIcon from "@mui/icons-material/Launch";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import CodeIcon from "@mui/icons-material/Code";
+import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 import {
   Alert,
   AlertTitle,
@@ -19,6 +21,17 @@ import { Stack } from "@mui/system";
 import React, { FC, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "../Hooks";
+import {
+  formatSavingsPercentage,
+  openBookDemo,
+  SAVINGS_BUTTON_SX,
+  SAVINGS_CHIP_SX,
+  SAVINGS_CTA_LABEL,
+  shouldShowSavingsCta,
+} from "../utils/BookDemo";
+
+// below this the estimate reads as "no savings", which undersells the alert
+const MIN_SAVINGS_CHIP_PERCENTAGE = 1;
 
 interface GroupedAlerts {
   [alertName: string]: {
@@ -26,6 +39,7 @@ interface GroupedAlerts {
     alerts: any[];
     errorCount: number;
     warningCount: number;
+    savingsPercentage: number;
   };
 }
 
@@ -47,10 +61,15 @@ export const AlertsTab: FC<{}> = (): JSX.Element => {
           alerts: [],
           errorCount: 0,
           warningCount: 0,
+          savingsPercentage: 0,
         };
       }
 
       grouped[alert.name].alerts.push(alert);
+      grouped[alert.name].savingsPercentage = Math.min(
+        100,
+        grouped[alert.name].savingsPercentage + (alert.savingsPercentage ?? 0),
+      );
       if (alert.type === "error") {
         grouped[alert.name].errorCount++;
       } else {
@@ -85,6 +104,8 @@ export const AlertsTab: FC<{}> = (): JSX.Element => {
       navigate("/resources");
     }
   };
+
+  const showSavings = shouldShowSavingsCta();
 
   const totalErrors = alerts?.alerts.filter(
     (alert) => alert.type === "error",
@@ -188,6 +209,15 @@ export const AlertsTab: FC<{}> = (): JSX.Element => {
                   </Box>
 
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    {showSavings && groupData.savingsPercentage >= MIN_SAVINGS_CHIP_PERCENTAGE && (
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        icon={<PaidOutlinedIcon />}
+                        label={`~${formatSavingsPercentage(groupData.savingsPercentage)}% savings`}
+                        sx={SAVINGS_CHIP_SX}
+                      />
+                    )}
                     {groupData.errorCount > 0 && (
                       <Chip
                         size="small"
@@ -229,8 +259,24 @@ export const AlertsTab: FC<{}> = (): JSX.Element => {
                             },
                           }}
                         >
-                          <AlertTitle sx={{ fontWeight: "600" }}>
+                          <AlertTitle
+                            sx={{
+                              fontWeight: "600",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
                             {alert.title}
+                            {showSavings && alert.savingsPercentage >= MIN_SAVINGS_CHIP_PERCENTAGE && (
+                              <Chip
+                                size="small"
+                                variant="outlined"
+                                icon={<PaidOutlinedIcon />}
+                                label={`Save ~${formatSavingsPercentage(alert.savingsPercentage)}% of this app's cost`}
+                                sx={SAVINGS_CHIP_SX}
+                              />
+                            )}
                           </AlertTitle>
                           <Typography
                             variant="body2"
@@ -296,6 +342,20 @@ export const AlertsTab: FC<{}> = (): JSX.Element => {
                           >
                             Go to Alert
                           </Button>
+                          {showSavings && (
+                            <Button
+                              variant="contained"
+                              size="small"
+                              startIcon={<CodeIcon />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openBookDemo(`alert-${alert.name}`, alert.savingsPercentage ?? 0);
+                              }}
+                              sx={{ ml: 1, ...SAVINGS_BUTTON_SX }}
+                            >
+                              {SAVINGS_CTA_LABEL}
+                            </Button>
+                          )}
                         </Alert>
                       ))}
                     </Stack>

@@ -80,6 +80,7 @@ export function calculateStageStatus(
 export function calculateSparkExecutorsStatus(
   sparkExecutors: SparkExecutorsStore,
   config: ConfigStore,
+  stagesTaskTimeMs?: number,
 ): SparkExecutorsStatus {
   const driver = sparkExecutors.filter((executor) => executor.isDriver)[0];
   const executors = sparkExecutors.filter((executor) => !executor.isDriver);
@@ -91,8 +92,10 @@ export function calculateSparkExecutorsStatus(
   // use executors.length (not numOfExecutors) to check for local mode, because in history server mode
   // all executors may be inactive (removed) but we still want to use their metrics
   const isLocalMode = executors.length === 0;
+  // in local mode Spark reports the driver's totalDuration as its uptime rather than its task time,
+  // so the task time is taken from the stages instead
   const totalTaskTimeMs = isLocalMode
-    ? driver.totalTaskDuration
+    ? stagesTaskTimeMs ?? driver.totalTaskDuration
     : executors
         .map((executor) => executor.totalTaskDuration)
         .reduce((a, b) => a + b, 0);
