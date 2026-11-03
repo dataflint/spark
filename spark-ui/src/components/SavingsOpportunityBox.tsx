@@ -31,8 +31,8 @@ const SavingsOpportunityBox: FC<{ savings: SavingsOpportunity }> = ({
       <Typography variant="subtitle2" sx={{ mt: 1 }}>
         A rough estimate of this app's compute cost (DCU) that is recoverable.
         DataFlint's agent pinpoints the code changes in your repo and opens the
-        PR. Works in Cursor, Claude Code and VS Code via MCP. Click to book a
-        demo.
+        PR. Works in Cursor, Claude Code and VS Code via MCP. Click to see it
+        live with the DataFlint team.
       </Typography>
     </React.Fragment>
   );
